@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Columns3, LogOut, Table2, TicketCheck } from 'lucide-react';
+import { Columns3, LogOut, Table2, TicketCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +33,7 @@ export function DashboardShell({
   const links = [
     { href: '/kanban', label: 'Kanban', icon: Columns3 },
     { href: '/table', label: 'Tabla', icon: Table2 },
+    { href: '/discord', label: 'Discord', icon: Users },
   ];
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">

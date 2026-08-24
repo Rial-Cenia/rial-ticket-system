@@ -35,6 +35,8 @@ No existe registro público. Crea las cuentas de email/contraseña previamente d
 | `APP_URL`                                         | URL pública de la aplicación                                                 |
 | `CRON_SECRET`                                     | Secreto Bearer del dispatcher                                                |
 | `DISCORD_PUBLIC_KEY`                              | Clave pública Ed25519 de la aplicación Discord                               |
+| `DISCORD_CLIENT_ID`                               | Client ID OAuth2 de la aplicación Discord                                    |
+| `DISCORD_CLIENT_SECRET`                           | Client secret OAuth2; solo servidor                                          |
 | `DISCORD_BOT_TOKEN`                               | Token del bot                                                                |
 | `DISCORD_GUILD_ID`                                | Servidor autorizado                                                          |
 | `DISCORD_TRIAGE_CHANNEL_ID`                       | Canal de texto donde viven el panel y los threads                            |
@@ -64,6 +66,10 @@ Las APIs del servidor llaman RPCs con la clave servidor. El navegador solo puede
 3. En **General Information → Interactions Endpoint URL**, configura `https://<dominio>/api/discord`. Discord enviará un PING firmado que el endpoint valida con `DISCORD_PUBLIC_KEY`.
 4. Configura en Vercel todas las variables Discord y Supabase antes de validar el endpoint.
 5. Publica el panel una sola vez con `yarn discord:setup`. Si ya existe, guarda su ID en `DISCORD_PANEL_MESSAGE_ID` y ejecuta el mismo comando para actualizarlo.
+6. En **OAuth2 → Redirects**, registra exactamente `<APP_URL>/api/discord/oauth/callback`.
+7. Otorga al bot `Manage Roles` y ubica su rol por encima de Barbilla Roja para poder administrar sus miembros desde la plataforma.
+
+Cada usuario interno puede abrir **Discord → Vincular mi Discord**. La autorización solicita únicamente `identify` y `guilds.members.read`, verifica que la cuenta pertenezca al servidor configurado y luego descarta el access token. La plataforma guarda solo la identidad pública enlazada. Desde esa misma pantalla, una cuenta autenticada puede asignar o quitar el rol Barbilla Roja a usuarios que ya vincularon Discord.
 
 El bot limita las menciones a IDs de rol configurados y al usuario de Discord que creó cada ticket. No requiere `Mention Everyone`. Cada ticket usa un código correlativo `RTP-{n}` y su thread se llama `RTP-{n}: {título}`. El panel abre un modal con título, descripción y tipo. Barbilla Roja hace triage y luego Barbilla Roja o el rol de la plataforma pueden cambiar el estado con botones; cada actualización menciona al creador cuando el ticket nació en Discord.
 

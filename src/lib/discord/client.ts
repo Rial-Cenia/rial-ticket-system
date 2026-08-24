@@ -1,6 +1,10 @@
 import 'server-only';
 import { getDiscordEnv } from '@/lib/env/server';
-import type { DiscordMessagePayload, DiscordThread } from '@/lib/discord/types';
+import type {
+  DiscordGuildMember,
+  DiscordMessagePayload,
+  DiscordThread,
+} from '@/lib/discord/types';
 
 const API = 'https://discord.com/api/v10';
 
@@ -164,4 +168,52 @@ export function createOrUpdatePanel(
     method: messageId ? 'PATCH' : 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function getGuildMember(discordUserId: string) {
+  const { guildId } = getDiscordEnv();
+  try {
+    return await request<DiscordGuildMember>(
+      `/guilds/${guildId}/members/${discordUserId}`,
+    );
+  } catch (error) {
+    if (error instanceof DiscordApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+export function addGuildMemberRole(
+  discordUserId: string,
+  roleId: string,
+  actorName: string,
+) {
+  const { guildId } = getDiscordEnv();
+  const reason = `Ticketera Rial: rol asignado por ${actorName.slice(0, 100)}`;
+  return request<void>(
+    `/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+    {
+      method: 'PUT',
+      headers: {
+        'x-audit-log-reason': encodeURIComponent(reason),
+      },
+    },
+  );
+}
+
+export function removeGuildMemberRole(
+  discordUserId: string,
+  roleId: string,
+  actorName: string,
+) {
+  const { guildId } = getDiscordEnv();
+  const reason = `Ticketera Rial: rol removido por ${actorName.slice(0, 100)}`;
+  return request<void>(
+    `/guilds/${guildId}/members/${discordUserId}/roles/${roleId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'x-audit-log-reason': encodeURIComponent(reason),
+      },
+    },
+  );
 }

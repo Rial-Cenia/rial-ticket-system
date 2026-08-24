@@ -10,9 +10,12 @@ vi.mock('@/lib/env/server', () => ({
 }));
 
 import {
+  addGuildMemberRole,
   createPublicThread,
   DiscordApiError,
   findTicketThread,
+  getGuildMember,
+  removeGuildMemberRole,
   renameThread,
   sendThreadMessage,
 } from '@/lib/discord/client';
@@ -92,5 +95,36 @@ describe('Discord REST client', () => {
       status: 429,
       retryAfterSeconds: 2.5,
     });
+  });
+
+  it('consulta la membresía y traduce un 404 a miembro inexistente', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 404 }));
+
+    await expect(getGuildMember('12345678901234567')).resolves.toBeNull();
+  });
+
+  it('agrega y quita el rol con trazabilidad para el audit log', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 204 }));
+
+    await addGuildMemberRole('12345678901234567', 'role-1', 'Ana Pérez');
+    await removeGuildMemberRole('12345678901234567', 'role-1', 'Ana Pérez');
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://discord.com/api/v10/guilds/guild-1/members/12345678901234567/roles/role-1',
+      expect.objectContaining({
+        method: 'PUT',
+        headers: expect.any(Headers),
+      }),
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://discord.com/api/v10/guilds/guild-1/members/12345678901234567/roles/role-1',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+    const firstOptions = vi.mocked(fetch).mock.calls[0][1];
+    expect(new Headers(firstOptions?.headers).get('x-audit-log-reason')).toBe(
+      'Ticketera%20Rial%3A%20rol%20asignado%20por%20Ana%20P%C3%A9rez',
+    );
   });
 });

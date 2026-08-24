@@ -47,3 +47,16 @@ export interface DiscordThread {
   name: string;
   parent_id?: string;
 }
+
+export interface DiscordUser {
+  id: string;
+  username: string;
+  global_name?: string | null;
+  avatar?: string | null;
+}
+
+export interface DiscordGuildMember {
+  roles: string[];
+  nick?: string | null;
+  user?: DiscordUser;
+}

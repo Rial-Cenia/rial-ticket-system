@@ -8,6 +8,7 @@ import {
   createTicketModal,
   CREATE_TICKET_MODAL_ID,
   OPEN_TICKET_MODAL_ID,
+  statusUpdateMessage,
   ticketControls,
 } from '@/lib/discord/components';
 import {
@@ -100,13 +101,19 @@ async function handleModal(interaction: DiscordInteraction) {
     );
     const dispatch = await processOutboxJobs(5).catch(() => null);
     const suffix = dispatch?.delivered
-      ? ' El thread de triage ya está disponible.'
-      : ' El thread quedó en cola de sincronización.';
+      ? 'El hilo ya está disponible para soltar todo el chisme y resolver el problemita, uwu ʕ•́ᴥ•̀ʔっ♡'
+      : `🧵✨ **El hilito entró en la fila de sincronización**
+Está esperando su turno muy educadamente, bestie (˶ᵔ ᵕ ᵔ˶)🎀
+En cuanto le toque, hará *sync* y quedará todo divino, uwu 💅🏻`;
     await editInteractionResponse(
       interaction.application_id,
       interaction.token,
       {
-        content: `✅ Ticket **${ticket.title}** creado con código \`${ticketCode(ticket)}\`.${suffix}`,
+        content: `✅ ¡Ticket **${ticket.title}** creado, bestie! ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧
+Tu codiguito es \`${ticketCode(ticket)}\` 🎟️💕
+${suffix}
+Ahora toca esperar a que el team haga su magia y sirva soporte 💅✨
+Ticket creado = momento slay. Cero bugs, pura gestión 🎀`,
         allowed_mentions: { parse: [] },
       },
     );
@@ -116,7 +123,9 @@ async function handleModal(interaction: DiscordInteraction) {
       interaction.application_id,
       interaction.token,
       {
-        content: `❌ No fue posible crear el ticket: ${message}`,
+        content: `❌ **Uy, bestie… el ticket no quiso cooperar** (╥﹏╥)💔
+No fue posible crearlo por este dramita técnico: \`${message}\` 🛠️
+Inténtalo otra vez en un momentito. Si sigue fallando, habrá que invocar al team técnico antes de que esto se convierta en tremendo evento canónico, uwu 🕯️✨`,
         allowed_mentions: { parse: [] },
       },
     );
@@ -129,7 +138,9 @@ async function handleTriage(interaction: DiscordInteraction, publicId: string) {
   const env = getDiscordEnv();
   if (!canTriage(actor.roles, env.triagerRoleId))
     return Response.json(
-      ephemeral('Solo Barbilla Roja puede asignar la plataforma.'),
+      ephemeral(`🚫 **Alto ahí, bestie** ✋(˵ •̀ ᴗ •́ ˵ )
+Solo **Barbilla Roja 👹** tiene el poder ancestral para asignar la plataforma 🔮✨
+El resto somos simples mortales sin esos permisos, uwu. Toca invocarlo y esperar que responda al llamado 📣🕯️`),
     );
 
   await acknowledge(
@@ -142,6 +153,7 @@ async function handleTriage(interaction: DiscordInteraction, publicId: string) {
   try {
     const platform = selectedPlatform(interaction);
     const ticket = await updateTicket(publicId, { platform }, 'DISCORD', actor);
+    const platformLabel = PLATFORM_LABELS[ticket.platform!];
     await editInteractionResponse(
       interaction.application_id,
       interaction.token,
@@ -152,14 +164,20 @@ async function handleTriage(interaction: DiscordInteraction, publicId: string) {
       interaction.token,
       creatorUpdate(
         ticket,
-        `el ticket \`${ticketCode(ticket)}\` fue asignado a **${PLATFORM_LABELS[ticket.platform!]}**. Su estado se mantiene en **${STATUS_LABELS[ticket.status]}**.`,
+        `🎀 Plot twist administrativo 🎀
+El ticket \`${ticketCode(ticket)}\` encontró a su humano designado: **${platformLabel}** (づ｡◕‿‿◕｡)づ📋
+Por ahora sigue en estado **${STATUS_LABELS[ticket.status]}** ⏳
+O sea, ya tiene dueño… pero la quest todavía no comienza, uwu 🎮✨
+**${platformLabel}**, te tocó cocinar, bestie 👨‍🍳🔥`,
       ),
     );
     await processOutboxJobs(5).catch(() => null);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error inesperado';
     await followupInteraction(interaction.application_id, interaction.token, {
-      content: `❌ No fue posible asignar el ticket: ${message}`,
+      content: `❌ **La asignación no pasó el vibe check** (｡•́︿•̀｡)💔
+No fue posible asignar el ticket por el siguiente dramita: \`${message}\` 🛠️
+Revisa los datos e inténtalo nuevamente, bestie. El ticket sigue esperando a su persona elegida 👉👈🎟️✨`,
       flags: InteractionResponseFlags.EPHEMERAL,
       allowed_mentions: { parse: [] },
     });
@@ -182,9 +200,14 @@ async function handleStatus(
   try {
     const actor = interactionActor(interaction);
     const current = await getTicket(publicId);
-    if (!current) throw new Error('Ticket not found');
+    if (!current)
+      throw new Error(`🔍💔 **Bestie… ese ticket no existe en este plano astral**
+No pudimos encontrarlo por ningún lado (｡•́︿•̀｡)
+Revisa el código e inténtalo otra vez, porque parece que hizo *ghosting*, uwu 👻🎀`);
     if (!current.platform)
-      throw new Error('El ticket todavía no tiene plataforma');
+      throw new Error(`🫣 **Bestie, aquí falta un detallito importante…**
+El ticket todavía no tiene una **plataforma** asignada (｡•́︿•̀｡)💻
+Primero hay que ponerle una, porque enviarlo así sería soltarlo al mundo sin contexto ni supervisión parental, uwu 🎀✨`);
     const env = getDiscordEnv();
     const allowed = canChangeTicketStatus(
       actor.roles,
@@ -193,7 +216,9 @@ async function handleStatus(
     );
     if (!allowed) {
       await followupInteraction(interaction.application_id, interaction.token, {
-        content: 'No tienes permisos para cambiar el estado de este ticket.',
+        content: `🚨 **Amix, ese botoncito no es para ti** ( •́ ᴖ •̀ )💔
+No tienes los permisos necesarios para cambiar el estado de este ticket 🔒✨
+Toca invocar a alguien con más aura administrativa, porque el sistema te dijo: **“hasta aquí llegaste, bestie”**, uwu 🫵🏻🎀`,
         flags: InteractionResponseFlags.EPHEMERAL,
         allowed_mentions: { parse: [] },
       });
@@ -207,15 +232,14 @@ async function handleStatus(
       ticketControls(ticket, actor.name, platformRoleId(ticket.platform!)),
     );
     await followupInteraction(interaction.application_id, interaction.token, {
-      ...creatorUpdate(
-        ticket,
-        `el ticket \`${ticketCode(ticket)}\` cambió de **${STATUS_LABELS[current.status]}** a **${STATUS_LABELS[ticket.status]}** · ${actor.name} · ${new Date().toISOString()}`,
-      ),
+      ...creatorUpdate(ticket, statusUpdateMessage(ticket, actor.name)),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error inesperado';
     await followupInteraction(interaction.application_id, interaction.token, {
-      content: `❌ No fue posible cambiar el estado: ${message}`,
+      content: `❌ **El cambio de estado hizo flop, bestie** (╥﹏╥)💥
+No fue posible actualizarlo por este pequeño escándalo técnico: \`${message}\` 🛠️🎀
+Inténtalo nuevamente cuando los astros del Kanban estén alineados, uwu 🕯️✨`,
       flags: InteractionResponseFlags.EPHEMERAL,
       allowed_mentions: { parse: [] },
     });
@@ -245,7 +269,9 @@ export async function POST(request: Request) {
   const env = getDiscordEnv();
   if (interaction.guild_id !== env.guildId)
     return Response.json(
-      ephemeral('Este bot no está habilitado en este servidor.'),
+      ephemeral(`🤖💤 **Este bot no vive aquí, bestie…**
+No está habilitado en este servidor (｡•́︿•̀｡)💔
+Toca activarlo antes de invocarlo, porque por ahora está en modo fantasma: cero presencia, cero servicio, cero aura administrativa 👻🎀`),
     );
 
   if (
@@ -277,5 +303,9 @@ export async function POST(request: Request) {
       );
   }
 
-  return Response.json(ephemeral('Interacción no soportada.'));
+  return Response.json(
+    ephemeral(`🚫🎮 **Esa interacción todavía no está desbloqueada, bestie**
+El bot no sabe qué hacer con ella y quedó en modo confundido (⊙_⊙;)💭
+Prueba otra opción antes de que tenga una crisis existencial digital, uwu 🤖🎀`),
+  );
 }

@@ -13,6 +13,8 @@ const schema = z.object({
   APP_URL: z.string().url().default('http://localhost:3000'),
   CRON_SECRET: optionalString,
   DISCORD_PUBLIC_KEY: optionalString,
+  DISCORD_CLIENT_ID: optionalString,
+  DISCORD_CLIENT_SECRET: optionalString,
   DISCORD_BOT_TOKEN: optionalString,
   DISCORD_GUILD_ID: optionalString,
   DISCORD_TRIAGE_CHANNEL_ID: optionalString,
@@ -57,4 +59,21 @@ export function getDiscordEnv() {
   }
 
   return required as { [Key in keyof typeof required]: string };
+}
+
+export function getDiscordOAuthEnv() {
+  const env = getServerEnv();
+  const required = {
+    clientId: env.DISCORD_CLIENT_ID,
+    clientSecret: env.DISCORD_CLIENT_SECRET,
+  };
+
+  for (const [name, value] of Object.entries(required)) {
+    if (!value) throw new Error(`Falta configuración OAuth Discord: ${name}`);
+  }
+
+  return {
+    ...(required as { [Key in keyof typeof required]: string }),
+    redirectUri: new URL('/api/discord/oauth/callback', env.APP_URL).toString(),
+  };
 }

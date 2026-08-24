@@ -64,24 +64,44 @@ export interface TicketFilters {
   unassignedOnly?: boolean;
 }
 
+export interface DiscordAccountLink {
+  userId: string;
+  discordUserId: string;
+  discordUsername: string;
+  discordDisplayName: string | null;
+  discordAvatarHash: string | null;
+  guildNickname: string | null;
+  linkedAt: string;
+  updatedAt: string;
+}
+
+export interface DiscordLinkedUser {
+  userId: string;
+  email: string;
+  name: string;
+  link: DiscordAccountLink | null;
+  isGuildMember: boolean;
+  hasTriagerRole: boolean;
+}
+
 export const STATUS_LABELS: Record<TicketStatus, string> = {
-  PENDIENTE: 'Pendiente',
-  EN_PROGRESO: 'En progreso',
-  EN_STAGING: 'En staging',
-  EN_ESPERA: 'En espera',
-  RESUELTO: 'Resuelto',
+  PENDIENTE: '⏳ Pendientito',
+  EN_PROGRESO: '🚧 Cocinándose',
+  EN_STAGING: '🧪 En pruebibas',
+  EN_ESPERA: '💤 En pausita',
+  RESUELTO: '✨ Resuelto, slay',
 };
 
 export const TYPE_LABELS: Record<TicketType, string> = {
-  REQUERIMIENTO: 'Requerimiento',
-  MEJORA: 'Mejora',
-  DUDA: 'Duda',
-  BUG: 'Bug',
+  REQUERIMIENTO: '📋 Nueva petición',
+  MEJORA: '✨ Mejora con glow-up',
+  DUDA: '💭 Dudita existencial',
+  BUG: '🐛 Bug travieso',
 };
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
-  NESTOR: 'Nestor',
-  DYLAN: 'Dylan',
-  ATOM: 'Atom',
-  KAYS: 'Kays',
+  NESTOR: '🌸 Nestor',
+  DYLAN: '⭐ Dylan',
+  ATOM: '⚛️ Atom',
+  KAYS: '🎀 Kays',
 };

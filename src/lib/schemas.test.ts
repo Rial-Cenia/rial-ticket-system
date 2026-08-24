@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createTicketSchema, updateTicketSchema } from '@/lib/schemas';
+import {
+  createTicketSchema,
+  discordRoleUpdateSchema,
+  updateTicketSchema,
+} from '@/lib/schemas';
 
 describe('ticket schemas', () => {
   it('aplica defaults al crear un ticket', () => {
@@ -21,5 +25,12 @@ describe('ticket schemas', () => {
     expect(updateTicketSchema.parse({ status: 'EN_STAGING' })).toEqual({
       status: 'EN_STAGING',
     });
+  });
+
+  it('acepta únicamente booleanos al cambiar el rol de Discord', () => {
+    expect(discordRoleUpdateSchema.parse({ enabled: true })).toEqual({
+      enabled: true,
+    });
+    expect(() => discordRoleUpdateSchema.parse({ enabled: 'true' })).toThrow();
   });
 });

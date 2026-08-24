@@ -13,8 +13,23 @@ if (!token || !channelId)
   throw new Error('Configura DISCORD_BOT_TOKEN y DISCORD_TRIAGE_CHANNEL_ID');
 
 const payload = {
-  content:
-    '## Ticketera Rial\n¿Necesitas soporte? Presiona el botón para crear un ticket.',
+  content: `🌸・゜゜・。。・゜゜・🌸
+
+## 🎟️ ୨୧ Ticketera Rial ୨୧ 🎟️
+
+¿Necesitas una ayudita, bestie? (｡•́︿•̀｡)
+Tranqui, no entres en pánico ni te quedes en modo NPC 💀✨
+¡El team Rial está aquí para salvar el día y servir soporte! 💅🏻
+
+Presiona el botoncito de abajo para crear tu ticket 🎀
+Cuéntanos todo el chisme con lujo de detalle y te ayudaremos lo antes posible, porque ignorarte sería tremendo red flag 🚩 y nosotros sí somos muy slay, uwu ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧
+
+### 🎫 Crear ticket, bestie ʕ•́ᴥ•̀ʔっ♡
+
+✨ Dale clic sin miedo, que el soporte sí resuelve ✨
+No ticket = no ayuda, bebé. Matemáticas básicas 💋
+
+🌸・゜゜・。。・゜゜・🌸`,
   components: [
     {
       type: 1,

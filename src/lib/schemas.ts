@@ -36,5 +36,7 @@ export const ticketFiltersSchema = z.object({
     .optional(),
 });
 
+export const discordRoleUpdateSchema = z.object({ enabled: z.boolean() });
+
 export type CreateTicketInput = z.input<typeof createTicketSchema>;
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
