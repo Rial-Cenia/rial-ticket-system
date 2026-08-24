@@ -1,0 +1,6 @@
+.next
+.yarn
+coverage
+playwright-report
+test-results
+supabase/.temp

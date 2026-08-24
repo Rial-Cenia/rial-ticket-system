@@ -1,0 +1,47 @@
+import { describe, expect, it } from 'vitest';
+import {
+  parseStatusId,
+  parseTicketModal,
+  parseTriageId,
+} from '@/lib/discord/interactions';
+import type { DiscordInteraction } from '@/lib/discord/types';
+
+const publicId = '3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71';
+
+describe('Discord interactions', () => {
+  it('extrae inputs anidados del modal components v2', () => {
+    const interaction = {
+      data: {
+        components: [
+          {
+            type: 18,
+            component: { custom_id: 'ticket_title', value: 'Error crítico' },
+          },
+          {
+            type: 18,
+            component: { custom_id: 'ticket_description', value: 'No carga' },
+          },
+          {
+            type: 18,
+            component: { custom_id: 'ticket_type', values: ['BUG'] },
+          },
+        ],
+      },
+    } as DiscordInteraction;
+    expect(parseTicketModal(interaction)).toMatchObject({
+      title: 'Error crítico',
+      description: 'No carga',
+      type: 'BUG',
+    });
+  });
+
+  it('valida custom ids y no acepta pendiente como botón', () => {
+    expect(parseTriageId(`triage_platform_${publicId}`)).toBe(publicId);
+    expect(parseStatusId(`status_RESUELTO_${publicId}`)).toEqual({
+      status: 'RESUELTO',
+      publicId,
+    });
+    expect(parseStatusId(`status_PENDIENTE_${publicId}`)).toBeNull();
+    expect(parseTriageId('triage_platform_drop table')).toBeNull();
+  });
+});
