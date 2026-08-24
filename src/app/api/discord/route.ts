@@ -19,6 +19,7 @@ import {
 import {
   interactionActor,
   parseStatusId,
+  parseTicketAttachments,
   parseTicketModal,
   parseTriageId,
   selectedPlatform,
@@ -32,7 +33,12 @@ import {
 } from '@/lib/discord/types';
 import { getDiscordEnv } from '@/lib/env/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createTicket, getTicket, updateTicket } from '@/lib/tickets/server';
+import {
+  createTicket,
+  getTicket,
+  getTicketImageSignedUrls,
+  updateTicket,
+} from '@/lib/tickets/server';
 import { ticketCode } from '@/lib/tickets/format';
 import {
   PLATFORM_LABELS,
@@ -98,6 +104,7 @@ async function handleModal(interaction: DiscordInteraction) {
         name: actor.name,
         discordId: actor.id,
       },
+      parseTicketAttachments(interaction),
     );
     const dispatch = await processOutboxJobs(5).catch(() => null);
     const suffix = dispatch?.delivered
@@ -153,11 +160,12 @@ El resto somos simples mortales sin esos permisos, uwu. Toca invocarlo y esperar
   try {
     const platform = selectedPlatform(interaction);
     const ticket = await updateTicket(publicId, { platform }, 'DISCORD', actor);
+    const imageUrls = await getTicketImageSignedUrls(publicId);
     const platformLabel = PLATFORM_LABELS[ticket.platform!];
     await editInteractionResponse(
       interaction.application_id,
       interaction.token,
-      ticketControls(ticket, actor.name, platformRoleId(platform)),
+      ticketControls(ticket, actor.name, platformRoleId(platform), imageUrls),
     );
     await followupInteraction(
       interaction.application_id,
@@ -226,10 +234,16 @@ Toca invocar a alguien con más aura administrativa, porque el sistema te dijo: 
     }
 
     const ticket = await updateTicket(publicId, { status }, 'DISCORD', actor);
+    const imageUrls = await getTicketImageSignedUrls(publicId);
     await editInteractionResponse(
       interaction.application_id,
       interaction.token,
-      ticketControls(ticket, actor.name, platformRoleId(ticket.platform!)),
+      ticketControls(
+        ticket,
+        actor.name,
+        platformRoleId(ticket.platform!),
+        imageUrls,
+      ),
     );
     await followupInteraction(interaction.application_id, interaction.token, {
       ...creatorUpdate(ticket, statusUpdateMessage(ticket, actor.name)),

@@ -12,6 +12,15 @@ const discordMemberSchema = z.object({
   user: discordUserSchema,
 });
 
+const discordAttachmentSchema = z.object({
+  id: z.string(),
+  filename: z.string().min(1).max(255),
+  content_type: z.string().optional(),
+  size: z.number().int().positive(),
+  url: z.string().url(),
+  proxy_url: z.string().url().optional(),
+});
+
 export const discordInteractionSchema = z.object({
   id: z.string(),
   application_id: z.string(),
@@ -27,12 +36,18 @@ export const discordInteractionSchema = z.object({
       component_type: z.number().int().optional(),
       values: z.array(z.string()).optional(),
       components: z.array(z.unknown()).optional(),
+      resolved: z
+        .object({
+          attachments: z.record(z.string(), discordAttachmentSchema).optional(),
+        })
+        .optional(),
     })
     .passthrough()
     .optional(),
 });
 
 export type DiscordInteraction = z.infer<typeof discordInteractionSchema>;
+export type DiscordAttachment = z.infer<typeof discordAttachmentSchema>;
 
 export interface DiscordMessagePayload {
   content?: string;

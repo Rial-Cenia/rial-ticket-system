@@ -12,7 +12,7 @@ import {
 import { triageMessage } from '@/lib/discord/components';
 import { getDiscordEnv } from '@/lib/env/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getTicket } from '@/lib/tickets/server';
+import { getTicket, getTicketImageSignedUrls } from '@/lib/tickets/server';
 import { ticketThreadName } from '@/lib/tickets/format';
 import type { OutboxJob } from '@/lib/types';
 
@@ -76,11 +76,13 @@ async function processCreateThread(job: OutboxJob) {
   }
 
   if (!(await hasTicketMessage(thread.id, ticket.publicId))) {
+    const imageUrls = await getTicketImageSignedUrls(ticket.publicId);
     await sendThreadMessage(
       thread.id,
       triageMessage(
         { ...ticket, discordThreadId: thread.id },
         getDiscordEnv().triagerRoleId,
+        imageUrls,
       ),
     );
   }

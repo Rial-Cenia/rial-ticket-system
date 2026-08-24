@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createTicketModal,
   statusUpdateMessage,
   ticketControls,
   ticketPanelMessage,
@@ -18,6 +19,7 @@ const ticket: Ticket = {
   createdByName: 'Operaciones',
   createdByDiscordId: 'creator-1',
   discordThreadId: 'thread-1',
+  images: [],
   createdAt: '2026-08-24T12:00:00.000Z',
   updatedAt: '2026-08-24T13:00:00.000Z',
 };
@@ -72,6 +74,26 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
       parse: [],
       roles: ['triager-role'],
     });
+  });
+
+  it('permite adjuntar imágenes en el modal y mostrarlas en el hilo', () => {
+    expect(JSON.stringify(createTicketModal())).toContain(
+      '"custom_id":"ticket_images"',
+    );
+    expect(JSON.stringify(createTicketModal())).toContain('"type":19');
+
+    const message = triageMessage(ticket, 'triager-role', [
+      'https://storage.example/one.png',
+      'https://storage.example/two.png',
+    ]);
+    expect(message.embeds).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          image: { url: 'https://storage.example/one.png' },
+        }),
+        { image: { url: 'https://storage.example/two.png' } },
+      ]),
+    );
   });
 
   it('muestra el código RTP en los mensajes', () => {

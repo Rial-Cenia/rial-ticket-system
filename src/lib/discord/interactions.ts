@@ -3,7 +3,10 @@ import {
   platformSchema,
   ticketStatusSchema,
 } from '@/lib/schemas';
-import type { DiscordInteraction } from '@/lib/discord/types';
+import type {
+  DiscordAttachment,
+  DiscordInteraction,
+} from '@/lib/discord/types';
 
 export function interactionActor(interaction: DiscordInteraction) {
   const user = interaction.member?.user ?? interaction.user;
@@ -46,11 +49,44 @@ function findValue(node: unknown, customId: string): string | undefined {
   return undefined;
 }
 
+function findValues(node: unknown, customId: string): string[] {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = findValues(item, customId);
+      if (found.length) return found;
+    }
+    return [];
+  }
+  if (!node || typeof node !== 'object') return [];
+  const record = node as Record<string, unknown>;
+  if (record.custom_id === customId && Array.isArray(record.values))
+    return record.values.filter(
+      (value): value is string => typeof value === 'string',
+    );
+
+  for (const key of ['components', 'component']) {
+    const found = findValues(record[key], customId);
+    if (found.length) return found;
+  }
+  return [];
+}
+
 export function parseTicketModal(interaction: DiscordInteraction) {
   return createTicketSchema.parse({
     title: findValue(interaction.data?.components, 'ticket_title'),
     description: findValue(interaction.data?.components, 'ticket_description'),
     type: findValue(interaction.data?.components, 'ticket_type'),
+  });
+}
+
+export function parseTicketAttachments(
+  interaction: DiscordInteraction,
+): DiscordAttachment[] {
+  const resolved = interaction.data?.resolved?.attachments ?? {};
+  return findValues(interaction.data?.components, 'ticket_images').map((id) => {
+    const attachment = resolved[id];
+    if (!attachment) throw new Error('Discord no incluyó una imagen adjunta');
+    return attachment;
   });
 }
 

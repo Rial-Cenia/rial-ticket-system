@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   renameThread: vi.fn(),
   sendThreadMessage: vi.fn(),
   getTicket: vi.fn(),
+  getTicketImageSignedUrls: vi.fn(),
   rpc: vi.fn(),
 }));
 
@@ -28,7 +29,10 @@ vi.mock('@/lib/env/server', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => ({ rpc: mocks.rpc }),
 }));
-vi.mock('@/lib/tickets/server', () => ({ getTicket: mocks.getTicket }));
+vi.mock('@/lib/tickets/server', () => ({
+  getTicket: mocks.getTicket,
+  getTicketImageSignedUrls: mocks.getTicketImageSignedUrls,
+}));
 
 import { processOutboxJobs } from '@/lib/discord/jobs';
 
@@ -43,6 +47,7 @@ const ticket: Ticket = {
   createdByName: 'Operaciones',
   createdByDiscordId: 'discord-user-1',
   discordThreadId: 'thread-1',
+  images: [],
   createdAt: '2026-08-24T12:00:00.000Z',
   updatedAt: '2026-08-24T13:00:00.000Z',
 };
@@ -68,6 +73,7 @@ describe('Discord outbox jobs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getTicket.mockResolvedValue(ticket);
+    mocks.getTicketImageSignedUrls.mockResolvedValue([]);
     mocks.renameThread.mockResolvedValue({
       id: 'thread-1',
       name: 'RTP-42: Error crítico',
@@ -134,5 +140,36 @@ describe('Discord outbox jobs', () => {
       'RTP-42: Error crítico',
     );
     expect(mocks.createPublicThread).not.toHaveBeenCalled();
+  });
+
+  it('incluye las imágenes firmadas al publicar el ticket en el hilo', async () => {
+    mocks.findTicketThread.mockResolvedValue({
+      id: 'thread-1',
+      name: 'RTP-42: Error crítico',
+    });
+    mocks.hasTicketMessage.mockResolvedValue(false);
+    mocks.getTicketImageSignedUrls.mockResolvedValue([
+      'https://storage.example/signed/image.png',
+    ]);
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: [
+          job('CREATE_TRIAGE_THREAD', { ticketPublicId: ticket.publicId }),
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(processOutboxJobs()).resolves.toMatchObject({ delivered: 1 });
+    expect(mocks.sendThreadMessage).toHaveBeenCalledWith(
+      'thread-1',
+      expect.objectContaining({
+        embeds: expect.arrayContaining([
+          expect.objectContaining({
+            image: { url: 'https://storage.example/signed/image.png' },
+          }),
+        ]),
+      }),
+    );
   });
 });

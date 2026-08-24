@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   createTicket: vi.fn(),
   updateTicket: vi.fn(),
   getTicket: vi.fn(),
+  getTicketImageSignedUrls: vi.fn(),
   processJobs: vi.fn(),
   rpc: vi.fn(),
   discordEnv: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock('@/lib/tickets/server', () => ({
   createTicket: mocks.createTicket,
   updateTicket: mocks.updateTicket,
   getTicket: mocks.getTicket,
+  getTicketImageSignedUrls: mocks.getTicketImageSignedUrls,
 }));
 
 import { POST } from '@/app/api/discord/route';
@@ -91,6 +93,7 @@ describe('Discord interaction route', () => {
         title: 'Error crítico',
       };
     });
+    mocks.getTicketImageSignedUrls.mockResolvedValue([]);
   });
 
   it('rechaza headers de firma ausentes', async () => {
@@ -235,6 +238,7 @@ Prueba otra opción antes de que tenga una crisis existencial digital, uwu 🤖�
       expect.objectContaining({ type: 'BUG' }),
       'DISCORD',
       expect.objectContaining({ id: 'user-1' }),
+      [],
     );
     expect(mocks.edit).toHaveBeenCalledWith('app', 'token', {
       content: `✅ ¡Ticket **Error crítico** creado, bestie! ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧

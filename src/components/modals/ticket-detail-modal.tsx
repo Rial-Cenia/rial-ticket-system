@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -96,6 +97,39 @@ function TicketDetailModalForm({
               }
             />
           </label>
+          {form.images.length > 0 && (
+            <section
+              className="space-y-2"
+              aria-labelledby="ticket-images-title"
+            >
+              <h3
+                id="ticket-images-title"
+                className="text-sm font-medium text-zinc-300"
+              >
+                Imágenes ({form.images.length})
+              </h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {form.images.map((image) => (
+                  <a
+                    key={image.id}
+                    href={image.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="overflow-hidden rounded-lg border border-white/10 bg-zinc-900"
+                  >
+                    <Image
+                      src={image.url}
+                      alt={image.fileName}
+                      width={640}
+                      height={480}
+                      unoptimized
+                      className="aspect-4/3 h-auto w-full object-cover transition hover:scale-105"
+                    />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
           <label className="block space-y-1.5 text-sm text-zinc-300">
             Descripción
             <Textarea

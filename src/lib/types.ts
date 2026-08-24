@@ -26,8 +26,18 @@ export interface Ticket {
   createdByName: string;
   createdByDiscordId: string | null;
   discordThreadId: string | null;
+  images: TicketImage[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TicketImage {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  createdAt: string;
 }
 
 export interface TicketActivity {

@@ -107,6 +107,19 @@ export function createTicketModal() {
             })),
           },
         },
+        {
+          type: 18,
+          label: '📸 Suelta las pruebas, bestie',
+          description:
+            'Hasta 5 fotitos de 10 MB c/u. El chisme visual ayuda, uwu',
+          component: {
+            type: 19,
+            custom_id: 'ticket_images',
+            min_values: 0,
+            max_values: 5,
+            required: false,
+          },
+        },
       ],
     },
   };
@@ -115,6 +128,7 @@ export function createTicketModal() {
 export function triageMessage(
   ticket: Ticket,
   triagerRoleId: string,
+  imageUrls: string[] = [],
 ): DiscordMessagePayload {
   return {
     content: `🚨 **¡Nueva side quest desbloqueada, equipo!** 🚨
@@ -159,7 +173,9 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
         },
 
         timestamp: ticket.createdAt,
+        ...(imageUrls[0] ? { image: { url: imageUrls[0] } } : {}),
       },
+      ...imageUrls.slice(1).map((url) => ({ image: { url } })),
     ],
 
     components: [
@@ -221,6 +237,7 @@ export function ticketControls(
   ticket: Ticket,
   assignedBy: string,
   platformRoleId: string,
+  imageUrls: string[] = [],
 ): DiscordMessagePayload {
   return {
     content: `🎮 **¡Nueva quest asignada!**
@@ -264,7 +281,9 @@ El ticket aterrizó en **${PLATFORM_LABELS[ticket.platform as Platform]}**, cort
         },
 
         timestamp: ticket.updatedAt,
+        ...(imageUrls[0] ? { image: { url: imageUrls[0] } } : {}),
       },
+      ...imageUrls.slice(1).map((url) => ({ image: { url } })),
     ],
 
     components: [
