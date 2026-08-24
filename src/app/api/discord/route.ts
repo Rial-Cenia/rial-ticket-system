@@ -141,12 +141,7 @@ async function handleTriage(interaction: DiscordInteraction, publicId: string) {
 
   try {
     const platform = selectedPlatform(interaction);
-    const ticket = await updateTicket(
-      publicId,
-      { platform, status: 'EN_PROGRESO' },
-      'DISCORD',
-      actor,
-    );
+    const ticket = await updateTicket(publicId, { platform }, 'DISCORD', actor);
     await editInteractionResponse(
       interaction.application_id,
       interaction.token,
@@ -157,7 +152,7 @@ async function handleTriage(interaction: DiscordInteraction, publicId: string) {
       interaction.token,
       creatorUpdate(
         ticket,
-        `el ticket \`${ticketCode(ticket)}\` fue asignado a **${PLATFORM_LABELS[ticket.platform!]}** y pasó a **${STATUS_LABELS[ticket.status]}**.`,
+        `el ticket \`${ticketCode(ticket)}\` fue asignado a **${PLATFORM_LABELS[ticket.platform!]}**. Su estado se mantiene en **${STATUS_LABELS[ticket.status]}**.`,
       ),
     );
     await processOutboxJobs(5).catch(() => null);

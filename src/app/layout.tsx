@@ -5,6 +5,10 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Ticketera Rial',
   description: 'Soporte interno sincronizado con Discord',
+  icons: {
+    icon: '/ticket.png',
+    apple: '/ticket.png',
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

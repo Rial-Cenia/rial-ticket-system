@@ -176,6 +176,57 @@ describe('Discord interaction route', () => {
     );
   });
 
+  it('asigna la plataforma sin cambiar el estado pendiente', async () => {
+    const ticket = {
+      id: 42,
+      publicId: '3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71',
+      title: 'Error crítico',
+      description: 'No carga',
+      type: 'BUG',
+      status: 'PENDIENTE',
+      platform: 'NESTOR',
+      createdByName: 'Operaciones',
+      createdByDiscordId: 'creator-1',
+      discordThreadId: 'thread-1',
+      createdAt: '2026-08-24T12:00:00.000Z',
+      updatedAt: '2026-08-24T13:00:00.000Z',
+    } as const;
+    mocks.updateTicket.mockResolvedValue(ticket);
+
+    const response = await POST(
+      signedRequest({
+        id: '4',
+        application_id: 'app',
+        token: 'token',
+        type: 3,
+        guild_id: 'guild-1',
+        member: {
+          roles: ['triager-role'],
+          user: { id: 'triager-1', username: 'barbilla-roja' },
+        },
+        data: {
+          custom_id: 'triage_platform_3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71',
+          values: ['NESTOR'],
+        },
+      }),
+    );
+
+    expect(response.status).toBe(202);
+    expect(mocks.updateTicket).toHaveBeenCalledWith(
+      ticket.publicId,
+      { platform: 'NESTOR' },
+      'DISCORD',
+      expect.objectContaining({ id: 'triager-1' }),
+    );
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app',
+      'token',
+      expect.objectContaining({
+        content: expect.stringContaining('se mantiene en **Pendiente**'),
+      }),
+    );
+  });
+
   it('permite volver a pendiente y menciona al creador del ticket', async () => {
     const current = {
       id: 42,
