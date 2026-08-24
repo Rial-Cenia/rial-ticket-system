@@ -13,6 +13,7 @@ import {
   createPublicThread,
   DiscordApiError,
   findTicketThread,
+  renameThread,
   sendThreadMessage,
 } from '@/lib/discord/client';
 
@@ -57,6 +58,24 @@ describe('Discord REST client', () => {
     await expect(findTicketThread('ticket-123')).resolves.toMatchObject({
       id: 'thread-1',
     });
+  });
+
+  it('renombra un thread existente', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ id: 'thread-1', name: 'RTP-42: Error' }), {
+        status: 200,
+      }),
+    );
+
+    await renameThread('thread-1', 'RTP-42: Error');
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/channels/thread-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ name: 'RTP-42: Error' }),
+      }),
+    );
   });
 
   it('expone retry_after en respuestas 429', async () => {

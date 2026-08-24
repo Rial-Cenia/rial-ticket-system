@@ -7,6 +7,7 @@ import { STATUS_LABELS, type Ticket, type TicketStatus } from '@/lib/types';
 const dots: Record<TicketStatus, string> = {
   PENDIENTE: 'bg-red-400',
   EN_PROGRESO: 'bg-yellow-400',
+  EN_STAGING: 'bg-blue-400',
   EN_ESPERA: 'bg-orange-400',
   RESUELTO: 'bg-emerald-400',
 };

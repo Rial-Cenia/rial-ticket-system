@@ -86,6 +86,7 @@ describe('Discord interaction route', () => {
     mocks.createTicket.mockImplementation(async () => {
       mocks.order.push('database');
       return {
+        id: 42,
         publicId: '3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71',
         title: 'Error crítico',
       };
@@ -172,6 +173,58 @@ describe('Discord interaction route', () => {
       expect.objectContaining({ type: 'BUG' }),
       'DISCORD',
       expect.objectContaining({ id: 'user-1' }),
+    );
+  });
+
+  it('permite volver a pendiente y menciona al creador del ticket', async () => {
+    const current = {
+      id: 42,
+      publicId: '3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71',
+      title: 'Error crítico',
+      description: 'No carga',
+      type: 'BUG',
+      status: 'EN_PROGRESO',
+      platform: 'NESTOR',
+      createdByName: 'Operaciones',
+      createdByDiscordId: 'creator-1',
+      discordThreadId: 'thread-1',
+      createdAt: '2026-08-24T12:00:00.000Z',
+      updatedAt: '2026-08-24T13:00:00.000Z',
+    } as const;
+    mocks.getTicket.mockResolvedValue(current);
+    mocks.updateTicket.mockResolvedValue({ ...current, status: 'PENDIENTE' });
+
+    const response = await POST(
+      signedRequest({
+        id: '4',
+        application_id: 'app',
+        token: 'token',
+        type: 3,
+        guild_id: 'guild-1',
+        member: {
+          roles: ['platform-role'],
+          user: { id: 'operator-1', username: 'operaciones' },
+        },
+        data: {
+          custom_id: 'status_PENDIENTE_3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71',
+        },
+      }),
+    );
+
+    expect(response.status).toBe(202);
+    expect(mocks.updateTicket).toHaveBeenCalledWith(
+      current.publicId,
+      { status: 'PENDIENTE' },
+      'DISCORD',
+      expect.objectContaining({ id: 'operator-1' }),
+    );
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app',
+      'token',
+      expect.objectContaining({
+        content: expect.stringContaining('<@creator-1>'),
+        allowed_mentions: { parse: [], users: ['creator-1'] },
+      }),
     );
   });
 });

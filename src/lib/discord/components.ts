@@ -8,6 +8,7 @@ import {
   type Platform,
   type Ticket,
 } from '@/lib/types';
+import { ticketCode } from '@/lib/tickets/format';
 
 export const OPEN_TICKET_MODAL_ID = 'open_ticket_modal';
 export const CREATE_TICKET_MODAL_ID = 'create_ticket_modal';
@@ -97,7 +98,7 @@ export function triageMessage(
         description: sanitize(ticket.description),
         color: 0x407db7,
         fields: [
-          { name: 'ID', value: ticket.publicId, inline: false },
+          { name: 'Código', value: ticketCode(ticket), inline: false },
           { name: 'Tipo', value: TYPE_LABELS[ticket.type], inline: true },
           { name: 'Estado', value: STATUS_LABELS[ticket.status], inline: true },
           {
@@ -145,7 +146,7 @@ export function ticketControls(
         description: sanitize(ticket.description),
         color: ticket.status === 'RESUELTO' ? 0x12b76a : 0x407db7,
         fields: [
-          { name: 'ID', value: ticket.publicId },
+          { name: 'Código', value: ticketCode(ticket) },
           { name: 'Tipo', value: TYPE_LABELS[ticket.type], inline: true },
           { name: 'Estado', value: STATUS_LABELS[ticket.status], inline: true },
           {
@@ -166,10 +167,24 @@ export function ticketControls(
         components: [
           {
             type: 2,
+            style: 2,
+            label: 'Pendiente',
+            custom_id: `status_PENDIENTE_${ticket.publicId}`,
+            disabled: ticket.status === 'PENDIENTE',
+          },
+          {
+            type: 2,
             style: 1,
             label: 'En progreso',
             custom_id: `status_EN_PROGRESO_${ticket.publicId}`,
             disabled: ticket.status === 'EN_PROGRESO',
+          },
+          {
+            type: 2,
+            style: 1,
+            label: 'En staging',
+            custom_id: `status_EN_STAGING_${ticket.publicId}`,
+            disabled: ticket.status === 'EN_STAGING',
           },
           {
             type: 2,

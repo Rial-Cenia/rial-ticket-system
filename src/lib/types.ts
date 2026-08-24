@@ -2,6 +2,7 @@ export const TICKET_TYPES = ['REQUERIMIENTO', 'MEJORA', 'DUDA', 'BUG'] as const;
 export const TICKET_STATUSES = [
   'PENDIENTE',
   'EN_PROGRESO',
+  'EN_STAGING',
   'EN_ESPERA',
   'RESUELTO',
 ] as const;
@@ -66,6 +67,7 @@ export interface TicketFilters {
 export const STATUS_LABELS: Record<TicketStatus, string> = {
   PENDIENTE: 'Pendiente',
   EN_PROGRESO: 'En progreso',
+  EN_STAGING: 'En staging',
   EN_ESPERA: 'En espera',
   RESUELTO: 'Resuelto',
 };

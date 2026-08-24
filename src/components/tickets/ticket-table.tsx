@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react';
 import { PlatformBadge, TypeBadge } from '@/components/tickets/ticket-badges';
 import { Button } from '@/components/ui/button';
 import { STATUS_LABELS, type Ticket } from '@/lib/types';
+import { ticketCode } from '@/lib/tickets/format';
 
 export function TicketTable({
   tickets,
@@ -42,7 +43,7 @@ export function TicketTable({
               {row.original.title}
             </span>
             <span className="block truncate text-xs text-zinc-600">
-              {row.original.publicId}
+              {ticketCode(row.original)}
             </span>
           </button>
         ),

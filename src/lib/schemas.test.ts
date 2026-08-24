@@ -16,4 +16,10 @@ describe('ticket schemas', () => {
     expect(() => updateTicketSchema.parse({})).toThrow();
     expect(() => updateTicketSchema.parse({ status: 'CERRADO' })).toThrow();
   });
+
+  it('acepta el estado de staging', () => {
+    expect(updateTicketSchema.parse({ status: 'EN_STAGING' })).toEqual({
+      status: 'EN_STAGING',
+    });
+  });
 });

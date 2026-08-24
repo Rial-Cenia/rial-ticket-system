@@ -82,7 +82,7 @@ export function FilterBar({
           onChange={(event) =>
             onChange({ ...filters, search: event.target.value || undefined })
           }
-          placeholder="Buscar título, descripción o creador"
+          placeholder="Buscar código, título, descripción o creador"
         />
       </label>
       <label className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2 text-sm text-zinc-400">

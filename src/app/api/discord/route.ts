@@ -32,6 +32,13 @@ import {
 import { getDiscordEnv } from '@/lib/env/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createTicket, getTicket, updateTicket } from '@/lib/tickets/server';
+import { ticketCode } from '@/lib/tickets/format';
+import {
+  PLATFORM_LABELS,
+  STATUS_LABELS,
+  type Ticket,
+  type TicketStatus,
+} from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,6 +51,17 @@ const ephemeral = (content: string) => ({
     allowed_mentions: { parse: [] },
   },
 });
+
+function creatorUpdate(ticket: Ticket, content: string) {
+  const creatorId = ticket.createdByDiscordId;
+  return {
+    content: creatorId ? `<@${creatorId}> ${content}` : content,
+    allowed_mentions: {
+      parse: [],
+      ...(creatorId ? { users: [creatorId] } : {}),
+    },
+  };
+}
 
 async function acknowledge(interaction: DiscordInteraction, type: number) {
   await callbackInteraction(interaction.id, interaction.token, { type });
@@ -88,7 +106,7 @@ async function handleModal(interaction: DiscordInteraction) {
       interaction.application_id,
       interaction.token,
       {
-        content: `✅ Ticket **${ticket.title}** creado con ID \`${ticket.publicId}\`.${suffix}`,
+        content: `✅ Ticket **${ticket.title}** creado con código \`${ticketCode(ticket)}\`.${suffix}`,
         allowed_mentions: { parse: [] },
       },
     );
@@ -134,6 +152,14 @@ async function handleTriage(interaction: DiscordInteraction, publicId: string) {
       interaction.token,
       ticketControls(ticket, actor.name, platformRoleId(platform)),
     );
+    await followupInteraction(
+      interaction.application_id,
+      interaction.token,
+      creatorUpdate(
+        ticket,
+        `el ticket \`${ticketCode(ticket)}\` fue asignado a **${PLATFORM_LABELS[ticket.platform!]}** y pasó a **${STATUS_LABELS[ticket.status]}**.`,
+      ),
+    );
     await processOutboxJobs(5).catch(() => null);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error inesperado';
@@ -149,7 +175,7 @@ async function handleTriage(interaction: DiscordInteraction, publicId: string) {
 async function handleStatus(
   interaction: DiscordInteraction,
   publicId: string,
-  status: 'EN_PROGRESO' | 'EN_ESPERA' | 'RESUELTO',
+  status: TicketStatus,
 ) {
   await acknowledge(
     interaction,
@@ -186,8 +212,10 @@ async function handleStatus(
       ticketControls(ticket, actor.name, platformRoleId(ticket.platform!)),
     );
     await followupInteraction(interaction.application_id, interaction.token, {
-      content: `📝 Estado: **${current.status}** → **${ticket.status}** · ${actor.name} · ${new Date().toISOString()}`,
-      allowed_mentions: { parse: [] },
+      ...creatorUpdate(
+        ticket,
+        `el ticket \`${ticketCode(ticket)}\` cambió de **${STATUS_LABELS[current.status]}** a **${STATUS_LABELS[ticket.status]}** · ${actor.name} · ${new Date().toISOString()}`,
+      ),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error inesperado';

@@ -33,9 +33,12 @@ export async function listTickets(filters: TicketFilters = {}) {
   if (filters.search) {
     const search = filters.search.replace(/[,%()]/g, ' ').trim();
     if (search) {
-      query = query.or(
-        `title.ilike.%${search}%,description.ilike.%${search}%,createdByName.ilike.%${search}%`,
-      );
+      const code = /^RTP-(\d+)$/i.exec(search);
+      query = code
+        ? query.eq('id', Number(code[1]))
+        : query.or(
+            `title.ilike.%${search}%,description.ilike.%${search}%,createdByName.ilike.%${search}%`,
+          );
     }
   }
 

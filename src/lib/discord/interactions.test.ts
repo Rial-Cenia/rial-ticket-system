@@ -35,13 +35,20 @@ describe('Discord interactions', () => {
     });
   });
 
-  it('valida custom ids y no acepta pendiente como botón', () => {
+  it('valida custom ids de triage y de todos los estados', () => {
     expect(parseTriageId(`triage_platform_${publicId}`)).toBe(publicId);
     expect(parseStatusId(`status_RESUELTO_${publicId}`)).toEqual({
       status: 'RESUELTO',
       publicId,
     });
-    expect(parseStatusId(`status_PENDIENTE_${publicId}`)).toBeNull();
+    expect(parseStatusId(`status_PENDIENTE_${publicId}`)).toEqual({
+      status: 'PENDIENTE',
+      publicId,
+    });
+    expect(parseStatusId(`status_EN_STAGING_${publicId}`)).toEqual({
+      status: 'EN_STAGING',
+      publicId,
+    });
     expect(parseTriageId('triage_platform_drop table')).toBeNull();
   });
 });

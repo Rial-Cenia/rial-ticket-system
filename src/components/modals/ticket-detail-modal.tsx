@@ -30,6 +30,7 @@ import {
   type TicketStatus,
   type TicketType,
 } from '@/lib/types';
+import { ticketCode } from '@/lib/tickets/format';
 
 export function TicketDetailModal(props: {
   ticket: Ticket | null;
@@ -82,7 +83,7 @@ function TicketDetailModalForm({
         <DialogHeader>
           <DialogTitle>Detalle del ticket</DialogTitle>
           <DialogDescription className="font-mono">
-            {form.publicId}
+            {ticketCode(form)}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">

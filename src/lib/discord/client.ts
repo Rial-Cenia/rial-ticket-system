@@ -100,6 +100,13 @@ export function archiveThread(threadId: string) {
   });
 }
 
+export function renameThread(threadId: string, name: string) {
+  return request<DiscordThread>(`/channels/${threadId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name: name.slice(0, 100) }),
+  });
+}
+
 export function callbackInteraction(
   interactionId: string,
   token: string,

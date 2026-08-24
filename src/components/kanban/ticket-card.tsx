@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import { GripVertical, MessageSquareText } from 'lucide-react';
 import { PlatformBadge, TypeBadge } from '@/components/tickets/ticket-badges';
 import type { Ticket } from '@/lib/types';
+import { ticketCode } from '@/lib/tickets/format';
 
 export function TicketCard({
   ticket,
@@ -38,6 +39,9 @@ export function TicketCard({
         </button>
       </div>
       <button className="block w-full text-left" onClick={() => onOpen(ticket)}>
+        <span className="mb-1 block font-mono text-xs text-indigo-400">
+          {ticketCode(ticket)}
+        </span>
         <h3 className="font-medium text-zinc-100">{ticket.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm leading-5 text-zinc-500">
           {ticket.description}

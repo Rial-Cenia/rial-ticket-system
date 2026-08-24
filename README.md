@@ -65,7 +65,7 @@ Las APIs del servidor llaman RPCs con la clave servidor. El navegador solo puede
 4. Configura en Vercel todas las variables Discord y Supabase antes de validar el endpoint.
 5. Publica el panel una sola vez con `yarn discord:setup`. Si ya existe, guarda su ID en `DISCORD_PANEL_MESSAGE_ID` y ejecuta el mismo comando para actualizarlo.
 
-El bot limita las menciones a IDs de rol configurados. No requiere `Mention Everyone`. El panel abre un modal con título, descripción y tipo. Barbilla Roja hace triage y luego Barbilla Roja o el rol de la plataforma pueden cambiar el estado.
+El bot limita las menciones a IDs de rol configurados y al usuario de Discord que creó cada ticket. No requiere `Mention Everyone`. Cada ticket usa un código correlativo `RTP-{n}` y su thread se llama `RTP-{n}: {título}`. El panel abre un modal con título, descripción y tipo. Barbilla Roja hace triage y luego Barbilla Roja o el rol de la plataforma pueden cambiar el estado con botones; cada actualización menciona al creador cuando el ticket nació en Discord.
 
 ## Outbox, Cron y Vault
 

@@ -36,9 +36,10 @@ test.describe('flujo autenticado de tickets', () => {
       .fill('Ticket creado por el flujo completo de Playwright.');
     await page.getByRole('button', { name: 'Crear ticket' }).click();
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
+    await expect(page.getByText(/^RTP-\d+$/).first()).toBeVisible();
 
     const search = page.getByPlaceholder(
-      'Buscar título, descripción o creador',
+      'Buscar código, título, descripción o creador',
     );
     await search.fill(title);
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
@@ -48,7 +49,7 @@ test.describe('flujo autenticado de tickets', () => {
 
     const handle = page.getByRole('button', { name: `Arrastrar ${title}` });
     const target = page
-      .getByRole('heading', { name: 'En progreso' })
+      .getByRole('heading', { name: 'En staging' })
       .locator('xpath=ancestor::section');
     const handleBox = await handle.boundingBox();
     const targetBox = await target.boundingBox();
