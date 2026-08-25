@@ -1,14 +1,21 @@
 import { z } from 'zod';
-import { PLATFORMS, TICKET_STATUSES, TICKET_TYPES } from '@/lib/types';
+import {
+  PLATFORMS,
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+  TICKET_TYPES,
+} from '@/lib/types';
 
 export const ticketTypeSchema = z.enum(TICKET_TYPES);
 export const ticketStatusSchema = z.enum(TICKET_STATUSES);
 export const platformSchema = z.enum(PLATFORMS);
+export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES);
 
 export const createTicketSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().min(1).max(4000),
   type: ticketTypeSchema.default('REQUERIMIENTO'),
+  priority: ticketPrioritySchema.default('MEDIA'),
   platform: platformSchema.nullable().optional(),
 });
 
@@ -17,6 +24,7 @@ export const updateTicketSchema = z
     title: z.string().trim().min(1).max(200).optional(),
     description: z.string().trim().min(1).max(4000).optional(),
     type: ticketTypeSchema.optional(),
+    priority: ticketPrioritySchema.optional(),
     status: ticketStatusSchema.optional(),
     platform: platformSchema.nullable().optional(),
   })

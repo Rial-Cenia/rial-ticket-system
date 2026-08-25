@@ -230,6 +230,13 @@ Prueba otra opción antes de que tenga una crisis existencial digital, uwu 🤖�
               type: 18,
               component: { custom_id: 'ticket_type', values: ['BUG'] },
             },
+            {
+              type: 18,
+              component: {
+                custom_id: 'ticket_priority',
+                values: ['CRITICA'],
+              },
+            },
           ],
         },
       }),
@@ -238,7 +245,7 @@ Prueba otra opción antes de que tenga una crisis existencial digital, uwu 🤖�
     expect(response.status).toBe(202);
     expect(mocks.order).toEqual(['ack', 'database']);
     expect(mocks.createTicket).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'BUG' }),
+      expect.objectContaining({ type: 'BUG', priority: 'CRITICA' }),
       'DISCORD',
       expect.objectContaining({ id: 'user-1' }),
       [],

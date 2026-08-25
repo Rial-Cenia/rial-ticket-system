@@ -5,7 +5,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { GripVertical, MessageSquareText } from 'lucide-react';
-import { PlatformBadge, TypeBadge } from '@/components/tickets/ticket-badges';
+import {
+  PlatformBadge,
+  PriorityBadge,
+  TypeBadge,
+} from '@/components/tickets/ticket-badges';
 import type { Ticket } from '@/lib/types';
 import { ticketCode } from '@/lib/tickets/format';
 
@@ -32,6 +36,7 @@ export function TicketCard({
       <div className="pointer-events-none relative mb-3 flex items-start justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
           <TypeBadge type={ticket.type} />
+          <PriorityBadge priority={ticket.priority} />
           <PlatformBadge platform={ticket.platform} />
         </div>
         <button

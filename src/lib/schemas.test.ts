@@ -13,6 +13,7 @@ describe('ticket schemas', () => {
       title: 'Ayuda',
       description: 'Detalle',
       type: 'REQUERIMIENTO',
+      priority: 'MEDIA',
     });
   });
 
@@ -25,6 +26,13 @@ describe('ticket schemas', () => {
     expect(updateTicketSchema.parse({ status: 'EN_STAGING' })).toEqual({
       status: 'EN_STAGING',
     });
+  });
+
+  it('valida los cuatro niveles de prioridad', () => {
+    for (const priority of ['BAJA', 'MEDIA', 'ALTA', 'CRITICA']) {
+      expect(updateTicketSchema.parse({ priority })).toEqual({ priority });
+    }
+    expect(() => updateTicketSchema.parse({ priority: 'URGENTE' })).toThrow();
   });
 
   it('acepta únicamente booleanos al cambiar el rol de Discord', () => {

@@ -14,6 +14,7 @@ const ticket: Ticket = {
   title: 'Error crítico',
   description: 'No carga',
   type: 'BUG',
+  priority: 'MEDIA',
   status: 'EN_PROGRESO',
   platform: 'NESTOR',
   createdByName: 'Operaciones',
@@ -93,6 +94,17 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
         }),
         { image: { url: 'https://storage.example/two.png' } },
       ]),
+    );
+  });
+
+  it('ofrece prioridades amigables y la muestra en el mensaje de triage', () => {
+    const modal = JSON.stringify(createTicketModal());
+    expect(modal).toContain('"custom_id":"ticket_priority"');
+    expect(modal).toContain('🚨 Todo arde, ayuda ya');
+    expect(modal).toContain('"value":"MEDIA","default":true');
+
+    expect(JSON.stringify(triageMessage(ticket, 'triager-role'))).toContain(
+      '✨ Importante, pero respiramos',
     );
   });
 

@@ -42,6 +42,7 @@ const ticket: Ticket = {
   title: 'Error crítico',
   description: 'No carga',
   type: 'BUG',
+  priority: 'MEDIA',
   status: 'EN_PROGRESO',
   platform: 'NESTOR',
   createdByName: 'Operaciones',

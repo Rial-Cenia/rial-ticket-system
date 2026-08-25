@@ -7,10 +7,12 @@ export const TICKET_STATUSES = [
   'RESUELTO',
 ] as const;
 export const PLATFORMS = ['NESTOR', 'DYLAN', 'ATOM', 'KAYS'] as const;
+export const TICKET_PRIORITIES = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'] as const;
 
 export type TicketType = (typeof TICKET_TYPES)[number];
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
 export type Platform = (typeof PLATFORMS)[number];
+export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
 export type ActivitySource = 'WEB' | 'DISCORD';
 export type OutboxJobType =
   'CREATE_TRIAGE_THREAD' | 'SEND_THREAD_MESSAGE' | 'ARCHIVE_THREAD';
@@ -21,6 +23,7 @@ export interface Ticket {
   title: string;
   description: string;
   type: TicketType;
+  priority: TicketPriority;
   status: TicketStatus;
   platform: Platform | null;
   createdByName: string;
@@ -127,6 +130,13 @@ export const TYPE_LABELS: Record<TicketType, string> = {
   MEJORA: '✨ Mejora con glow-up',
   DUDA: '💭 Dudita existencial',
   BUG: '🐛 Bug travieso',
+};
+
+export const PRIORITY_LABELS: Record<TicketPriority, string> = {
+  BAJA: '🌱 Suavecito, puede esperar',
+  MEDIA: '✨ Importante, pero respiramos',
+  ALTA: '🔥 Ojo aquí, urge prontito',
+  CRITICA: '🚨 Todo arde, ayuda ya',
 };
 
 export const PLATFORM_LABELS: Record<Platform, string> = {

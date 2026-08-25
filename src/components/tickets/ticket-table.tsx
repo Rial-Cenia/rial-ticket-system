@@ -12,7 +12,11 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ArrowUpDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { PlatformBadge, TypeBadge } from '@/components/tickets/ticket-badges';
+import {
+  PlatformBadge,
+  PriorityBadge,
+  TypeBadge,
+} from '@/components/tickets/ticket-badges';
 import { Button } from '@/components/ui/button';
 import { STATUS_LABELS, type Ticket } from '@/lib/types';
 import { ticketCode } from '@/lib/tickets/format';
@@ -49,6 +53,11 @@ export function TicketTable({
         accessorKey: 'type',
         header: 'Tipo',
         cell: ({ row }) => <TypeBadge type={row.original.type} />,
+      },
+      {
+        accessorKey: 'priority',
+        header: 'Prioridad',
+        cell: ({ row }) => <PriorityBadge priority={row.original.priority} />,
       },
       {
         accessorKey: 'platform',

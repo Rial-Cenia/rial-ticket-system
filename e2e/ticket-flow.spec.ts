@@ -34,8 +34,13 @@ test.describe('flujo autenticado de tickets', () => {
     await page
       .getByLabel('Descripción')
       .fill('Ticket creado por el flujo completo de Playwright.');
+    await page.getByLabel('Prioridad').click();
+    await page
+      .getByRole('option', { name: '🔥 Ojo aquí, urge prontito' })
+      .click();
     await page.getByRole('button', { name: 'Crear ticket' }).click();
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
+    await expect(page.getByText('🔥 Ojo aquí, urge prontito')).toBeVisible();
     await expect(page.getByText(/^RTP-\d+$/).first()).toBeVisible();
 
     const search = page.getByPlaceholder(

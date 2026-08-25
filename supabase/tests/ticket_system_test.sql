@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(40);
 select has_table('public', 'Ticket', 'Ticket table exists');
 select has_table('public', 'TicketActivity', 'Activity table exists');
 select has_table('public', 'TicketSyncOutbox', 'Outbox table exists');
@@ -8,6 +8,10 @@ select has_table('public', 'DiscordAccountLink', 'Discord account link table exi
 select has_table('public', 'TicketImage', 'Ticket image table exists');
 select col_is_pk('public', 'Ticket', 'id', 'Ticket id is primary key');
 select col_has_default('public', 'Ticket', 'publicId', 'Public ID has default');
+select has_column('public', 'Ticket', 'priority', 'Ticket priority exists');
+select col_not_null('public', 'Ticket', 'priority', 'Ticket priority is required');
+select col_has_default('public', 'Ticket', 'priority', 'Ticket priority has a default');
+select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketPriority'), 4, 'Ticket priority has four levels');
 select has_trigger('public', 'Ticket', 'Ticket_set_updated_at', 'Updated-at trigger exists');
 select is((select relrowsecurity from pg_class where oid = 'public."Ticket"'::regclass), true, 'Ticket RLS is enabled');
 select is((select relrowsecurity from pg_class where oid = 'public."DiscordAccountLink"'::regclass), true, 'Discord account link RLS is enabled');
@@ -21,12 +25,18 @@ select is((select count(*)::integer from information_schema.table_constraints wh
 select is((select count(*)::integer from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'Ticket'), 1, 'Ticket is published to Realtime');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketStatus' and e.enumlabel = 'EN_STAGING'), 1, 'Ticket status includes staging');
 select lives_ok($$select public.create_ticket('Prueba', 'Detalle', 'BUG', null, 'WEB', 'pgTAP', 'test-user', null)$$, 'Atomic create RPC works');
-select lives_ok($$select public.create_ticket_with_images(gen_random_uuid(), 'Prueba con imagen', 'Detalle', 'BUG', null, 'DISCORD', 'pgTAP', 'image-test-user', 'discord-user', '[{"id":"37a76303-632b-4bd6-a9c9-7f61f22c9bf1","storagePath":"ticket/image.png","fileName":"image.png","mimeType":"image/png","size":1024}]'::jsonb)$$, 'Atomic create with images RPC works');
+select is((select priority::text from public."Ticket" where title = 'Prueba'), 'MEDIA', 'Legacy and existing tickets default to medium priority');
+select lives_ok($$select public.create_ticket('Prioridad alta', 'Detalle', 'BUG', 'ALTA', null, 'WEB', 'pgTAP', 'priority-test-user', null)$$, 'Create RPC accepts priority');
+select is((select priority::text from public."Ticket" where title = 'Prioridad alta'), 'ALTA', 'Create RPC persists priority');
+select lives_ok($$select public.create_ticket_with_images(gen_random_uuid(), 'Prueba con imagen', 'Detalle', 'BUG', 'CRITICA', null, 'DISCORD', 'pgTAP', 'image-test-user', 'discord-user', '[{"id":"37a76303-632b-4bd6-a9c9-7f61f22c9bf1","storagePath":"ticket/image.png","fileName":"image.png","mimeType":"image/png","size":1024}]'::jsonb)$$, 'Atomic create with images RPC works');
+select is((select priority::text from public."Ticket" where title = 'Prueba con imagen'), 'CRITICA', 'Create with images persists priority');
 select is((select count(*)::integer from public."TicketImage" where "fileName" = 'image.png'), 1, 'Ticket image metadata is persisted');
 select is((select count(*)::integer from public."TicketActivity" where "actorId" = 'test-user'), 1, 'Create records activity atomically');
 select is((select count(*)::integer from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba'), 1, 'Create enqueues Discord thread atomically');
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"status":"EN_STAGING"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket can move to staging');
 select is((select status::text from public."Ticket" where title = 'Prueba'), 'EN_STAGING', 'Ticket persists staging status');
+select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"priority":"BAJA"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket priority can be updated');
+select is((select priority::text from public."Ticket" where title = 'Prueba'), 'BAJA', 'Ticket persists updated priority');
 select is(public.record_discord_interaction('interaction-1', 3), true, 'First interaction is recorded');
 select is(public.record_discord_interaction('interaction-1', 3), false, 'Repeated interaction is deduplicated');
 select lives_ok($$select public.retry_ticket_sync_job((select o.id from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba'), 'Discord 403', null, true)$$, 'Permanent retry is handled');

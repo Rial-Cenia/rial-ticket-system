@@ -76,6 +76,7 @@ export function parseTicketModal(interaction: DiscordInteraction) {
     title: findValue(interaction.data?.components, 'ticket_title'),
     description: findValue(interaction.data?.components, 'ticket_description'),
     type: findValue(interaction.data?.components, 'ticket_type'),
+    priority: findValue(interaction.data?.components, 'ticket_priority'),
   });
 }
 

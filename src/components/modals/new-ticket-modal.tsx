@@ -20,7 +20,12 @@ import {
 } from '@/components/ui/select';
 import { useCreateTicket } from '@/hooks/use-tickets';
 import { createTicketSchema, type CreateTicketInput } from '@/lib/schemas';
-import { TICKET_TYPES, TYPE_LABELS } from '@/lib/types';
+import {
+  PRIORITY_LABELS,
+  TICKET_PRIORITIES,
+  TICKET_TYPES,
+  TYPE_LABELS,
+} from '@/lib/types';
 
 export function NewTicketModal({
   open,
@@ -36,10 +41,12 @@ export function NewTicketModal({
       title: '',
       description: '',
       type: 'REQUERIMIENTO',
+      priority: 'MEDIA',
       platform: null,
     },
   });
   const type = useWatch({ control: form.control, name: 'type' });
+  const priority = useWatch({ control: form.control, name: 'priority' });
 
   async function submit(input: CreateTicketInput) {
     await mutation.mutateAsync(input);
@@ -96,6 +103,29 @@ export function NewTicketModal({
                 {TICKET_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
                     {TYPE_LABELS[type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <label className="block space-y-1.5 text-sm text-zinc-300">
+            Prioridad
+            <Select
+              value={priority}
+              onValueChange={(value) =>
+                form.setValue(
+                  'priority',
+                  value as CreateTicketInput['priority'],
+                )
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TICKET_PRIORITIES.map((priority) => (
+                  <SelectItem key={priority} value={priority}>
+                    {PRIORITY_LABELS[priority]}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -77,6 +77,7 @@ describe('ticket image storage', () => {
     expect(mocks.rpc).toHaveBeenCalledWith(
       'create_ticket_with_images',
       expect.objectContaining({
+        p_priority: 'MEDIA',
         p_images: [
           expect.objectContaining({
             fileName: 'contexto.png',

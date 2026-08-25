@@ -10,7 +10,11 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { PlatformBadge, TypeBadge } from '@/components/tickets/ticket-badges';
+import {
+  PlatformBadge,
+  PriorityBadge,
+  TypeBadge,
+} from '@/components/tickets/ticket-badges';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,13 +40,16 @@ import {
 import {
   PLATFORM_LABELS,
   PLATFORMS,
+  PRIORITY_LABELS,
   STATUS_LABELS,
+  TICKET_PRIORITIES,
   TICKET_STATUSES,
   TICKET_TYPES,
   TYPE_LABELS,
   type DiscordConversation,
   type Platform,
   type Ticket,
+  type TicketPriority,
   type TicketStatus,
   type TicketType,
 } from '@/lib/types';
@@ -81,6 +88,7 @@ function TicketDetailModalContent({
         title: form!.title,
         description: form!.description,
         type: form!.type,
+        priority: form!.priority,
         status: form!.status,
         platform: form!.platform,
       },
@@ -165,6 +173,7 @@ function TicketOverview({
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <TypeBadge type={ticket.type} />
+          <PriorityBadge priority={ticket.priority} />
           <PlatformBadge platform={ticket.platform} />
           <Badge>{STATUS_LABELS[ticket.status]}</Badge>
         </div>
@@ -357,7 +366,7 @@ function TicketEditForm({
           }
         />
       </label>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="space-y-1.5 text-sm text-zinc-300">
           Tipo
           <Select
@@ -373,6 +382,26 @@ function TicketEditForm({
               {TICKET_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
                   {TYPE_LABELS[type]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="space-y-1.5 text-sm text-zinc-300">
+          Prioridad
+          <Select
+            value={form.priority}
+            onValueChange={(value) =>
+              setForm({ ...form, priority: value as TicketPriority })
+            }
+          >
+            <SelectTrigger className="w-full min-w-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TICKET_PRIORITIES.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {PRIORITY_LABELS[priority]}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -46,6 +46,7 @@ const ticket: Ticket = {
   title: 'Error al descargar',
   description: 'La descarga no comienza.',
   type: 'BUG',
+  priority: 'MEDIA',
   status: 'PENDIENTE',
   platform: 'NESTOR',
   createdByName: 'Ana',

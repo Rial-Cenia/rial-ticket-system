@@ -26,6 +26,10 @@ describe('Discord interactions', () => {
             type: 18,
             component: { custom_id: 'ticket_type', values: ['BUG'] },
           },
+          {
+            type: 18,
+            component: { custom_id: 'ticket_priority', values: ['CRITICA'] },
+          },
         ],
       },
     } as unknown as DiscordInteraction;
@@ -33,6 +37,7 @@ describe('Discord interactions', () => {
       title: 'Error crítico',
       description: 'No carga',
       type: 'BUG',
+      priority: 'CRITICA',
     });
   });
 

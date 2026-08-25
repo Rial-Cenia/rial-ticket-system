@@ -2,7 +2,9 @@ import type { DiscordMessagePayload } from '@/lib/discord/types';
 import {
   PLATFORM_LABELS,
   PLATFORMS,
+  PRIORITY_LABELS,
   STATUS_LABELS,
+  TICKET_PRIORITIES,
   TICKET_TYPES,
   TYPE_LABELS,
   type Platform,
@@ -109,6 +111,22 @@ export function createTicketModal() {
         },
         {
           type: 18,
+          label: '🚦 ¿Qué tan urgente está la cosa?',
+          description: 'Elige con honestidad cuánto fuego hay, bestie',
+          component: {
+            type: 3,
+            custom_id: 'ticket_priority',
+            required: true,
+            placeholder: 'Selecciona el nivel de urgencia 🔥',
+            options: TICKET_PRIORITIES.map((priority) => ({
+              label: PRIORITY_LABELS[priority],
+              value: priority,
+              default: priority === 'MEDIA',
+            })),
+          },
+        },
+        {
+          type: 18,
           label: '📸 Suelta las pruebas, bestie',
           description:
             'Hasta 5 fotitos de 10 MB c/u. El chisme visual ayuda, uwu',
@@ -159,6 +177,11 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
           {
             name: '📊 Estado actual',
             value: STATUS_LABELS[ticket.status],
+            inline: true,
+          },
+          {
+            name: '🚦 Nivel de fueguito',
+            value: PRIORITY_LABELS[ticket.priority],
             inline: true,
           },
           {
