@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(40);
+select plan(41);
 select has_table('public', 'Ticket', 'Ticket table exists');
 select has_table('public', 'TicketActivity', 'Activity table exists');
 select has_table('public', 'TicketSyncOutbox', 'Outbox table exists');
@@ -24,6 +24,7 @@ select is((select count(*)::integer from information_schema.table_constraints wh
 select is((select count(*)::integer from information_schema.table_constraints where table_schema = 'public' and table_name = 'DiscordAccountLink' and constraint_type = 'FOREIGN KEY'), 1, 'Link belongs to an auth user');
 select is((select count(*)::integer from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'Ticket'), 1, 'Ticket is published to Realtime');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketStatus' and e.enumlabel = 'EN_STAGING'), 1, 'Ticket status includes staging');
+select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'Platform' and e.enumlabel = 'EXTERNO'), 1, 'Platform includes external tickets');
 select lives_ok($$select public.create_ticket('Prueba', 'Detalle', 'BUG', null, 'WEB', 'pgTAP', 'test-user', null)$$, 'Atomic create RPC works');
 select is((select priority::text from public."Ticket" where title = 'Prueba'), 'MEDIA', 'Legacy and existing tickets default to medium priority');
 select lives_ok($$select public.create_ticket('Prioridad alta', 'Detalle', 'BUG', 'ALTA', null, 'WEB', 'pgTAP', 'priority-test-user', null)$$, 'Create RPC accepts priority');

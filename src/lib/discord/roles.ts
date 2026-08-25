@@ -4,10 +4,12 @@ import type { Platform } from '@/lib/types';
 
 export function platformRoleId(platform: Platform) {
   const env = getDiscordEnv();
-  return {
+  const roles: Record<Platform, string | null> = {
     NESTOR: env.nestorRoleId,
     DYLAN: env.dylanRoleId,
     ATOM: env.atomRoleId,
     KAYS: env.kaysRoleId,
-  }[platform];
+    EXTERNO: null,
+  };
+  return roles[platform];
 }

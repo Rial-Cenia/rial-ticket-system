@@ -259,15 +259,18 @@ No está olvidado, solo está teniendo su training arc, uwu 🌸✨`,
 export function ticketControls(
   ticket: Ticket,
   assignedBy: string,
-  platformRoleId: string,
+  platformRoleId: string | null,
   imageUrls: string[] = [],
 ): DiscordMessagePayload {
+  const assignment = platformRoleId
+    ? `<@&${platformRoleId}>, les toca cocinar, besties. Demuestren esa aura resolutiva 💅🏻🔥`
+    : 'Este ticket vive fuera del multiverso de plataformas. **Barbilla Roja** conserva el timón para moverlo, besties 🌍🧭';
   return {
     content: `🎮 **¡Nueva quest asignada!**
 
 El ticket aterrizó en **${PLATFORM_LABELS[ticket.platform as Platform]}**, cortesía de **${sanitize(assignedBy)}** ✨
 
-<@&${platformRoleId}>, les toca cocinar, besties. Demuestren esa aura resolutiva 💅🏻🔥`,
+${assignment}`,
 
     embeds: [
       {
@@ -355,7 +358,7 @@ El ticket aterrizó en **${PLATFORM_LABELS[ticket.platform as Platform]}**, cort
 
     allowed_mentions: {
       parse: [],
-      roles: [platformRoleId],
+      roles: platformRoleId ? [platformRoleId] : [],
     },
   };
 }

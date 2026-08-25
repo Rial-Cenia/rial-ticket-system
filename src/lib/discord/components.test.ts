@@ -108,6 +108,21 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
     );
   });
 
+  it('ofrece Externo sin mencionar un rol de plataforma', () => {
+    expect(JSON.stringify(triageMessage(ticket, 'triager-role'))).toContain(
+      '🌍 Externo',
+    );
+
+    const controls = ticketControls(
+      { ...ticket, platform: 'EXTERNO' },
+      'Operaciones',
+      null,
+    );
+    expect(controls.content).toContain('fuera del multiverso de plataformas');
+    expect(controls.content).not.toContain('<@&');
+    expect(controls.allowed_mentions).toEqual({ parse: [], roles: [] });
+  });
+
   it('muestra el código RTP en los mensajes', () => {
     expect(JSON.stringify(triageMessage(ticket, 'triager-role'))).toContain(
       'RTP-42',

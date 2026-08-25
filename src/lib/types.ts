@@ -6,7 +6,13 @@ export const TICKET_STATUSES = [
   'EN_ESPERA',
   'RESUELTO',
 ] as const;
-export const PLATFORMS = ['NESTOR', 'DYLAN', 'ATOM', 'KAYS'] as const;
+export const PLATFORMS = [
+  'NESTOR',
+  'DYLAN',
+  'ATOM',
+  'KAYS',
+  'EXTERNO',
+] as const;
 export const TICKET_PRIORITIES = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'] as const;
 
 export type TicketType = (typeof TICKET_TYPES)[number];
@@ -144,4 +150,5 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   DYLAN: '⭐ Dylan',
   ATOM: '⚛️ Atom',
   KAYS: '🎀 Kays',
+  EXTERNO: '🌍 Externo',
 };

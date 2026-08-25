@@ -18,4 +18,9 @@ describe('Discord role authorization', () => {
       false,
     );
   });
+
+  it('reserva los tickets externos al rol de triage', () => {
+    expect(canChangeTicketStatus(['triager'], 'triager', null)).toBe(true);
+    expect(canChangeTicketStatus(['platform-1'], 'triager', null)).toBe(false);
+  });
 });

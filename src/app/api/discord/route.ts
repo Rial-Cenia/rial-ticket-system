@@ -163,17 +163,23 @@ El resto somos simples mortales sin esos permisos, uwu. Toca invocarlo y esperar
     const ticket = await updateTicket(publicId, { platform }, 'DISCORD', actor);
     const imageUrls = await getTicketImageSignedUrls(publicId);
     const platformLabel = PLATFORM_LABELS[ticket.platform!];
+    const roleId = platformRoleId(platform);
     await editInteractionResponse(
       interaction.application_id,
       interaction.token,
-      ticketControls(ticket, actor.name, platformRoleId(platform), imageUrls),
+      ticketControls(ticket, actor.name, roleId, imageUrls),
     );
     await followupInteraction(
       interaction.application_id,
       interaction.token,
       creatorUpdate(
         ticket,
-        `🎀 Plot twist administrativo 🎀
+        platform === 'EXTERNO'
+          ? `🌍 Plot twist fuera del multiverso 🌍
+El ticket \`${ticketCode(ticket)}\` quedó marcado como **${platformLabel}** ✨
+No depende de Nestor, Dylan, Atom ni Kays: va por una ruta propia, bestie 🧭
+Por ahora sigue en estado **${STATUS_LABELS[ticket.status]}** y **Barbilla Roja** conserva el timón para moverlo 🎀`
+          : `🎀 Plot twist administrativo 🎀
 El ticket \`${ticketCode(ticket)}\` encontró a su humano designado: **${platformLabel}** (づ｡◕‿‿◕｡)づ📋
 Por ahora sigue en estado **${STATUS_LABELS[ticket.status]}** ⏳
 O sea, ya tiene dueño… pero la quest todavía no comienza, uwu 🎮✨

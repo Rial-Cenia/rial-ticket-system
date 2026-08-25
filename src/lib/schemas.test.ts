@@ -35,6 +35,12 @@ describe('ticket schemas', () => {
     expect(() => updateTicketSchema.parse({ priority: 'URGENTE' })).toThrow();
   });
 
+  it('acepta tickets externos a las plataformas internas', () => {
+    expect(updateTicketSchema.parse({ platform: 'EXTERNO' })).toEqual({
+      platform: 'EXTERNO',
+    });
+  });
+
   it('acepta únicamente booleanos al cambiar el rol de Discord', () => {
     expect(discordRoleUpdateSchema.parse({ enabled: true })).toEqual({
       enabled: true,

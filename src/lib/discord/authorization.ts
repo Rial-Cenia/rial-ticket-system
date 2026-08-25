@@ -5,7 +5,10 @@ export function canTriage(roles: readonly string[], triagerRoleId: string) {
 export function canChangeTicketStatus(
   roles: readonly string[],
   triagerRoleId: string,
-  platformRoleId: string,
+  platformRoleId: string | null,
 ) {
-  return roles.includes(triagerRoleId) || roles.includes(platformRoleId);
+  return (
+    roles.includes(triagerRoleId) ||
+    (platformRoleId !== null && roles.includes(platformRoleId))
+  );
 }

@@ -26,23 +26,23 @@ No existe registro público. Crea las cuentas de email/contraseña previamente d
 
 ## Variables de entorno
 
-| Variable                                          | Uso                                                                          |
-| ------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`                        | URL del proyecto Supabase                                                    |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Clave pública moderna; puede reemplazarse por`NEXT_PUBLIC_SUPABASE_ANON_KEY` |
-| `SUPABASE_SECRET_KEY`                             | Clave servidor moderna; puede reemplazarse por`SUPABASE_SERVICE_ROLE_KEY`    |
-| `AUTH_ALLOWED_GOOGLE_DOMAINS`                     | Dominios Google autorizados, separados por coma                              |
-| `APP_URL`                                         | URL pública de la aplicación                                                 |
-| `CRON_SECRET`                                     | Secreto Bearer del dispatcher                                                |
-| `DISCORD_PUBLIC_KEY`                              | Clave pública Ed25519 de la aplicación Discord                               |
-| `DISCORD_CLIENT_ID`                               | Client ID OAuth2 de la aplicación Discord                                    |
-| `DISCORD_CLIENT_SECRET`                           | Client secret OAuth2; solo servidor                                          |
-| `DISCORD_BOT_TOKEN`                               | Token del bot                                                                |
-| `DISCORD_GUILD_ID`                                | Servidor autorizado                                                          |
-| `DISCORD_TRIAGE_CHANNEL_ID`                       | Canal de texto donde viven el panel y los threads                            |
-| `DISCORD_TRIAGER_ROLE_ID`                         | Rol Barbilla Roja                                                            |
-| `DISCORD_NESTOR_ROLE_ID` … `DISCORD_KAYS_ROLE_ID` | Roles responsables de cada plataforma                                        |
-| `DISCORD_PANEL_MESSAGE_ID`                        | Opcional; permite actualizar el panel ya publicado                           |
+| Variable                                          | Uso                                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`                        | URL del proyecto Supabase                                                       |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Clave pública moderna; puede reemplazarse por`NEXT_PUBLIC_SUPABASE_ANON_KEY`    |
+| `SUPABASE_SECRET_KEY`                             | Clave servidor moderna; puede reemplazarse por`SUPABASE_SERVICE_ROLE_KEY`       |
+| `AUTH_ALLOWED_GOOGLE_DOMAINS`                     | Dominios Google autorizados, separados por coma                                 |
+| `APP_URL`                                         | URL pública de la aplicación                                                    |
+| `CRON_SECRET`                                     | Secreto Bearer del dispatcher                                                   |
+| `DISCORD_PUBLIC_KEY`                              | Clave pública Ed25519 de la aplicación Discord                                  |
+| `DISCORD_CLIENT_ID`                               | Client ID OAuth2 de la aplicación Discord                                       |
+| `DISCORD_CLIENT_SECRET`                           | Client secret OAuth2; solo servidor                                             |
+| `DISCORD_BOT_TOKEN`                               | Token del bot                                                                   |
+| `DISCORD_GUILD_ID`                                | Servidor autorizado                                                             |
+| `DISCORD_TRIAGE_CHANNEL_ID`                       | Canal de texto donde viven el panel y los threads                               |
+| `DISCORD_TRIAGER_ROLE_ID`                         | Rol Barbilla Roja                                                               |
+| `DISCORD_NESTOR_ROLE_ID` … `DISCORD_KAYS_ROLE_ID` | Roles responsables de las plataformas internas; Externo queda a cargo de triage |
+| `DISCORD_PANEL_MESSAGE_ID`                        | Opcional; permite actualizar el panel ya publicado                              |
 
 Las claves servidor, el token del bot y `CRON_SECRET` nunca deben llevar el prefijo `NEXT_PUBLIC_` ni almacenarse en Git.
 
