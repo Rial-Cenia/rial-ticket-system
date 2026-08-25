@@ -7,7 +7,8 @@ import type { Ticket, TicketFilters } from '@/lib/types';
 
 export const ticketKeys = {
   all: ['tickets'] as const,
-  list: (filters: TicketFilters) => ['tickets', filters] as const,
+  lists: ['tickets', 'list'] as const,
+  list: (filters: TicketFilters) => ['tickets', 'list', filters] as const,
   discordConversation: (publicId: string) =>
     ['tickets', publicId, 'discord-conversation'] as const,
 };
@@ -38,16 +39,18 @@ export function useUpdateTicket() {
       patch: UpdateTicketInput;
     }) => api.updateTicket(publicId, patch),
     onMutate: async ({ publicId, patch }) => {
-      await client.cancelQueries({ queryKey: ticketKeys.all });
+      await client.cancelQueries({ queryKey: ticketKeys.lists });
       const snapshots = client.getQueriesData<Ticket[]>({
-        queryKey: ticketKeys.all,
+        queryKey: ticketKeys.lists,
       });
-      client.setQueriesData<Ticket[]>({ queryKey: ticketKeys.all }, (tickets) =>
-        tickets?.map((ticket) =>
-          ticket.publicId === publicId
-            ? { ...ticket, ...patch, updatedAt: new Date().toISOString() }
-            : ticket,
-        ),
+      client.setQueriesData<Ticket[]>(
+        { queryKey: ticketKeys.lists },
+        (tickets) =>
+          tickets?.map((ticket) =>
+            ticket.publicId === publicId
+              ? { ...ticket, ...patch, updatedAt: new Date().toISOString() }
+              : ticket,
+          ),
       );
       return { snapshots };
     },
