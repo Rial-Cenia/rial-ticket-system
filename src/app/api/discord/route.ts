@@ -12,6 +12,7 @@ import {
   ticketControls,
 } from '@/lib/discord/components';
 import {
+  archiveThread,
   callbackInteraction,
   editInteractionResponse,
   followupInteraction,
@@ -248,6 +249,8 @@ Toca invocar a alguien con más aura administrativa, porque el sistema te dijo: 
     await followupInteraction(interaction.application_id, interaction.token, {
       ...creatorUpdate(ticket, statusUpdateMessage(ticket, actor.name)),
     });
+    if (status === 'RESUELTO' && ticket.discordThreadId)
+      await archiveThread(ticket.discordThreadId);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error inesperado';
     await followupInteraction(interaction.application_id, interaction.token, {

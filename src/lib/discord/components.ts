@@ -133,11 +133,11 @@ export function triageMessage(
   return {
     content: `🚨 **¡Nueva side quest desbloqueada, equipo!** 🚨
 
-<@&${triagerRoleId}>, apareció un ticket pendiente de triage 📩✨
+<@&${triagerRoleId}>, apareció un ticket pendiente de ser asignado 📩✨
 
 Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de abandono (｡•́︿•̀｡)💔
 
-Échenle una miradita y decidan su destino, besties. **El ticket no se va a triajar solo** 💅🏻🎀`,
+Échenle una miradita y decidan su destino, besties. **El ticket no se va a asignar solo** 💅🏻🎀`,
 
     embeds: [
       {

@@ -65,11 +65,11 @@ No ticket = no ayuda, bebé. Matemáticas básicas 💋
     expect(message.content)
       .toBe(`🚨 **¡Nueva side quest desbloqueada, equipo!** 🚨
 
-<@&triager-role>, apareció un ticket pendiente de triage 📩✨
+<@&triager-role>, apareció un ticket pendiente de ser asignado 📩✨
 
 Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de abandono (｡•́︿•̀｡)💔
 
-Échenle una miradita y decidan su destino, besties. **El ticket no se va a triajar solo** 💅🏻🎀`);
+Échenle una miradita y decidan su destino, besties. **El ticket no se va a asignar solo** 💅🏻🎀`);
     expect(message.allowed_mentions).toEqual({
       parse: [],
       roles: ['triager-role'],
