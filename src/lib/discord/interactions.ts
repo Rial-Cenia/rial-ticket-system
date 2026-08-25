@@ -86,7 +86,7 @@ export function parseTicketAttachments(
   const resolved = interaction.data?.resolved?.attachments ?? {};
   return findValues(interaction.data?.components, 'ticket_images').map((id) => {
     const attachment = resolved[id];
-    if (!attachment) throw new Error('Discord no incluyó una imagen adjunta');
+    if (!attachment) throw new Error('Discord no incluyó un archivo adjunto');
     return attachment;
   });
 }

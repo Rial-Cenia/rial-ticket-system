@@ -9,13 +9,45 @@ import type {
   TicketImage,
 } from '@/lib/types';
 
-const TICKET_IMAGES_BUCKET = 'ticket-images';
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const IMAGE_EXTENSIONS = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
+const TICKET_ATTACHMENTS_BUCKET = 'ticket-images';
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const ATTACHMENT_FORMATS = {
+  jpg: { mimeType: 'image/jpeg', acceptedMimeTypes: ['image/jpeg'] },
+  jpeg: { mimeType: 'image/jpeg', acceptedMimeTypes: ['image/jpeg'] },
+  png: { mimeType: 'image/png', acceptedMimeTypes: ['image/png'] },
+  webp: { mimeType: 'image/webp', acceptedMimeTypes: ['image/webp'] },
+  gif: { mimeType: 'image/gif', acceptedMimeTypes: ['image/gif'] },
+  pdf: { mimeType: 'application/pdf', acceptedMimeTypes: ['application/pdf'] },
+  xls: {
+    mimeType: 'application/vnd.ms-excel',
+    acceptedMimeTypes: ['application/vnd.ms-excel'],
+  },
+  xlsx: {
+    mimeType:
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    acceptedMimeTypes: [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ],
+  },
+  doc: {
+    mimeType: 'application/msword',
+    acceptedMimeTypes: ['application/msword'],
+  },
+  docx: {
+    mimeType:
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    acceptedMimeTypes: [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ],
+  },
+  md: {
+    mimeType: 'text/markdown',
+    acceptedMimeTypes: ['text/markdown', 'text/plain'],
+  },
+  markdown: {
+    mimeType: 'text/markdown',
+    acceptedMimeTypes: ['text/markdown', 'text/plain'],
+  },
 } as const;
 
 interface Actor {
@@ -37,11 +69,11 @@ interface TicketRow extends Omit<Ticket, 'images'> {
   TicketImage?: Array<Omit<TicketImage, 'url'>>;
 }
 
-interface StoredImage {
+interface StoredAttachment {
   id: string;
   storagePath: string;
   fileName: string;
-  mimeType: keyof typeof IMAGE_EXTENSIONS;
+  mimeType: string;
   size: number;
 }
 
@@ -57,53 +89,75 @@ function serializeTicket(data: unknown): Ticket {
   };
 }
 
+function normalizedMimeType(value?: string) {
+  return value?.split(';')[0].trim().toLowerCase();
+}
+
+function acceptsMimeType(
+  format: { acceptedMimeTypes: readonly string[] },
+  mimeType: string,
+) {
+  return format.acceptedMimeTypes.includes(mimeType);
+}
+
 function validateDiscordAttachment(attachment: DiscordAttachment) {
-  const mimeType = attachment.content_type as keyof typeof IMAGE_EXTENSIONS;
-  if (!(mimeType in IMAGE_EXTENSIONS))
-    throw new Error(`Formato de imagen no permitido: ${attachment.filename}`);
-  if (attachment.size > MAX_IMAGE_BYTES)
-    throw new Error(`La imagen ${attachment.filename} supera los 10 MB`);
+  const extension = attachment.filename.split('.').pop()?.toLowerCase();
+  const format = extension
+    ? ATTACHMENT_FORMATS[extension as keyof typeof ATTACHMENT_FORMATS]
+    : undefined;
+  const mimeType = normalizedMimeType(attachment.content_type);
+  if (!format || !mimeType || !acceptsMimeType(format, mimeType))
+    throw new Error(`Formato de archivo no permitido: ${attachment.filename}`);
+  if (attachment.size > MAX_ATTACHMENT_BYTES)
+    throw new Error(`El archivo ${attachment.filename} supera los 10 MB`);
   const url = new URL(attachment.url);
   if (url.protocol !== 'https:' || url.hostname !== 'cdn.discordapp.com')
-    throw new Error('Discord entregó una URL de imagen inválida');
-  return mimeType;
+    throw new Error('Discord entregó una URL de archivo adjunto inválida');
+  return { extension, format };
 }
 
 async function downloadDiscordAttachment(attachment: DiscordAttachment) {
-  const mimeType = validateDiscordAttachment(attachment);
+  const validated = validateDiscordAttachment(attachment);
   const response = await fetch(attachment.url, {
     cache: 'no-store',
     redirect: 'error',
   });
   if (!response.ok)
     throw new Error(`No fue posible descargar ${attachment.filename}`);
-  const responseType = response.headers.get('content-type')?.split(';')[0];
-  if (responseType !== mimeType)
+  const responseType = normalizedMimeType(
+    response.headers.get('content-type') ?? undefined,
+  );
+  if (!responseType || !acceptsMimeType(validated.format, responseType))
     throw new Error(
-      `El contenido de ${attachment.filename} no es una imagen válida`,
+      `El contenido de ${attachment.filename} no coincide con su formato`,
     );
   const bytes = await response.arrayBuffer();
-  if (bytes.byteLength === 0 || bytes.byteLength > MAX_IMAGE_BYTES)
+  if (bytes.byteLength === 0 || bytes.byteLength > MAX_ATTACHMENT_BYTES)
     throw new Error(`El tamaño de ${attachment.filename} no es válido`);
-  return { bytes, mimeType };
+  return {
+    bytes,
+    extension: validated.extension,
+    mimeType: validated.format.mimeType,
+  };
 }
 
-async function uploadDiscordImages(
+async function uploadDiscordAttachments(
   publicId: string,
   attachments: DiscordAttachment[],
 ) {
   if (attachments.length > 5)
-    throw new Error('Puedes adjuntar hasta 5 imágenes por ticket');
+    throw new Error('Puedes adjuntar hasta 5 archivos por ticket');
 
   const admin = createAdminClient();
-  const uploaded: StoredImage[] = [];
+  const uploaded: StoredAttachment[] = [];
   try {
     for (const attachment of attachments) {
-      const { bytes, mimeType } = await downloadDiscordAttachment(attachment);
+      const { bytes, extension, mimeType } =
+        await downloadDiscordAttachment(attachment);
       const id = crypto.randomUUID();
-      const storagePath = `${publicId}/${id}.${IMAGE_EXTENSIONS[mimeType]}`;
+      const storagePath = `${publicId}/${id}.${extension}`;
       const { error } = await admin.storage
-        .from(TICKET_IMAGES_BUCKET)
+        .from(TICKET_ATTACHMENTS_BUCKET)
         .upload(storagePath, bytes, {
           contentType: mimeType,
           upsert: false,
@@ -121,7 +175,7 @@ async function uploadDiscordImages(
   } catch (error) {
     if (uploaded.length)
       await admin.storage
-        .from(TICKET_IMAGES_BUCKET)
+        .from(TICKET_ATTACHMENTS_BUCKET)
         .remove(uploaded.map((image) => image.storagePath));
     throw error;
   }
@@ -174,7 +228,7 @@ export async function createTicket(
 ) {
   if (attachments.length) {
     const publicId = crypto.randomUUID();
-    const images = await uploadDiscordImages(publicId, attachments);
+    const images = await uploadDiscordAttachments(publicId, attachments);
     const admin = createAdminClient();
     const { data, error } = await admin.rpc('create_ticket_with_images', {
       p_public_id: publicId,
@@ -191,7 +245,7 @@ export async function createTicket(
     });
     if (error || !data) {
       await admin.storage
-        .from(TICKET_IMAGES_BUCKET)
+        .from(TICKET_ATTACHMENTS_BUCKET)
         .remove(images.map((image) => image.storagePath));
       return unwrapTicket(data, error);
     }
@@ -243,10 +297,10 @@ export async function deleteTicket(publicId: string, actor: Actor) {
   const removed = unwrapTicket(data, error);
   if (images?.length) {
     const { error: storageError } = await createAdminClient()
-      .storage.from(TICKET_IMAGES_BUCKET)
+      .storage.from(TICKET_ATTACHMENTS_BUCKET)
       .remove(images.map((image) => image.storagePath));
     if (storageError)
-      console.error('No fue posible limpiar imágenes del ticket');
+      console.error('No fue posible limpiar adjuntos del ticket');
   }
   return removed;
 }
@@ -256,11 +310,12 @@ export async function getTicketImageSignedUrls(publicId: string) {
     .from('TicketImage')
     .select('storagePath')
     .eq('ticketPublicId', publicId)
+    .like('mimeType', 'image/%')
     .order('createdAt');
   if (error) throw new Error(error.message);
   if (!images?.length) return [];
   const { data: signed, error: signedError } = await createAdminClient()
-    .storage.from(TICKET_IMAGES_BUCKET)
+    .storage.from(TICKET_ATTACHMENTS_BUCKET)
     .createSignedUrls(
       images.map((image) => image.storagePath),
       60 * 60,
@@ -281,7 +336,7 @@ export async function downloadTicketImage(publicId: string, imageId: string) {
   if (error) throw new Error(error.message);
   if (!image) return null;
   const { data, error: downloadError } = await createAdminClient()
-    .storage.from(TICKET_IMAGES_BUCKET)
+    .storage.from(TICKET_ATTACHMENTS_BUCKET)
     .download(image.storagePath);
   if (downloadError) throw new Error(downloadError.message);
   return { data, fileName: image.fileName, mimeType: image.mimeType };

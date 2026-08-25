@@ -99,4 +99,31 @@ describe('ticket detail modal', () => {
     );
     expect(await screen.findByText('Error corregido')).toBeInTheDocument();
   });
+
+  it('muestra documentos como enlaces en vez de previews de imagen', () => {
+    render(
+      <TicketDetailModal
+        ticket={{
+          ...ticket,
+          images: [
+            {
+              id: 'document-1',
+              fileName: 'Template_producto.xlsx',
+              mimeType:
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              size: 1024,
+              url: '/api/tickets/ticket-1/images/document-1',
+              createdAt: '2026-08-25T10:15:00.000Z',
+            },
+          ],
+        }}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Template_producto.xlsx' }),
+    ).toHaveAttribute('href', '/api/tickets/ticket-1/images/document-1');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
 });

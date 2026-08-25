@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(41);
+select plan(44);
 select has_table('public', 'Ticket', 'Ticket table exists');
 select has_table('public', 'TicketActivity', 'Activity table exists');
 select has_table('public', 'TicketSyncOutbox', 'Outbox table exists');
@@ -19,6 +19,7 @@ select is((select relrowsecurity from pg_class where oid = 'public."TicketImage"
 select is((select count(*)::integer from information_schema.role_table_grants where table_schema = 'public' and table_name = 'TicketImage' and grantee in ('anon', 'authenticated')), 0, 'Ticket images have no direct client grants');
 select is((select public from storage.buckets where id = 'ticket-images'), false, 'Ticket image bucket is private');
 select is((select file_size_limit::integer from storage.buckets where id = 'ticket-images'), 10485760, 'Ticket image bucket limits files to 10 MB');
+select ok((select allowed_mime_types from storage.buckets where id = 'ticket-images') @> array['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/markdown'], 'Ticket attachment bucket allows documents');
 select is((select count(*)::integer from information_schema.role_table_grants where table_schema = 'public' and table_name = 'DiscordAccountLink' and grantee = 'authenticated'), 0, 'Authenticated users have no direct link table grants');
 select is((select count(*)::integer from information_schema.table_constraints where table_schema = 'public' and table_name = 'DiscordAccountLink' and constraint_type = 'UNIQUE'), 1, 'Discord user can only be linked once');
 select is((select count(*)::integer from information_schema.table_constraints where table_schema = 'public' and table_name = 'DiscordAccountLink' and constraint_type = 'FOREIGN KEY'), 1, 'Link belongs to an auth user');
@@ -32,6 +33,8 @@ select is((select priority::text from public."Ticket" where title = 'Prioridad a
 select lives_ok($$select public.create_ticket_with_images(gen_random_uuid(), 'Prueba con imagen', 'Detalle', 'BUG', 'CRITICA', null, 'DISCORD', 'pgTAP', 'image-test-user', 'discord-user', '[{"id":"37a76303-632b-4bd6-a9c9-7f61f22c9bf1","storagePath":"ticket/image.png","fileName":"image.png","mimeType":"image/png","size":1024}]'::jsonb)$$, 'Atomic create with images RPC works');
 select is((select priority::text from public."Ticket" where title = 'Prueba con imagen'), 'CRITICA', 'Create with images persists priority');
 select is((select count(*)::integer from public."TicketImage" where "fileName" = 'image.png'), 1, 'Ticket image metadata is persisted');
+select lives_ok($$select public.create_ticket_with_images(gen_random_uuid(), 'Prueba con documento', 'Detalle', 'REQUERIMIENTO', 'MEDIA', null, 'DISCORD', 'pgTAP', 'document-test-user', 'discord-user', '[{"id":"8c6a6ab5-2173-405f-9204-eea2ec1a0e11","storagePath":"ticket/document.xlsx","fileName":"document.xlsx","mimeType":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","size":2048}]'::jsonb)$$, 'Atomic create with documents RPC works');
+select is((select count(*)::integer from public."TicketImage" where "fileName" = 'document.xlsx'), 1, 'Ticket document metadata is persisted');
 select is((select count(*)::integer from public."TicketActivity" where "actorId" = 'test-user'), 1, 'Create records activity atomically');
 select is((select count(*)::integer from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba'), 1, 'Create enqueues Discord thread atomically');
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"status":"EN_STAGING"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket can move to staging');

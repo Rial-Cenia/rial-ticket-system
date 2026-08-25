@@ -13,13 +13,16 @@ export async function GET(
 
   try {
     const { publicId, imageId } = await params;
-    const image = await downloadTicketImage(publicId, imageId);
-    if (!image)
-      return Response.json({ error: 'Imagen no encontrada' }, { status: 404 });
-    return new Response(image.data, {
+    const file = await downloadTicketImage(publicId, imageId);
+    if (!file)
+      return Response.json({ error: 'Adjunto no encontrado' }, { status: 404 });
+    const disposition = file.mimeType.startsWith('image/')
+      ? 'inline'
+      : 'attachment';
+    return new Response(file.data, {
       headers: {
-        'content-type': image.mimeType,
-        'content-disposition': `inline; filename*=UTF-8''${encodeURIComponent(image.fileName)}`,
+        'content-type': file.mimeType,
+        'content-disposition': `${disposition}; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
         'cache-control': 'private, max-age=300',
         'x-content-type-options': 'nosniff',
       },

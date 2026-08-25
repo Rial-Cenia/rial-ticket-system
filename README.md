@@ -48,7 +48,7 @@ Las claves servidor, el token del bot y `CRON_SECRET` nunca deben llevar el pref
 
 ## Base de datos
 
-Las migraciones en `supabase/migrations/` crean enums, `Ticket`, `TicketImage`, `TicketActivity`, `TicketSyncOutbox` y `DiscordInteraction`; configuran índices, trigger de `updatedAt`, RLS, grants, RPCs atómicas, la publicación Realtime y el bucket privado `ticket-images`. El bucket acepta imágenes JPEG, PNG, WebP o GIF de hasta 10 MB. El seed local está en `supabase/seed.sql`.
+Las migraciones en `supabase/migrations/` crean enums, `Ticket`, `TicketImage`, `TicketActivity`, `TicketSyncOutbox` y `DiscordInteraction`; configuran índices, trigger de `updatedAt`, RLS, grants, RPCs atómicas, la publicación Realtime y el bucket privado `ticket-images`. El bucket acepta hasta cinco adjuntos de 10 MB por ticket: imágenes JPEG, PNG, WebP o GIF, PDF, Excel (`.xls`, `.xlsx`), Word (`.doc`, `.docx`) y Markdown (`.md`, `.markdown`). El seed local está en `supabase/seed.sql`.
 
 Para validar desde cero:
 
@@ -71,7 +71,7 @@ Las APIs del servidor llaman RPCs con la clave servidor. El navegador solo puede
 
 Cada usuario interno puede abrir **Discord → Vincular mi Discord**. La autorización solicita únicamente `identify` y `guilds.members.read`, verifica que la cuenta pertenezca al servidor configurado y luego descarta el access token. La plataforma guarda solo la identidad pública enlazada. Desde esa misma pantalla, una cuenta autenticada puede asignar o quitar el rol Barbilla Roja a usuarios que ya vincularon Discord.
 
-El bot limita las menciones a IDs de rol configurados y al usuario de Discord que creó cada ticket. No requiere `Mention Everyone`. Cada ticket usa un código correlativo `RTP-{n}` y su thread se llama `RTP-{n}: {título}`. El panel abre un modal con título, descripción, tipo y hasta cinco imágenes opcionales. El servidor copia los adjuntos de Discord al bucket privado de Supabase; el hilo usa URLs firmadas temporales y la interfaz los entrega mediante una ruta autenticada. Barbilla Roja hace triage y luego Barbilla Roja o el rol de la plataforma pueden cambiar el estado con botones; cada actualización menciona al creador cuando el ticket nació en Discord.
+El bot limita las menciones a IDs de rol configurados y al usuario de Discord que creó cada ticket. No requiere `Mention Everyone`. Cada ticket usa un código correlativo `RTP-{n}` y su thread se llama `RTP-{n}: {título}`. El panel abre un modal con título, descripción, tipo y hasta cinco adjuntos opcionales. El servidor copia los adjuntos de Discord al bucket privado de Supabase; el hilo usa URLs firmadas temporales para las imágenes y la interfaz entrega todos los archivos mediante una ruta autenticada. Barbilla Roja hace triage y luego Barbilla Roja o el rol de la plataforma pueden cambiar el estado con botones; cada actualización menciona al creador cuando el ticket nació en Discord.
 
 ## Outbox, Cron y Vault
 

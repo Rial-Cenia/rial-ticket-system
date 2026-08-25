@@ -127,9 +127,9 @@ export function createTicketModal() {
         },
         {
           type: 18,
-          label: '📸 Suelta las pruebas, bestie',
+          label: '📎 Suelta las pruebas, bestie',
           description:
-            'Hasta 5 fotitos de 10 MB c/u. El chisme visual ayuda, uwu',
+            'Hasta 5 archivos de 10 MB: imágenes, PDF, Word, Excel o Markdown',
           component: {
             type: 19,
             custom_id: 'ticket_images',

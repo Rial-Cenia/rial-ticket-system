@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   ExternalLink,
+  FileText,
   MessageSquareText,
   Paperclip,
   Pencil,
@@ -211,34 +212,58 @@ function TicketOverview({
 
 function TicketImages({ ticket }: { ticket: Ticket }) {
   if (!ticket.images.length) return null;
+  const images = ticket.images.filter((file) =>
+    file.mimeType.startsWith('image/'),
+  );
+  const documents = ticket.images.filter(
+    (file) => !file.mimeType.startsWith('image/'),
+  );
   return (
-    <section className="space-y-2" aria-labelledby="ticket-images-title">
+    <section className="space-y-3" aria-labelledby="ticket-images-title">
       <h3
         id="ticket-images-title"
         className="text-sm font-medium text-zinc-300"
       >
-        Imágenes ({ticket.images.length})
+        Adjuntos ({ticket.images.length})
       </h3>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {ticket.images.map((image) => (
-          <a
-            key={image.id}
-            href={image.url}
-            target="_blank"
-            rel="noreferrer"
-            className="overflow-hidden rounded-lg border border-white/10 bg-zinc-950"
-          >
-            <Image
-              src={image.url}
-              alt={image.fileName}
-              width={640}
-              height={480}
-              unoptimized
-              className="aspect-4/3 h-auto w-full object-cover transition hover:scale-105"
-            />
-          </a>
-        ))}
-      </div>
+      {images.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {images.map((image) => (
+            <a
+              key={image.id}
+              href={image.url}
+              target="_blank"
+              rel="noreferrer"
+              className="overflow-hidden rounded-lg border border-white/10 bg-zinc-950"
+            >
+              <Image
+                src={image.url}
+                alt={image.fileName}
+                width={640}
+                height={480}
+                unoptimized
+                className="aspect-4/3 h-auto w-full object-cover transition hover:scale-105"
+              />
+            </a>
+          ))}
+        </div>
+      )}
+      {documents.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {documents.map((document) => (
+            <a
+              key={document.id}
+              href={document.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-indigo-300 hover:bg-white/5"
+            >
+              <FileText className="size-4 shrink-0" />
+              <span className="truncate">{document.fileName}</span>
+            </a>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

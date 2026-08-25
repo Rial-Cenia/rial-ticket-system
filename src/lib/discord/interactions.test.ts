@@ -41,7 +41,7 @@ describe('Discord interactions', () => {
     });
   });
 
-  it('resuelve las imágenes seleccionadas por el file upload de Discord', () => {
+  it('resuelve los adjuntos seleccionados por el file upload de Discord', () => {
     const interaction = {
       data: {
         components: [

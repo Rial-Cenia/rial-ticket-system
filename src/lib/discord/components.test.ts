@@ -77,11 +77,14 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
     });
   });
 
-  it('permite adjuntar imágenes en el modal y mostrarlas en el hilo', () => {
+  it('permite adjuntar imágenes y documentos en el modal', () => {
     expect(JSON.stringify(createTicketModal())).toContain(
       '"custom_id":"ticket_images"',
     );
     expect(JSON.stringify(createTicketModal())).toContain('"type":19');
+    expect(JSON.stringify(createTicketModal())).toContain(
+      'imágenes, PDF, Word, Excel o Markdown',
+    );
 
     const message = triageMessage(ticket, 'triager-role', [
       'https://storage.example/one.png',
