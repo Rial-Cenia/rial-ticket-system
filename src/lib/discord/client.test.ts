@@ -15,6 +15,7 @@ import {
   DiscordApiError,
   findTicketThread,
   getGuildMember,
+  getThreadMessages,
   removeGuildMemberRole,
   renameThread,
   sendThreadMessage,
@@ -78,6 +79,53 @@ describe('Discord REST client', () => {
         method: 'PATCH',
         body: JSON.stringify({ name: 'RTP-42: Error' }),
       }),
+    );
+  });
+
+  it('normaliza los mensajes de un hilo en orden cronológico', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            id: 'message-2',
+            content: 'Segundo mensaje',
+            timestamp: '2026-08-25T11:00:00.000Z',
+            author: { id: 'user-2', username: 'dani', global_name: 'Dani' },
+            attachments: [],
+          },
+          {
+            id: 'message-1',
+            content: '',
+            timestamp: '2026-08-25T10:00:00.000Z',
+            author: { id: 'bot-1', username: 'rial-bot', bot: true },
+            member: { nick: 'Ticketera' },
+            attachments: [
+              {
+                id: 'attachment-1',
+                filename: 'evidencia.png',
+                url: 'https://cdn.discordapp.com/attachments/1/2/evidencia.png',
+              },
+            ],
+            embeds: [{ title: 'RTP-42', description: 'Detalle inicial' }],
+          },
+        ]),
+        { status: 200 },
+      ),
+    );
+
+    await expect(getThreadMessages('thread-1')).resolves.toEqual([
+      expect.objectContaining({
+        id: 'message-1',
+        authorName: 'Ticketera',
+        isBot: true,
+        content: 'RTP-42\nDetalle inicial',
+        attachments: [expect.objectContaining({ fileName: 'evidencia.png' })],
+      }),
+      expect.objectContaining({ id: 'message-2', authorName: 'Dani' }),
+    ]);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/channels/thread-1/messages?limit=50',
+      expect.objectContaining({ cache: 'no-store' }),
     );
   });
 

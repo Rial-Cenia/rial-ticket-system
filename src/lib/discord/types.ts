@@ -75,3 +75,17 @@ export interface DiscordGuildMember {
   nick?: string | null;
   user?: DiscordUser;
 }
+
+export interface DiscordApiMessage {
+  id: string;
+  content: string;
+  timestamp: string;
+  author: DiscordUser & { bot?: boolean };
+  member?: { nick?: string | null };
+  attachments: Array<{
+    id: string;
+    filename: string;
+    url: string;
+  }>;
+  embeds?: Array<{ title?: string; description?: string }>;
+}

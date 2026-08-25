@@ -1,6 +1,7 @@
 import 'server-only';
 import { getDiscordEnv } from '@/lib/env/server';
 import type {
+  DiscordApiMessage,
   DiscordGuildMember,
   DiscordMessagePayload,
   DiscordThread,
@@ -84,6 +85,36 @@ export function sendThreadMessage(
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function getThreadMessages(threadId: string) {
+  const messages = await request<DiscordApiMessage[]>(
+    `/channels/${threadId}/messages?limit=50`,
+  );
+  return messages.reverse().map((message) => ({
+    id: message.id,
+    authorName:
+      message.member?.nick ??
+      message.author.global_name ??
+      message.author.username,
+    isBot: message.author.bot ?? false,
+    content: [
+      message.content,
+      ...(message.embeds ?? []).flatMap((embed) =>
+        [embed.title, embed.description].filter((value): value is string =>
+          Boolean(value),
+        ),
+      ),
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    attachments: message.attachments.map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.filename,
+      url: attachment.url,
+    })),
+    createdAt: message.timestamp,
+  }));
 }
 
 export async function hasTicketMessage(threadId: string, publicId: string) {

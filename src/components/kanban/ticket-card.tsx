@@ -22,15 +22,20 @@ export function TicketCard({
     <article
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
-      className={`rounded-xl border border-white/8 bg-zinc-900 p-4 shadow-lg transition hover:border-white/15 ${isDragging ? 'z-50 opacity-60' : ''}`}
+      className={`group relative rounded-xl border border-white/8 bg-zinc-900 p-4 shadow-lg transition hover:border-white/15 ${isDragging ? 'z-50 opacity-60' : ''}`}
     >
-      <div className="mb-3 flex items-start justify-between gap-2">
+      <button
+        className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        aria-label={`Abrir detalle de ${ticket.title}`}
+        onClick={() => onOpen(ticket)}
+      />
+      <div className="pointer-events-none relative mb-3 flex items-start justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
           <TypeBadge type={ticket.type} />
           <PlatformBadge platform={ticket.platform} />
         </div>
         <button
-          className="cursor-grab rounded-md p-1 text-zinc-600 hover:bg-white/8 hover:text-zinc-300"
+          className="pointer-events-auto relative z-10 cursor-grab rounded-md p-1 text-zinc-600 hover:bg-white/8 hover:text-zinc-300"
           aria-label={`Arrastrar ${ticket.title}`}
           {...listeners}
           {...attributes}
@@ -38,7 +43,7 @@ export function TicketCard({
           <GripVertical className="size-4" />
         </button>
       </div>
-      <button className="block w-full text-left" onClick={() => onOpen(ticket)}>
+      <div className="pointer-events-none relative text-left">
         <span className="mb-1 block font-mono text-xs text-indigo-400">
           {ticketCode(ticket)}
         </span>
@@ -61,7 +66,7 @@ export function TicketCard({
             Sincronizado con Discord
           </span>
         )}
-      </button>
+      </div>
     </article>
   );
 }

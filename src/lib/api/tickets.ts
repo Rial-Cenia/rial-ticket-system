@@ -1,5 +1,5 @@
 import type { CreateTicketInput, UpdateTicketInput } from '@/lib/schemas';
-import type { Ticket, TicketFilters } from '@/lib/types';
+import type { DiscordConversation, Ticket, TicketFilters } from '@/lib/types';
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -37,4 +37,10 @@ export function updateTicket(publicId: string, patch: UpdateTicketInput) {
 
 export function deleteTicket(publicId: string) {
   return request<Ticket>(`/api/tickets/${publicId}`, { method: 'DELETE' });
+}
+
+export function fetchDiscordConversation(publicId: string) {
+  return request<DiscordConversation>(
+    `/api/tickets/${publicId}/discord-conversation`,
+  );
 }

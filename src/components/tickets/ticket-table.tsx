@@ -35,17 +35,14 @@ export function TicketTable({
         accessorKey: 'title',
         header: 'Ticket',
         cell: ({ row }) => (
-          <button
-            className="max-w-80 text-left"
-            onClick={() => onOpen(row.original)}
-          >
+          <div className="max-w-80 text-left">
             <span className="block font-medium text-zinc-100">
               {row.original.title}
             </span>
             <span className="block truncate text-xs text-zinc-600">
               {ticketCode(row.original)}
             </span>
-          </button>
+          </div>
         ),
       },
       {
@@ -73,7 +70,7 @@ export function TicketTable({
           }),
       },
     ],
-    [onOpen],
+    [],
   );
   const table = useReactTable({
     data: tickets,
@@ -113,7 +110,15 @@ export function TicketTable({
           {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              className="border-b border-white/6 text-zinc-400 last:border-0 hover:bg-white/3"
+              tabIndex={0}
+              className="cursor-pointer border-b border-white/6 text-zinc-400 outline-none last:border-0 hover:bg-white/3 focus-visible:bg-white/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400"
+              onClick={() => onOpen(row.original)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onOpen(row.original);
+                }
+              }}
             >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="px-4 py-3">

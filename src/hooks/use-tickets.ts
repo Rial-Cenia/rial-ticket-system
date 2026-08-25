@@ -8,6 +8,8 @@ import type { Ticket, TicketFilters } from '@/lib/types';
 export const ticketKeys = {
   all: ['tickets'] as const,
   list: (filters: TicketFilters) => ['tickets', filters] as const,
+  discordConversation: (publicId: string) =>
+    ['tickets', publicId, 'discord-conversation'] as const,
 };
 
 export function useTickets(filters: TicketFilters) {
@@ -62,5 +64,14 @@ export function useDeleteTicket() {
   return useMutation({
     mutationFn: api.deleteTicket,
     onSuccess: () => client.invalidateQueries({ queryKey: ticketKeys.all }),
+  });
+}
+
+export function useDiscordConversation(ticket: Ticket | null) {
+  return useQuery({
+    queryKey: ticketKeys.discordConversation(ticket?.publicId ?? ''),
+    queryFn: () => api.fetchDiscordConversation(ticket!.publicId),
+    enabled: Boolean(ticket?.discordThreadId),
+    staleTime: 30_000,
   });
 }

@@ -69,10 +69,13 @@ test.describe('flujo autenticado de tickets', () => {
     const movedTicket = target.getByRole('heading', { name: title });
     await expect(movedTicket).toBeVisible();
 
-    await movedTicket.locator('xpath=ancestor::button').click();
+    await page
+      .getByRole('button', { name: `Abrir detalle de ${title}` })
+      .click();
     await expect(
       page.getByRole('heading', { name: 'Detalle del ticket' }),
     ).toBeVisible();
+    await page.getByRole('button', { name: 'Editar ticket' }).click();
     await page.getByLabel('Título').fill(editedTitle);
     await page.getByRole('button', { name: 'Guardar' }).click();
 

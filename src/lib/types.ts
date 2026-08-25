@@ -51,6 +51,26 @@ export interface TicketActivity {
   createdAt: string;
 }
 
+export interface DiscordConversationAttachment {
+  id: string;
+  fileName: string;
+  url: string;
+}
+
+export interface DiscordConversationMessage {
+  id: string;
+  authorName: string;
+  isBot: boolean;
+  content: string;
+  attachments: DiscordConversationAttachment[];
+  createdAt: string;
+}
+
+export interface DiscordConversation {
+  threadUrl: string;
+  messages: DiscordConversationMessage[];
+}
+
 export interface OutboxJob {
   id: string;
   ticketPublicId: string;
