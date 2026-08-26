@@ -83,7 +83,7 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
     );
     expect(JSON.stringify(createTicketModal())).toContain('"type":19');
     expect(JSON.stringify(createTicketModal())).toContain(
-      'imágenes, PDF, Word, Excel o Markdown',
+      'imágenes, documentos, ICC o Python',
     );
 
     const message = triageMessage(ticket, 'triager-role', [

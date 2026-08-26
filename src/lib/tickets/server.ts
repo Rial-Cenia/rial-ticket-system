@@ -48,6 +48,17 @@ const ATTACHMENT_FORMATS = {
     mimeType: 'text/markdown',
     acceptedMimeTypes: ['text/markdown', 'text/plain'],
   },
+  icc: {
+    mimeType: 'application/vnd.iccprofile',
+    acceptedMimeTypes: [
+      'application/vnd.iccprofile',
+      'application/octet-stream',
+    ],
+  },
+  py: {
+    mimeType: 'text/x-python',
+    acceptedMimeTypes: ['text/x-python', 'text/plain'],
+  },
 } as const;
 
 interface Actor {

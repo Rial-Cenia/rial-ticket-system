@@ -124,6 +124,13 @@ describe('ticket image storage', () => {
     ],
     ['legacy.doc', 'application/msword', 'application/msword', 'doc'],
     ['README.md', 'text/plain', 'text/markdown', 'md'],
+    [
+      'display.icc',
+      'application/octet-stream',
+      'application/vnd.iccprofile',
+      'icc',
+    ],
+    ['script.py', 'text/plain', 'text/x-python', 'py'],
   ])(
     'acepta el documento %s',
     async (fileName, responseMimeType, storedMimeType, extension) => {
