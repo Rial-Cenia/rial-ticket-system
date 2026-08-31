@@ -42,6 +42,7 @@ select is((select count(*)::integer from public."TicketActivity" where "actorId"
 select is((select count(*)::integer from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba'), 1, 'Create enqueues Discord thread atomically');
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"status":"EN_STAGING"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket can move to staging');
 select is((select status::text from public."Ticket" where title = 'Prueba'), 'EN_STAGING', 'Ticket persists staging status');
+select like((select payload->>'content' from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba' and o.type = 'SEND_THREAD_MESSAGE' order by o."createdAt" desc limit 1), '%¡Entramos en la era de las pruebibas!%', 'Web status update uses the friendly Discord message');
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"priority":"BAJA"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket priority can be updated');
 select is((select priority::text from public."Ticket" where title = 'Prueba'), 'BAJA', 'Ticket persists updated priority');
 select is(public.record_discord_interaction('interaction-1', 3), true, 'First interaction is recorded');
