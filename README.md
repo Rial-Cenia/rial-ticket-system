@@ -65,7 +65,7 @@ Las APIs del servidor llaman RPCs con la clave servidor. El navegador solo puede
 2. Otorga en el canal de triage: `View Channel`, `Send Messages`, `Send Messages in Threads`, `Create Public Threads`, `Manage Threads` y `Read Message History`.
 3. En **General Information → Interactions Endpoint URL**, configura `https://<dominio>/api/discord`. Discord enviará un PING firmado que el endpoint valida con `DISCORD_PUBLIC_KEY`.
 4. Configura en Vercel todas las variables Discord y Supabase antes de validar el endpoint.
-5. Publica el panel una sola vez con `yarn discord:setup`. Si ya existe, guarda su ID en `DISCORD_PANEL_MESSAGE_ID` y ejecuta el mismo comando para actualizarlo.
+5. Publica el panel una sola vez con `yarn discord:setup`, guarda el ID que imprime en `DISCORD_PANEL_MESSAGE_ID` y configúralo también en Vercel. Así el cron actualiza siempre el mismo mensaje y no crea duplicados.
 6. En **OAuth2 → Redirects**, registra exactamente `<APP_URL>/api/discord/oauth/callback`.
 7. Otorga al bot `Manage Roles` y ubica su rol por encima de Barbilla Roja para poder administrar sus miembros desde la plataforma.
 
@@ -88,7 +88,9 @@ Después de desplegar, agrega manualmente en Supabase Vault:
 - `ticket_app_url`: URL HTTPS de Vercel, sin slash final.
 - `ticket_cron_secret`: el mismo valor de `CRON_SECRET` configurado en Vercel.
 
-Luego ejecuta manualmente `supabase/cron-bootstrap.sql` en el SQL Editor del proyecto. Este paso crea el cron de un minuto con `pg_cron` y `pg_net`. No se debe versionar el valor de ningún secreto.
+Luego ejecuta manualmente `supabase/cron-bootstrap.sql` en el SQL Editor del proyecto. Este paso crea el dispatcher de un minuto y el cron del panel con `pg_cron` y `pg_net`. No se debe versionar el valor de ningún secreto.
+
+El mismo bootstrap programa la actualización del panel de tickets de lunes a viernes. Invoca el endpoint a las 12:00 y 13:00 UTC; este solo actualiza el mensaje cuando son las 09:00 en `America/Santiago`, manteniendo el horario correcto durante los cambios de hora.
 
 ## Desarrollo y validación
 

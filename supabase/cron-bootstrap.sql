@@ -28,3 +28,21 @@ select cron.schedule(
   $$
 );
 
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'refresh-ticket-discord-panel';
+
+select cron.schedule(
+  'refresh-ticket-discord-panel',
+  '0 12,13 * * 1-5',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'ticket_app_url') || '/api/discord/panel',
+    headers := jsonb_build_object(
+      'content-type', 'application/json',
+      'authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'ticket_cron_secret')
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
