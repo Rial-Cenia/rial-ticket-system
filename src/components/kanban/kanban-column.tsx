@@ -25,7 +25,7 @@ export function KanbanColumn({
   return (
     <section
       ref={setNodeRef}
-      className={`w-[320px] shrink-0 rounded-2xl border p-3 transition ${isOver ? 'border-blue-400/50 bg-blue-500/8' : 'border-white/8 bg-zinc-950/45'}`}
+      className={`w-[calc(100vw-2rem)] max-w-[360px] shrink-0 snap-start rounded-2xl border p-3 transition sm:w-[320px] ${isOver ? 'border-blue-400/50 bg-blue-500/8' : 'border-white/8 bg-zinc-950/45'}`}
     >
       <header className="mb-3 flex items-center justify-between px-1">
         <h2 className="flex items-center gap-2 text-sm font-semibold">

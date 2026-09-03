@@ -1,5 +1,5 @@
 import { DndContext } from '@dnd-kit/core';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TicketCard } from '@/components/kanban/ticket-card';
 import { TicketTable } from '@/components/tickets/ticket-table';
@@ -51,5 +51,28 @@ describe('ticket detail triggers', () => {
 
     expect(onOpen).toHaveBeenCalledTimes(2);
     expect(onOpen).toHaveBeenLastCalledWith(ticket);
+  });
+
+  it('ordena prioridad de crítica a baja al seleccionar la columna dos veces', () => {
+    const critical = {
+      ...ticket,
+      id: 43,
+      title: 'Crítico',
+      priority: 'CRITICA' as const,
+    };
+    const low = { ...ticket, id: 44, title: 'Bajo', priority: 'BAJA' as const };
+    const table = render(
+      <TicketTable tickets={[low, critical]} onOpen={vi.fn()} />,
+    );
+
+    const priority = within(table.container).getByRole('button', {
+      name: /prioridad/i,
+    });
+    fireEvent.click(priority);
+    fireEvent.click(priority);
+
+    expect(table.container.querySelector('tbody tr')).toHaveTextContent(
+      'Crítico',
+    );
   });
 });

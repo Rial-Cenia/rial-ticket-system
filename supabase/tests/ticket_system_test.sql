@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(47);
+select plan(50);
 select has_table('public', 'Ticket', 'Ticket table exists');
 select has_table('public', 'TicketActivity', 'Activity table exists');
 select has_table('public', 'TicketSyncOutbox', 'Outbox table exists');
@@ -45,6 +45,8 @@ select is((select status::text from public."Ticket" where title = 'Prueba'), 'EN
 select like((select payload->>'content' from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba' and o.type = 'SEND_THREAD_MESSAGE' order by o."createdAt" desc limit 1), '%¡Entramos en la era de las pruebibas!%', 'Web status update uses the friendly Discord message');
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"priority":"BAJA"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket priority can be updated');
 select is((select priority::text from public."Ticket" where title = 'Prueba'), 'BAJA', 'Ticket persists updated priority');
+select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"platform":"NESTOR"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket platform can be updated from web');
+select is((select payload->>'syncControls' from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba' and o.type = 'SEND_THREAD_MESSAGE' order by o."createdAt" desc, o.id desc limit 1), 'true', 'Web platform update enqueues Discord controls synchronization');
 select is(public.record_discord_interaction('interaction-1', 3), true, 'First interaction is recorded');
 select is(public.record_discord_interaction('interaction-1', 3), false, 'Repeated interaction is deduplicated');
 select lives_ok($$select public.retry_ticket_sync_job((select o.id from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba'), 'Discord 403', null, true)$$, 'Permanent retry is handled');

@@ -87,6 +87,36 @@ export function sendThreadMessage(
   });
 }
 
+export async function findTicketControlMessageId(
+  threadId: string,
+  publicId: string,
+) {
+  const messages = await request<
+    Array<{ id: string; embeds?: Array<{ footer?: { text?: string } }> }>
+  >(`/channels/${threadId}/messages?limit=100`);
+  return (
+    messages.find((message) =>
+      message.embeds?.some((embed) =>
+        embed.footer?.text?.startsWith(`rial-ticket:${publicId}`),
+      ),
+    )?.id ?? null
+  );
+}
+
+export function editThreadMessage(
+  threadId: string,
+  messageId: string,
+  payload: DiscordMessagePayload,
+) {
+  return request<{ id: string }>(
+    `/channels/${threadId}/messages/${messageId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function getThreadMessages(threadId: string) {
   const messages = await request<DiscordApiMessage[]>(
     `/channels/${threadId}/messages?limit=50`,

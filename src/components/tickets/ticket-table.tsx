@@ -6,6 +6,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type SortingFn,
   type SortingState,
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
@@ -20,6 +21,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { STATUS_LABELS, type Ticket } from '@/lib/types';
 import { ticketCode } from '@/lib/tickets/format';
+
+const prioritySorting: SortingFn<Ticket> = (first, second) => {
+  const order = { BAJA: 0, MEDIA: 1, ALTA: 2, CRITICA: 3 };
+  return order[first.original.priority] - order[second.original.priority];
+};
 
 export function TicketTable({
   tickets,
@@ -57,6 +63,7 @@ export function TicketTable({
       {
         accessorKey: 'priority',
         header: 'Prioridad',
+        sortingFn: prioritySorting,
         cell: ({ row }) => <PriorityBadge priority={row.original.priority} />,
       },
       {
@@ -91,8 +98,8 @@ export function TicketTable({
   });
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/8 bg-zinc-900/60">
-      <table className="w-full min-w-[900px] text-sm">
+    <div className="-mx-4 overflow-x-auto overscroll-x-contain rounded-xl border border-white/8 bg-zinc-900/60 sm:mx-0">
+      <table className="w-full min-w-[980px] text-sm">
         <thead className="border-b border-white/8 bg-white/3 text-left text-xs uppercase tracking-wide text-zinc-500">
           {table.getHeaderGroups().map((group) => (
             <tr key={group.id}>
@@ -104,10 +111,12 @@ export function TicketTable({
                     className="-ml-3 h-7 text-xs uppercase text-zinc-500"
                     onClick={header.column.getToggleSortingHandler()}
                   >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
+                    <span>
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </span>
                     <ArrowUpDown className="size-3" />
                   </Button>
                 </th>

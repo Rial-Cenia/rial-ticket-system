@@ -5,6 +5,8 @@ import type { OutboxJob, Ticket } from '@/lib/types';
 const mocks = vi.hoisted(() => ({
   archiveThread: vi.fn(),
   createPublicThread: vi.fn(),
+  editThreadMessage: vi.fn(),
+  findTicketControlMessageId: vi.fn(),
   findTicketThread: vi.fn(),
   hasTicketMessage: vi.fn(),
   renameThread: vi.fn(),
@@ -18,6 +20,8 @@ vi.mock('@/lib/discord/client', () => ({
   archiveThread: mocks.archiveThread,
   createPublicThread: mocks.createPublicThread,
   DiscordApiError: class DiscordApiError extends Error {},
+  editThreadMessage: mocks.editThreadMessage,
+  findTicketControlMessageId: mocks.findTicketControlMessageId,
   findTicketThread: mocks.findTicketThread,
   hasTicketMessage: mocks.hasTicketMessage,
   renameThread: mocks.renameThread,
@@ -25,6 +29,9 @@ vi.mock('@/lib/discord/client', () => ({
 }));
 vi.mock('@/lib/env/server', () => ({
   getDiscordEnv: () => ({ triagerRoleId: 'triager-role' }),
+}));
+vi.mock('@/lib/discord/roles', () => ({
+  platformRoleId: () => 'platform-role',
 }));
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => ({ rpc: mocks.rpc }),
@@ -80,6 +87,8 @@ describe('Discord outbox jobs', () => {
       name: 'RTP-42: Error crítico',
     });
     mocks.sendThreadMessage.mockResolvedValue({ id: 'message-1' });
+    mocks.findTicketControlMessageId.mockResolvedValue('control-message-1');
+    mocks.editThreadMessage.mockResolvedValue({ id: 'control-message-1' });
   });
 
   it('renombra el thread y menciona al creador en actualizaciones web', async () => {
@@ -170,6 +179,35 @@ describe('Discord outbox jobs', () => {
             image: { url: 'https://storage.example/signed/image.png' },
           }),
         ]),
+      }),
+    );
+  });
+
+  it('actualiza los controles con el rol de la nueva plataforma desde web', async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: [
+          job('SEND_THREAD_MESSAGE', {
+            threadId: 'thread-1',
+            syncControls: true,
+            assignedBy: 'Operaciones',
+          }),
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(processOutboxJobs()).resolves.toMatchObject({ delivered: 1 });
+    expect(mocks.findTicketControlMessageId).toHaveBeenCalledWith(
+      'thread-1',
+      ticket.publicId,
+    );
+    expect(mocks.editThreadMessage).toHaveBeenCalledWith(
+      'thread-1',
+      'control-message-1',
+      expect.objectContaining({
+        content: expect.stringContaining('<@&platform-role>'),
+        components: expect.any(Array),
       }),
     );
   });

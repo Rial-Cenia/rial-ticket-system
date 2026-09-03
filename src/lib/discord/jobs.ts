@@ -4,13 +4,16 @@ import {
   archiveThread,
   createPublicThread,
   DiscordApiError,
+  editThreadMessage,
+  findTicketControlMessageId,
   findTicketThread,
   hasTicketMessage,
   renameThread,
   sendThreadMessage,
 } from '@/lib/discord/client';
-import { triageMessage } from '@/lib/discord/components';
+import { ticketControls, triageMessage } from '@/lib/discord/components';
 import { getDiscordEnv } from '@/lib/env/server';
+import { platformRoleId } from '@/lib/discord/roles';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTicket, getTicketImageSignedUrls } from '@/lib/tickets/server';
 import { ticketThreadName } from '@/lib/tickets/format';
@@ -19,6 +22,11 @@ import type { OutboxJob } from '@/lib/types';
 const messageJobSchema = z.object({
   threadId: z.string(),
   content: z.string().min(1).max(2000),
+});
+const syncControlsJobSchema = z.object({
+  threadId: z.string(),
+  syncControls: z.literal(true),
+  assignedBy: z.string().min(1).max(4000),
 });
 const archiveJobSchema = messageJobSchema;
 
@@ -92,8 +100,30 @@ async function processCreateThread(job: OutboxJob) {
 async function processJob(job: OutboxJob) {
   if (job.type === 'CREATE_TRIAGE_THREAD') return processCreateThread(job);
   if (job.type === 'SEND_THREAD_MESSAGE') {
-    const payload = messageJobSchema.parse(job.payload);
     const ticket = await getTicket(job.ticketPublicId);
+    const syncControls = syncControlsJobSchema.safeParse(job.payload);
+    if (syncControls.success) {
+      if (!ticket?.platform) return complete(job.id);
+      const messageId = await findTicketControlMessageId(
+        syncControls.data.threadId,
+        ticket.publicId,
+      );
+      if (!messageId) return complete(job.id);
+      const imageUrls = await getTicketImageSignedUrls(ticket.publicId);
+      await editThreadMessage(
+        syncControls.data.threadId,
+        messageId,
+        ticketControls(
+          ticket,
+          syncControls.data.assignedBy,
+          platformRoleId(ticket.platform),
+          imageUrls,
+        ),
+      );
+      return complete(job.id);
+    }
+
+    const payload = messageJobSchema.parse(job.payload);
     if (ticket) await renameThread(payload.threadId, ticketThreadName(ticket));
     const creatorId = ticket?.createdByDiscordId ?? null;
     await sendThreadMessage(payload.threadId, {
