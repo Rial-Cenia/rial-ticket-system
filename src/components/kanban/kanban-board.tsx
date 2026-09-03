@@ -83,8 +83,8 @@ export function KanbanBoard({
             </Select>
           </label>
         </div>
-        <div className="-mx-4 overflow-x-auto overscroll-x-contain px-4 pb-4 sm:mx-0 sm:px-0">
-          <div className="flex w-max snap-x snap-mandatory gap-4">
+        <div className="-mx-4 min-w-0 overflow-x-auto overscroll-x-contain px-4 pb-4 touch-pan-x sm:mx-0 sm:px-0">
+          <div className="flex w-max snap-x snap-proximity gap-4">
             {TICKET_STATUSES.map((status) => (
               <KanbanColumn
                 key={status}

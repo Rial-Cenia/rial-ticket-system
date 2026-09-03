@@ -26,7 +26,7 @@ export function FilterBar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/8 bg-zinc-900/60 p-3">
-      <SlidersHorizontal className="size-4 text-zinc-500" />
+      <SlidersHorizontal className="hidden size-4 shrink-0 text-zinc-500 lg:block" />
       <Select
         value={filters.platform ?? 'ALL'}
         onValueChange={(value) =>
@@ -74,7 +74,7 @@ export function FilterBar({
           ))}
         </SelectContent>
       </Select>
-      <label className="relative min-w-56 flex-1">
+      <label className="relative min-w-0 flex-[1_1_20rem]">
         <Search className="absolute left-3 top-3 size-4 text-zinc-600" />
         <Input
           className="pl-9"

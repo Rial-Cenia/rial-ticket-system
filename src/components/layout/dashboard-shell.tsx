@@ -63,7 +63,7 @@ export function DashboardShell({
           ))}
         </nav>
       </aside>
-      <div>
+      <div className="min-w-0">
         <header className="flex h-16 items-center justify-between border-b border-white/8 bg-zinc-950/55 px-5 backdrop-blur">
           <div>
             <p className="text-sm font-medium">{userName}</p>
@@ -82,7 +82,7 @@ export function DashboardShell({
             Salir
           </Button>
         </header>
-        <main className="p-4 sm:p-6">{children}</main>
+        <main className="min-w-0 p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );
