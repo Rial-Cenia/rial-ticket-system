@@ -12,7 +12,6 @@ vi.mock('@/lib/env/server', () => ({
 import {
   addGuildMemberRole,
   createPublicThread,
-  DiscordApiError,
   findTicketThread,
   getGuildMember,
   getThreadMessages,
@@ -129,20 +128,40 @@ describe('Discord REST client', () => {
     );
   });
 
-  it('expone retry_after en respuestas 429', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(
-        JSON.stringify({ message: 'Rate limited', retry_after: 2.5 }),
-        { status: 429 },
-      ),
+  it('respeta retry_after antes de reintentar una respuesta 429', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ message: 'Rate limited', retry_after: 0 }),
+          { status: 429 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 'message-1' }), { status: 200 }),
+      );
+
+    await expect(
+      sendThreadMessage('thread-1', { content: 'hola' }),
+    ).resolves.toEqual({ id: 'message-1' });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('expone retry_after si Discord sigue limitando los reintentos', async () => {
+    vi.mocked(fetch).mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({ message: 'Rate limited', retry_after: 0 }),
+          { status: 429 },
+        ),
     );
 
-    const request = sendThreadMessage('thread-1', { content: 'hola' });
-    await expect(request).rejects.toBeInstanceOf(DiscordApiError);
-    await expect(request).rejects.toMatchObject({
+    await expect(
+      sendThreadMessage('thread-1', { content: 'hola' }),
+    ).rejects.toMatchObject({
       status: 429,
-      retryAfterSeconds: 2.5,
+      retryAfterSeconds: 0,
     });
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 
   it('consulta la membresía y traduce un 404 a miembro inexistente', async () => {

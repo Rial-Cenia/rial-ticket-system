@@ -2,6 +2,7 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   addGuildMemberRole,
+  DiscordApiError,
   getGuildMember,
   removeGuildMemberRole,
 } from '@/lib/discord/client';
@@ -77,24 +78,38 @@ export async function listDiscordLinkedUsers(): Promise<DiscordLinkedUser[]> {
   );
   const { triagerRoleId } = getDiscordEnv();
 
-  return Promise.all(
-    authData.users.map(async (user) => {
-      const link = linksByUserId.get(user.id) ?? null;
-      const member = link ? await getGuildMember(link.discordUserId) : null;
-      const name =
-        typeof user.user_metadata?.full_name === 'string'
-          ? user.user_metadata.full_name
-          : (user.email ?? user.id);
-      return {
-        userId: user.id,
-        email: user.email ?? '',
-        name,
-        link,
-        isGuildMember: member !== null,
-        hasTriagerRole: member?.roles.includes(triagerRoleId) ?? false,
-      };
-    }),
-  );
+  const users: DiscordLinkedUser[] = [];
+  for (const user of authData.users) {
+    const link = linksByUserId.get(user.id) ?? null;
+    let member = null;
+    let membershipUnavailable = false;
+
+    if (link) {
+      try {
+        member = await getGuildMember(link.discordUserId);
+      } catch (error) {
+        if (!(error instanceof DiscordApiError) || error.status !== 429)
+          throw error;
+        membershipUnavailable = true;
+      }
+    }
+
+    const name =
+      typeof user.user_metadata?.full_name === 'string'
+        ? user.user_metadata.full_name
+        : (user.email ?? user.id);
+    users.push({
+      userId: user.id,
+      email: user.email ?? '',
+      name,
+      link,
+      isGuildMember: member !== null,
+      hasTriagerRole: member?.roles.includes(triagerRoleId) ?? false,
+      membershipUnavailable,
+    });
+  }
+
+  return users;
 }
 
 export async function setTriagerRole(

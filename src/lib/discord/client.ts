@@ -8,6 +8,7 @@ import type {
 } from '@/lib/discord/types';
 
 const API = 'https://discord.com/api/v10';
+const MAX_RATE_LIMIT_RETRIES = 2;
 
 export class DiscordApiError extends Error {
   constructor(
@@ -29,24 +30,44 @@ async function request<T>(
   if (useBotAuth)
     headers.set('authorization', `Bot ${getDiscordEnv().botToken}`);
 
-  const response = await fetch(`${API}${path}`, {
-    ...init,
-    headers,
-    cache: 'no-store',
-  });
-  if (!response.ok) {
+  for (let attempt = 0; ; attempt += 1) {
+    const response = await fetch(`${API}${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store',
+    });
+    if (response.ok) {
+      if (response.status === 204) return undefined as T;
+      return (await response.json()) as T;
+    }
+
     const body = (await response.json().catch(() => null)) as {
       message?: string;
       retry_after?: number;
     } | null;
+    const retryAfterHeader = response.headers.get('retry-after');
+    const retryAfterSeconds =
+      body?.retry_after ??
+      (retryAfterHeader === null ? undefined : Number(retryAfterHeader));
+
+    if (
+      response.status === 429 &&
+      attempt < MAX_RATE_LIMIT_RETRIES &&
+      retryAfterSeconds !== undefined &&
+      Number.isFinite(retryAfterSeconds)
+    ) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.ceil(retryAfterSeconds * 1000)),
+      );
+      continue;
+    }
+
     throw new DiscordApiError(
       body?.message ?? `Discord respondió ${response.status}`,
       response.status,
-      body?.retry_after,
+      Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : undefined,
     );
   }
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
 }
 
 export function createPublicThread(name: string) {

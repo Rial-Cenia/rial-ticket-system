@@ -209,11 +209,15 @@ export function DiscordAccountsPanel({
                         {' '}
                         · @{user.link.discordUsername}
                       </span>
-                      {!user.isGuildMember && (
+                      {user.membershipUnavailable ? (
+                        <span className="ml-2 text-amber-300">
+                          No se pudo verificar el servidor
+                        </span>
+                      ) : !user.isGuildMember ? (
                         <span className="ml-2 text-amber-300">
                           Fuera del servidor
                         </span>
-                      )}
+                      ) : null}
                     </p>
                   ) : (
                     <p className="mt-1 text-sm text-zinc-600">
@@ -222,18 +226,20 @@ export function DiscordAccountsPanel({
                   )}
                 </div>
 
-                {user.link && user.isGuildMember && (
-                  <Button
-                    variant={user.hasTriagerRole ? 'danger' : 'secondary'}
-                    size="sm"
-                    disabled={changingUserId === user.userId}
-                    onClick={() => updateRole(user, !user.hasTriagerRole)}
-                  >
-                    {user.hasTriagerRole
-                      ? 'Quitar rol'
-                      : 'Asignar Barbilla roja'}
-                  </Button>
-                )}
+                {user.link &&
+                  user.isGuildMember &&
+                  !user.membershipUnavailable && (
+                    <Button
+                      variant={user.hasTriagerRole ? 'danger' : 'secondary'}
+                      size="sm"
+                      disabled={changingUserId === user.userId}
+                      onClick={() => updateRole(user, !user.hasTriagerRole)}
+                    >
+                      {user.hasTriagerRole
+                        ? 'Quitar rol'
+                        : 'Asignar Barbilla roja'}
+                    </Button>
+                  )}
               </div>
             ))}
           </div>

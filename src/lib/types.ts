@@ -121,6 +121,7 @@ export interface DiscordLinkedUser {
   link: DiscordAccountLink | null;
   isGuildMember: boolean;
   hasTriagerRole: boolean;
+  membershipUnavailable?: boolean;
 }
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {

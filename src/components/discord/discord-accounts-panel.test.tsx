@@ -89,4 +89,27 @@ describe('Discord accounts panel', () => {
       screen.getByRole('link', { name: 'Vincular mi Discord' }),
     ).toHaveAttribute('href', '/api/discord/oauth');
   });
+
+  it('informa cuando Discord no permite verificar temporalmente la membresía', () => {
+    render(
+      <DiscordAccountsPanel
+        currentUserId="user-1"
+        initialStatus={{}}
+        initialUsers={[
+          {
+            ...linkedUser,
+            isGuildMember: false,
+            membershipUnavailable: true,
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText('No se pudo verificar el servidor'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Asignar Barbilla roja' }),
+    ).not.toBeInTheDocument();
+  });
 });
