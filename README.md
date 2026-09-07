@@ -59,6 +59,20 @@ yarn test:db
 
 Las APIs del servidor llaman RPCs con la clave servidor. El navegador solo puede leer tickets y actividades como usuario autenticado; no puede mutar tablas ni acceder al outbox o a la deduplicación de Discord.
 
+### Equipos y kanbans de tareas
+
+La sección **Tareas** contiene vistas Kanban y Tabla independientes de los tickets de soporte. Los kanbans se asignan a uno o más equipos; los administradores ven todos y los demás usuarios solo los asociados a sus equipos activos. Cada kanban administra sus propios estados ordenables, etiquetas y tarjetas.
+
+La migración crea un registro `AppUser` con rol `USER` para cada cuenta existente. Después de que la primera cuenta haya iniciado sesión, asigna el primer administrador directamente en la base de datos:
+
+```sql
+update public."AppUser"
+set role = 'ADMIN'
+where "userId" = '<auth-user-uuid>';
+```
+
+Desde **Configuración**, los administradores pueden cambiar roles y crear equipos. Un equipo admite varios jefes; sus jefes pueden administrar miembros y los kanbans asociados. Todas las eliminaciones del módulo son lógicas mediante `CANCELLED`. Una tarjeta conserva encargado y revisor si dejan de pertenecer a los equipos del kanban, mostrándolos como membresías históricas.
+
 ## Configuración de Discord
 
 1. Crea una aplicación en Discord Developer Portal y añade su bot al servidor indicado por `DISCORD_GUILD_ID`.

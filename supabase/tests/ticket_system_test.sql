@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(50);
+select plan(74);
 select has_table('public', 'Ticket', 'Ticket table exists');
 select has_table('public', 'TicketActivity', 'Activity table exists');
 select has_table('public', 'TicketSyncOutbox', 'Outbox table exists');
@@ -23,6 +23,17 @@ select ok((select allowed_mime_types from storage.buckets where id = 'ticket-ima
 select is((select count(*)::integer from information_schema.role_table_grants where table_schema = 'public' and table_name = 'DiscordAccountLink' and grantee = 'authenticated'), 0, 'Authenticated users have no direct link table grants');
 select is((select count(*)::integer from information_schema.table_constraints where table_schema = 'public' and table_name = 'DiscordAccountLink' and constraint_type = 'UNIQUE'), 1, 'Discord user can only be linked once');
 select is((select count(*)::integer from information_schema.table_constraints where table_schema = 'public' and table_name = 'DiscordAccountLink' and constraint_type = 'FOREIGN KEY'), 1, 'Link belongs to an auth user');
+select has_table('public', 'AppUser', 'App user table exists');
+select has_table('public', 'Team', 'Team table exists');
+select has_table('public', 'TeamMembership', 'Team membership table exists');
+select has_table('public', 'Kanban', 'Kanban table exists');
+select has_table('public', 'KanbanTeam', 'Kanban team table exists');
+select has_table('public', 'KanbanState', 'Kanban state table exists');
+select has_table('public', 'KanbanTag', 'Kanban tag table exists');
+select has_table('public', 'KanbanCard', 'Kanban card table exists');
+select has_table('public', 'KanbanCardTag', 'Kanban card tag table exists');
+select is((select relrowsecurity from pg_class where oid = 'public."Kanban"'::regclass), true, 'Kanban RLS is enabled');
+select is((select count(*)::integer from information_schema.role_table_grants where table_schema = 'public' and table_name in ('AppUser', 'Team', 'TeamMembership', 'Kanban', 'KanbanTeam', 'KanbanState', 'KanbanTag', 'KanbanCard', 'KanbanCardTag') and grantee = 'authenticated'), 0, 'Kanban tables have no direct authenticated grants');
 select is((select count(*)::integer from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'Ticket'), 1, 'Ticket is published to Realtime');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketStatus' and e.enumlabel = 'EN_STAGING'), 1, 'Ticket status includes staging');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'Platform' and e.enumlabel = 'EXTERNO'), 1, 'Platform includes external tickets');
@@ -51,5 +62,31 @@ select is(public.record_discord_interaction('interaction-1', 3), true, 'First in
 select is(public.record_discord_interaction('interaction-1', 3), false, 'Repeated interaction is deduplicated');
 select lives_ok($$select public.retry_ticket_sync_job((select o.id from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba'), 'Discord 403', null, true)$$, 'Permanent retry is handled');
 select is((select o.status::text from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba'), 'DEAD_LETTER', 'Permanent 4xx becomes dead letter');
+
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'kanban-test@rial.local', '', now(), '{}'::jsonb, '{}'::jsonb, now(), now());
+insert into public."AppUser" ("userId", role) values ('10000000-0000-0000-0000-000000000001', 'ADMIN');
+insert into public."Team" (id, name) values ('20000000-0000-0000-0000-000000000001', 'Equipo Test');
+insert into public."TeamMembership" (id, "teamId", "userId", role) values ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'LEADER');
+
+select lives_ok($$select public.create_kanban('Kanban Test', array['20000000-0000-0000-0000-000000000001'::uuid], '10000000-0000-0000-0000-000000000001')$$, 'Kanban is created atomically');
+select is((select count(*)::integer from public."KanbanState" s join public."Kanban" k on k.id = s."kanbanId" where k.name = 'Kanban Test' and s.status = 'ACTIVE'), 3, 'Kanban starts with three default states');
+select is((select count(*)::integer from public."KanbanTeam" kt join public."Kanban" k on k.id = kt."kanbanId" where k.name = 'Kanban Test' and kt.status = 'ACTIVE'), 1, 'Kanban is assigned to its team');
+
+insert into public."KanbanCard" (id, "kanbanId", title, description, "stateId", "assigneeUserId", "createdByUserId")
+select '40000000-0000-0000-0000-000000000001', k.id, 'Tarjeta Test', repeat('Descripción extensa ', 500), s.id, '10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001'
+from public."Kanban" k join public."KanbanState" s on s."kanbanId" = k.id
+where k.name = 'Kanban Test' and s.name = 'Por hacer';
+
+select throws_ok($$select public.cancel_kanban_state((select "stateId" from public."KanbanCard" where id = '40000000-0000-0000-0000-000000000001'))$$, 'P0001', 'No puedes eliminar un estado que contiene tarjetas', 'State cancellation is blocked while it contains cards');
+select throws_ok($$select public.cancel_kanban((select id from public."Kanban" where name = 'Kanban Test'))$$, 'P0001', 'No puedes eliminar un kanban que contiene tarjetas', 'Kanban cancellation is blocked while it contains cards');
+select lives_ok($$update public."TeamMembership" set status = 'CANCELLED' where id = '30000000-0000-0000-0000-000000000001'$$, 'Membership can be cancelled');
+select is((select "assigneeUserId"::text from public."KanbanCard" where id = '40000000-0000-0000-0000-000000000001'), '10000000-0000-0000-0000-000000000001', 'Cancelling membership preserves historical card assignment');
+select lives_ok($$select public.cancel_kanban_card('40000000-0000-0000-0000-000000000001')$$, 'Card is soft deleted');
+select lives_ok($$select public.cancel_kanban_state((select id from public."KanbanState" s join public."Kanban" k on k.id = s."kanbanId" where k.name = 'Kanban Test' and s.name = 'Por hacer'))$$, 'Empty state is soft deleted');
+select lives_ok($$select public.cancel_kanban((select id from public."Kanban" where name = 'Kanban Test'))$$, 'Empty kanban is soft deleted');
+select is((select status::text from public."Kanban" where name = 'Kanban Test'), 'CANCELLED', 'Kanban remains stored as cancelled');
+select lives_ok($$select public.cancel_team('20000000-0000-0000-0000-000000000001')$$, 'Team is soft deleted');
+select is((select status::text from public."Team" where id = '20000000-0000-0000-0000-000000000001'), 'CANCELLED', 'Team remains stored as cancelled');
 select * from finish();
 rollback;

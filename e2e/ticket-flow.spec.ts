@@ -27,7 +27,7 @@ test.describe('flujo autenticado de tickets', () => {
     await page.getByLabel('Email').fill(process.env.E2E_EMAIL!);
     await page.getByLabel('Contraseña').fill(process.env.E2E_PASSWORD!);
     await page.getByRole('button', { name: 'Ingresar' }).click();
-    await expect(page).toHaveURL(/\/kanban$/);
+    await expect(page).toHaveURL(/\/tickets\/kanban$/);
 
     await page.getByRole('button', { name: 'Nuevo ticket' }).click();
     await page.getByLabel('Título').fill(title);
@@ -84,7 +84,7 @@ test.describe('flujo autenticado de tickets', () => {
     await page.getByLabel('Título').fill(editedTitle);
     await page.getByRole('button', { name: 'Guardar' }).click();
 
-    await page.getByRole('link', { name: 'Tabla' }).click();
+    await page.getByRole('link', { name: 'Tabla' }).first().click();
     await expect(page.getByText(editedTitle)).toBeVisible();
     await page.getByText(editedTitle).click();
     page.once('dialog', (dialog) => dialog.accept());

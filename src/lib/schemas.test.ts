@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createKanbanCardSchema,
+  createKanbanSchema,
   createTicketSchema,
   discordRoleUpdateSchema,
   updateTicketSchema,
@@ -46,5 +48,30 @@ describe('ticket schemas', () => {
       enabled: true,
     });
     expect(() => discordRoleUpdateSchema.parse({ enabled: 'true' })).toThrow();
+  });
+});
+
+describe('kanban schemas', () => {
+  it('exige al menos un equipo al crear un kanban', () => {
+    expect(() =>
+      createKanbanSchema.parse({ name: 'Producto', teamIds: [] }),
+    ).toThrow();
+  });
+
+  it('permite descripciones sin límite artificial y aplica prioridad media', () => {
+    const description = 'contenido '.repeat(2000);
+    expect(
+      createKanbanCardSchema.parse({
+        title: 'Documentar lanzamiento',
+        description,
+        stateId: '10000000-0000-4000-8000-000000000001',
+      }),
+    ).toEqual({
+      title: 'Documentar lanzamiento',
+      description,
+      stateId: '10000000-0000-4000-8000-000000000001',
+      priority: 'MEDIA',
+      tagIds: [],
+    });
   });
 });

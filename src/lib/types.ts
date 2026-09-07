@@ -22,6 +22,13 @@ export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
 export type ActivitySource = 'WEB' | 'DISCORD';
 export type OutboxJobType =
   'CREATE_TRIAGE_THREAD' | 'SEND_THREAD_MESSAGE' | 'ARCHIVE_THREAD';
+export const APP_ROLES = ['ADMIN', 'USER'] as const;
+export const TEAM_MEMBERSHIP_ROLES = ['LEADER', 'MEMBER'] as const;
+export const KANBAN_PRIORITIES = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'] as const;
+export type AppRole = (typeof APP_ROLES)[number];
+export type TeamMembershipRole = (typeof TEAM_MEMBERSHIP_ROLES)[number];
+export type KanbanPriority = (typeof KANBAN_PRIORITIES)[number];
+export type RecordStatus = 'ACTIVE' | 'CANCELLED';
 
 export interface Ticket {
   id: number;
@@ -122,6 +129,76 @@ export interface DiscordLinkedUser {
   isGuildMember: boolean;
   hasTriagerRole: boolean;
   membershipUnavailable?: boolean;
+}
+
+export interface AppUser {
+  userId: string;
+  email: string;
+  name: string;
+  role: AppRole;
+}
+
+export interface TeamMember extends AppUser {
+  membershipId: string;
+  membershipRole: TeamMembershipRole;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  members: TeamMember[];
+  canManage: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KanbanState {
+  id: string;
+  kanbanId: string;
+  name: string;
+  position: number;
+}
+
+export interface KanbanTag {
+  id: string;
+  kanbanId: string;
+  name: string;
+}
+
+export interface KanbanCardUser {
+  userId: string;
+  name: string;
+  email: string;
+  isCurrentMember: boolean;
+}
+
+export interface KanbanCard {
+  id: string;
+  kanbanId: string;
+  title: string;
+  description: string;
+  stateId: string;
+  priority: KanbanPriority;
+  assignee: KanbanCardUser | null;
+  reviewer: KanbanCardUser | null;
+  tags: KanbanTag[];
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Kanban {
+  id: string;
+  name: string;
+  teams: Array<Pick<Team, 'id' | 'name'>>;
+  states: KanbanState[];
+  tags: KanbanTag[];
+  members: AppUser[];
+  cards: KanbanCard[];
+  canManage: boolean;
+  canDeleteCards: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {

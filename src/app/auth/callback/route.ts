@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const next =
     nextParam?.startsWith('/') && !nextParam.startsWith('//')
       ? nextParam
-      : '/kanban';
+      : '/tickets/kanban';
   const supabase = await createClient();
 
   if (!code)

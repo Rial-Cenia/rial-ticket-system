@@ -36,7 +36,7 @@ function LoginForm() {
       setLoading(false);
       return;
     }
-    router.replace('/kanban');
+    router.replace('/tickets/kanban');
     router.refresh();
   }
 
