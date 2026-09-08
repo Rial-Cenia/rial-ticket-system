@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
+
+afterEach(cleanup);
 
 function Harness() {
   const [value, setValue] = useState('texto');
@@ -19,5 +21,22 @@ describe('MarkdownEditor', () => {
     expect(textarea).toHaveValue('**texto**');
     await userEvent.click(screen.getByRole('button', { name: 'Vista previa' }));
     expect(screen.getByText('texto').tagName).toBe('STRONG');
+  });
+
+  it('renderiza encabezados y listas en la vista previa', async () => {
+    function MarkdownHarness() {
+      const [value, setValue] = useState('# Título\n\n- Uno\n- Dos');
+      return <MarkdownEditor value={value} onChange={setValue} />;
+    }
+
+    render(<MarkdownHarness />);
+    await userEvent.click(screen.getByRole('button', { name: 'Vista previa' }));
+
+    expect(screen.getByRole('heading', { name: 'Título' })).toHaveClass(
+      'text-2xl',
+    );
+    expect(screen.getByRole('list')).toHaveClass('list-disc');
+    expect(screen.getByText('Uno')).toBeInTheDocument();
+    expect(screen.getByText('Dos')).toBeInTheDocument();
   });
 });

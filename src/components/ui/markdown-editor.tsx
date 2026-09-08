@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Bold, Code2, Italic, Link, List } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/input';
@@ -51,6 +52,61 @@ const actions = [
     placeholder: 'texto',
   },
 ] as const;
+
+const markdownComponents: Components = {
+  h1: ({ children }) => (
+    <h1 className="text-2xl font-semibold tracking-tight text-white">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="text-xl font-semibold tracking-tight text-white">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="text-lg font-semibold text-white">{children}</h3>
+  ),
+  p: ({ children }) => <p className="leading-6">{children}</p>,
+  ul: ({ children }) => (
+    <ul className="list-disc space-y-1 pl-6">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal space-y-1 pl-6">{children}</ol>
+  ),
+  li: ({ children }) => <li className="pl-1">{children}</li>,
+  blockquote: ({ children }) => (
+    <blockquote className="border-l-2 border-indigo-400/70 pl-4 italic text-zinc-400">
+      {children}
+    </blockquote>
+  ),
+  a: ({ children, href }) => (
+    <a
+      className="text-indigo-300 underline decoration-indigo-400/50 underline-offset-2 hover:text-indigo-200"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {children}
+    </a>
+  ),
+  code: ({ children, className }) => (
+    <code
+      className={cn(
+        'rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.9em] text-indigo-200',
+        className,
+      )}
+    >
+      {children}
+    </code>
+  ),
+  pre: ({ children }) => (
+    <pre className="overflow-x-auto rounded-lg bg-black/40 p-3 text-sm text-zinc-200">
+      {children}
+    </pre>
+  ),
+  hr: () => <hr className="border-white/10" />,
+};
 
 export function MarkdownEditor({ value, onChange, id }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -108,9 +164,14 @@ export function MarkdownEditor({ value, onChange, id }: Props) {
         </div>
       </div>
       {preview ? (
-        <div className="prose prose-invert min-h-40 max-w-none overflow-auto p-3 text-sm text-zinc-200">
+        <div className="min-h-72 max-w-none space-y-3 overflow-auto p-4 text-sm text-zinc-200">
           {value ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+            <ReactMarkdown
+              components={markdownComponents}
+              remarkPlugins={[remarkGfm]}
+            >
+              {value}
+            </ReactMarkdown>
           ) : (
             <span className="text-zinc-600">Nada que previsualizar.</span>
           )}
@@ -121,7 +182,7 @@ export function MarkdownEditor({ value, onChange, id }: Props) {
           id={id}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-h-40 rounded-none border-0 focus:border-0"
+          className="min-h-72 resize-y rounded-none border-0 focus:border-0"
         />
       )}
     </div>
@@ -130,8 +191,13 @@ export function MarkdownEditor({ value, onChange, id }: Props) {
 
 export function MarkdownContent({ children }: { children: string }) {
   return (
-    <div className="prose prose-invert max-w-none text-sm text-zinc-300">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+    <div className="space-y-3 text-sm text-zinc-300">
+      <ReactMarkdown
+        components={markdownComponents}
+        remarkPlugins={[remarkGfm]}
+      >
+        {children}
+      </ReactMarkdown>
     </div>
   );
 }
