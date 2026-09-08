@@ -10,9 +10,14 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { UserRound } from 'lucide-react';
+import { Archive, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useUpdateKanbanCard } from '@/hooks/use-kanbans';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toast';
+import {
+  useArchiveFinalStateCards,
+  useUpdateKanbanCard,
+} from '@/hooks/use-kanbans';
 import { PRIORITY_LABELS, type Kanban, type KanbanCard } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -24,9 +29,12 @@ export function TaskBoard({
   onOpen: (card: KanbanCard) => void;
 }) {
   const update = useUpdateKanbanCard(kanban.id);
+  const archiveFinalStateCards = useArchiveFinalStateCards(kanban.id);
+  const { showToast } = useToast();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
+  const finalStateId = kanban.states.at(-1)?.id ?? null;
 
   function handleDragEnd(event: DragEndEvent) {
     const card = kanban.cards.find(
@@ -34,7 +42,44 @@ export function TaskBoard({
     );
     const stateId = typeof event.over?.id === 'string' ? event.over.id : null;
     if (card && stateId && card.stateId !== stateId)
-      update.mutate({ cardId: card.id, input: { stateId } });
+      update.mutate(
+        { cardId: card.id, input: { stateId } },
+        {
+          onSuccess: () =>
+            showToast({
+              variant: 'success',
+              message: 'Tarjeta actualizada correctamente.',
+            }),
+          onError: (mutationError) =>
+            showToast({
+              variant: 'error',
+              message:
+                mutationError instanceof Error
+                  ? mutationError.message
+                  : 'No fue posible actualizar la tarjeta.',
+            }),
+        },
+      );
+  }
+
+  function handleArchiveFinalStateCards(stateId: string) {
+    if (!window.confirm('¿Archivar todas las tarjetas del estado final?'))
+      return;
+    archiveFinalStateCards.mutate(stateId, {
+      onSuccess: (result) =>
+        showToast({
+          variant: 'success',
+          message: `Se archivaron ${result.archivedCount} tarjeta${result.archivedCount === 1 ? '' : 's'}.`,
+        }),
+      onError: (mutationError) =>
+        showToast({
+          variant: 'error',
+          message:
+            mutationError instanceof Error
+              ? mutationError.message
+              : 'No fue posible archivar las tarjetas.',
+        }),
+    });
   }
 
   return (
@@ -46,6 +91,10 @@ export function TaskBoard({
             stateId={state.id}
             name={state.name}
             cards={kanban.cards.filter((card) => card.stateId === state.id)}
+            isFinal={state.id === finalStateId}
+            canArchive={kanban.canDeleteCards}
+            isArchiving={archiveFinalStateCards.isPending}
+            onArchive={handleArchiveFinalStateCards}
             onOpen={onOpen}
           />
         ))}
@@ -61,11 +110,19 @@ function TaskColumn({
   stateId,
   name,
   cards,
+  isFinal,
+  canArchive,
+  isArchiving,
+  onArchive,
   onOpen,
 }: {
   stateId: string;
   name: string;
   cards: KanbanCard[];
+  isFinal: boolean;
+  canArchive: boolean;
+  isArchiving: boolean;
+  onArchive: (stateId: string) => void;
   onOpen: (card: KanbanCard) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stateId });
@@ -79,7 +136,23 @@ function TaskColumn({
     >
       <header className="mb-3 flex items-center justify-between px-1">
         <h2 className="font-medium">{name}</h2>
-        <Badge>{cards.length}</Badge>
+        <div className="flex items-center gap-1">
+          {isFinal && canArchive && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7 text-zinc-400"
+              aria-label="Archivar tarjetas del estado final"
+              title="Archivar tarjetas del estado final"
+              disabled={isArchiving || cards.length === 0}
+              onClick={() => onArchive(stateId)}
+            >
+              <Archive className="size-4" />
+            </Button>
+          )}
+          <Badge>{cards.length}</Badge>
+        </div>
       </header>
       <div className="min-h-24 space-y-3">
         {cards.map((card) => (

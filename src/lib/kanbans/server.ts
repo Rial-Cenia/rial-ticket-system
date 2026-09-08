@@ -380,6 +380,48 @@ export async function cancelKanbanState(
   return { id: stateId, status: 'CANCELLED' as const };
 }
 
+export async function archiveFinalStateCards(
+  actor: AuthenticatedUser,
+  kanbanId: string,
+  stateId: string,
+) {
+  await requireKanbanManager(actor, kanbanId);
+  const admin = createAdminClient();
+  const { data: finalState, error: stateError } = await admin
+    .from('KanbanState')
+    .select('id')
+    .eq('kanbanId', kanbanId)
+    .eq('status', 'ACTIVE')
+    .order('position', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (stateError) throw new Error(stateError.message);
+  if (!finalState) throw new HttpError('Estado no encontrado', 404);
+  if (finalState.id !== stateId)
+    throw new HttpError('Solo puedes archivar tarjetas del estado final', 400);
+
+  const { data: archivedCards, error: cardError } = await admin
+    .from('KanbanCard')
+    .update({ status: 'CANCELLED' })
+    .eq('kanbanId', kanbanId)
+    .eq('stateId', stateId)
+    .eq('status', 'ACTIVE')
+    .select('id');
+  if (cardError) throw new Error(cardError.message);
+
+  const cardIds = (archivedCards ?? []).map((card) => card.id as string);
+  if (cardIds.length) {
+    const { error: tagError } = await admin
+      .from('KanbanCardTag')
+      .update({ status: 'CANCELLED' })
+      .in('cardId', cardIds)
+      .eq('status', 'ACTIVE');
+    if (tagError) throw new Error(tagError.message);
+  }
+
+  return { stateId, archivedCount: cardIds.length };
+}
+
 export async function createKanbanTag(
   actor: AuthenticatedUser,
   kanbanId: string,

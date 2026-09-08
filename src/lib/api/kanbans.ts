@@ -50,6 +50,11 @@ export const reorderStates = (kanbanId: string, stateIds: string[]) =>
   apiRequest(`/api/kanbans/${kanbanId}/states`, json('PUT', { stateIds }));
 export const cancelState = (kanbanId: string, stateId: string) =>
   apiRequest(`/api/kanbans/${kanbanId}/states/${stateId}`, json('DELETE'));
+export const archiveFinalStateCards = (kanbanId: string, stateId: string) =>
+  apiRequest<{ stateId: string; archivedCount: number }>(
+    `/api/kanbans/${kanbanId}/states/${stateId}/archive-cards`,
+    json('POST'),
+  );
 export const createTag = (kanbanId: string, name: string) =>
   apiRequest(`/api/kanbans/${kanbanId}/tags`, json('POST', { name }));
 export const updateTag = (kanbanId: string, tagId: string, name: string) =>

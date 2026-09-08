@@ -14,13 +14,15 @@ export function useKanbans() {
   return useQuery({ queryKey: kanbanKeys.all, queryFn: api.fetchKanbans });
 }
 
-function useRefreshMutation<TInput>(
-  mutationFn: (input: TInput) => Promise<unknown>,
+function useRefreshMutation<TInput, TOutput = unknown>(
+  mutationFn: (input: TInput) => Promise<TOutput>,
 ) {
   const client = useQueryClient();
   return useMutation({
     mutationFn,
-    onSuccess: () => client.invalidateQueries({ queryKey: kanbanKeys.all }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: kanbanKeys.all });
+    },
   });
 }
 
@@ -43,5 +45,11 @@ export function useUpdateKanbanCard(kanbanId: string) {
 export function useCancelKanbanCard(kanbanId: string) {
   return useRefreshMutation<string>((cardId) =>
     api.cancelCard(kanbanId, cardId),
+  );
+}
+
+export function useArchiveFinalStateCards(kanbanId: string) {
+  return useRefreshMutation<string, { stateId: string; archivedCount: number }>(
+    (stateId) => api.archiveFinalStateCards(kanbanId, stateId),
   );
 }

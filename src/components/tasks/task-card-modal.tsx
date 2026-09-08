@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { useToast } from '@/components/ui/toast';
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
   const create = useCreateKanbanCard(kanban.id);
   const update = useUpdateKanbanCard(kanban.id);
   const cancel = useCancelKanbanCard(kanban.id);
+  const { showToast } = useToast();
   const [error, setError] = useState('');
   const [form, setForm] = useState(() => initialForm(kanban, card));
 
@@ -55,13 +57,20 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
     try {
       if (card) await update.mutateAsync({ cardId: card.id, input });
       else await create.mutateAsync(input);
+      showToast({
+        variant: 'success',
+        message: card
+          ? 'Tarjeta actualizada correctamente.'
+          : 'Tarjeta creada correctamente.',
+      });
       onOpenChange(false);
     } catch (mutationError) {
-      setError(
+      const message =
         mutationError instanceof Error
           ? mutationError.message
-          : 'No fue posible guardar',
-      );
+          : 'No fue posible guardar.';
+      setError(message);
+      showToast({ variant: 'error', message });
     }
   }
 
@@ -70,13 +79,18 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
     setError('');
     try {
       await cancel.mutateAsync(card.id);
+      showToast({
+        variant: 'success',
+        message: 'Tarjeta cancelada correctamente.',
+      });
       onOpenChange(false);
     } catch (mutationError) {
-      setError(
+      const message =
         mutationError instanceof Error
           ? mutationError.message
-          : 'No fue posible cancelar',
-      );
+          : 'No fue posible cancelar.';
+      setError(message);
+      showToast({ variant: 'error', message });
     }
   }
 

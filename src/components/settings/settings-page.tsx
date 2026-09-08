@@ -7,17 +7,21 @@ import {
   ArrowUp,
   Pencil,
   Plus,
+  Save,
   Trash2,
   UserMinus,
+  type LucideIcon,
 } from 'lucide-react';
 import * as api from '@/lib/api/kanbans';
 import { kanbanKeys } from '@/hooks/use-kanbans';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import type { AppRole, Kanban, Team, TeamMembershipRole } from '@/lib/types';
 
 export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
   const client = useQueryClient();
+  const { showToast } = useToast();
   const users = useQuery({ queryKey: ['app-users'], queryFn: api.fetchUsers });
   const teams = useQuery({ queryKey: ['teams'], queryFn: api.fetchTeams });
   const kanbans = useQuery({
@@ -26,23 +30,32 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
   });
   const [error, setError] = useState('');
   const mutation = useMutation({
-    mutationFn: (operation: () => Promise<unknown>) => operation(),
-    onSuccess: async () => {
+    mutationFn: ({
+      operation,
+    }: {
+      operation: () => Promise<unknown>;
+      successMessage: string;
+    }) => operation(),
+    onSuccess: (_, variables) => {
       setError('');
-      await Promise.all([
+      showToast({ variant: 'success', message: variables.successMessage });
+      void Promise.all([
         client.invalidateQueries({ queryKey: ['app-users'] }),
         client.invalidateQueries({ queryKey: ['teams'] }),
         client.invalidateQueries({ queryKey: kanbanKeys.all }),
       ]);
     },
-    onError: (mutationError) =>
-      setError(
+    onError: (mutationError) => {
+      const message =
         mutationError instanceof Error
           ? mutationError.message
-          : 'La operación falló',
-      ),
+          : 'La operación falló.';
+      setError(message);
+      showToast({ variant: 'error', message });
+    },
   });
-  const run = (operation: () => Promise<unknown>) => mutation.mutate(operation);
+  const run = (successMessage: string, operation: () => Promise<unknown>) =>
+    mutation.mutate({ operation, successMessage });
 
   if (users.isLoading || teams.isLoading || kanbans.isLoading)
     return (
@@ -87,7 +100,10 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
   );
 }
 
-type Runner = (operation: () => Promise<unknown>) => void;
+type Runner = (
+  successMessage: string,
+  operation: () => Promise<unknown>,
+) => void;
 
 function UsersSection({
   users,
@@ -111,25 +127,49 @@ function UsersSection({
               <p className="text-sm font-medium">{user.name}</p>
               <p className="text-xs text-zinc-500">{user.email}</p>
             </div>
-            <select
-              className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 text-sm"
-              value={user.role}
-              onChange={(event) =>
-                run(() =>
-                  api.updateUserRole(
-                    user.userId,
-                    event.target.value as AppRole,
-                  ),
-                )
-              }
-            >
-              <option value="USER">Usuario</option>
-              <option value="ADMIN">Administrador</option>
-            </select>
+            <UserRoleControl user={user} run={run} />
           </div>
         ))}
       </div>
     </Section>
+  );
+}
+
+function UserRoleControl({
+  user,
+  run,
+}: {
+  user: Awaited<ReturnType<typeof api.fetchUsers>>[number];
+  run: Runner;
+}) {
+  const [role, setRole] = useState(user.role);
+  const hasChanged = role !== user.role;
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        aria-label={`Rol global de ${user.name}`}
+        className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 text-sm"
+        value={role}
+        onChange={(event) => setRole(event.target.value as AppRole)}
+      >
+        <option value="USER">Usuario</option>
+        <option value="ADMIN">Administrador</option>
+      </select>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={!hasChanged}
+        onClick={() =>
+          run('Rol actualizado correctamente.', () =>
+            api.updateUserRole(user.userId, role),
+          )
+        }
+      >
+        <Save className="size-4" />
+        Guardar
+      </Button>
+    </div>
   );
 }
 
@@ -157,7 +197,7 @@ function TeamsSection({
           onSubmit={(event) => {
             event.preventDefault();
             if (!name.trim()) return;
-            run(async () => {
+            run('Equipo creado correctamente.', async () => {
               await api.createTeam({ name });
               setName('');
             });
@@ -194,7 +234,9 @@ function TeamsSection({
                       icon={Pencil}
                       onClick={() =>
                         renameWithPrompt(team.name, (next) =>
-                          run(() => api.updateTeam(team.id, next)),
+                          run('Equipo actualizado correctamente.', () =>
+                            api.updateTeam(team.id, next),
+                          ),
                         )
                       }
                     />
@@ -204,7 +246,9 @@ function TeamsSection({
                       danger
                       onClick={() =>
                         confirmRun('¿Cancelar este equipo?', () =>
-                          run(() => api.cancelTeam(team.id)),
+                          run('Equipo cancelado correctamente.', () =>
+                            api.cancelTeam(team.id),
+                          ),
                         )
                       }
                     />
@@ -223,33 +267,24 @@ function TeamsSection({
                     </div>
                     {team.canManage ? (
                       <div className="flex items-center gap-1">
-                        <select
-                          className="rounded border border-white/10 bg-zinc-950 p-1.5 text-xs"
-                          value={member.membershipRole}
-                          onChange={(event) =>
-                            run(() =>
-                              api.updateTeamMember(
-                                team.id,
-                                member.membershipId,
-                                event.target.value as TeamMembershipRole,
-                              ),
-                            )
-                          }
-                        >
-                          <option value="MEMBER">Miembro</option>
-                          <option value="LEADER">Jefe</option>
-                        </select>
+                        <TeamMemberRoleControl
+                          teamId={team.id}
+                          member={member}
+                          run={run}
+                        />
                         <IconButton
                           label="Quitar del equipo"
                           icon={UserMinus}
                           danger
                           onClick={() =>
                             confirmRun('¿Quitar esta persona del equipo?', () =>
-                              run(() =>
-                                api.cancelTeamMember(
-                                  team.id,
-                                  member.membershipId,
-                                ),
+                              run(
+                                'Persona quitada del equipo correctamente.',
+                                () =>
+                                  api.cancelTeamMember(
+                                    team.id,
+                                    member.membershipId,
+                                  ),
                               ),
                             )
                           }
@@ -272,7 +307,9 @@ function TeamsSection({
                     event.preventDefault();
                     const userId = selections[team.id] ?? available[0]?.userId;
                     if (userId)
-                      run(() => api.addTeamMember(team.id, userId, 'MEMBER'));
+                      run('Persona agregada al equipo correctamente.', () =>
+                        api.addTeamMember(team.id, userId, 'MEMBER'),
+                      );
                   }}
                 >
                   <select
@@ -325,7 +362,7 @@ function KanbansSection({
           onSubmit={(event) => {
             event.preventDefault();
             if (!name.trim() || !teamIds.length) return;
-            run(async () => {
+            run('Kanban creado correctamente.', async () => {
               await api.createKanban({ name, teamIds });
               setName('');
               setTeamIds([]);
@@ -366,6 +403,42 @@ function KanbansSection({
   );
 }
 
+function TeamMemberRoleControl({
+  teamId,
+  member,
+  run,
+}: {
+  teamId: string;
+  member: Team['members'][number];
+  run: Runner;
+}) {
+  const [role, setRole] = useState(member.membershipRole);
+  const hasChanged = role !== member.membershipRole;
+  return (
+    <>
+      <select
+        aria-label={`Rol de equipo de ${member.name}`}
+        className="rounded border border-white/10 bg-zinc-950 p-1.5 text-xs"
+        value={role}
+        onChange={(event) => setRole(event.target.value as TeamMembershipRole)}
+      >
+        <option value="MEMBER">Miembro</option>
+        <option value="LEADER">Jefe</option>
+      </select>
+      <IconButton
+        label="Guardar rol"
+        icon={Save}
+        disabled={!hasChanged}
+        onClick={() =>
+          run('Rol del equipo actualizado correctamente.', () =>
+            api.updateTeamMember(teamId, member.membershipId, role),
+          )
+        }
+      />
+    </>
+  );
+}
+
 function KanbanSettings({
   kanban,
   teams,
@@ -398,7 +471,9 @@ function KanbanSettings({
             size="sm"
             onClick={() =>
               renameWithPrompt(kanban.name, (name) =>
-                run(() => api.updateKanban(kanban.id, { name })),
+                run('Kanban actualizado correctamente.', () =>
+                  api.updateKanban(kanban.id, { name }),
+                ),
               )
             }
           >
@@ -411,7 +486,10 @@ function KanbanSettings({
             onClick={() =>
               confirmRun(
                 '¿Cancelar este kanban? Solo es posible si no contiene tarjetas activas.',
-                () => run(() => api.cancelKanban(kanban.id)),
+                () =>
+                  run('Kanban cancelado correctamente.', () =>
+                    api.cancelKanban(kanban.id),
+                  ),
               )
             }
           >
@@ -429,7 +507,7 @@ function KanbanSettings({
           <Button
             size="sm"
             onClick={() =>
-              run(() =>
+              run('Equipos del kanban actualizados correctamente.', () =>
                 api.updateKanban(kanban.id, { teamIds: selectedTeamIds }),
               )
             }
@@ -440,17 +518,27 @@ function KanbanSettings({
         <ManageNames
           title="Estados"
           values={kanban.states}
-          onCreate={(name) => run(() => api.createState(kanban.id, name))}
-          onRename={(id, name) =>
-            run(() => api.updateState(kanban.id, id, name))
+          onCreate={(name) =>
+            run('Estado creado correctamente.', () =>
+              api.createState(kanban.id, name),
+            )
           }
-          onDelete={(id) => run(() => api.cancelState(kanban.id, id))}
+          onRename={(id, name) =>
+            run('Estado actualizado correctamente.', () =>
+              api.updateState(kanban.id, id, name),
+            )
+          }
+          onDelete={(id) =>
+            run('Estado cancelado correctamente.', () =>
+              api.cancelState(kanban.id, id),
+            )
+          }
           onMove={(index, direction) => {
             const next = [...kanban.states];
             const target = index + direction;
             if (target < 0 || target >= next.length) return;
             [next[index], next[target]] = [next[target], next[index]];
-            run(() =>
+            run('Estados reordenados correctamente.', () =>
               api.reorderStates(
                 kanban.id,
                 next.map((state) => state.id),
@@ -461,9 +549,21 @@ function KanbanSettings({
         <ManageNames
           title="Etiquetas"
           values={kanban.tags}
-          onCreate={(name) => run(() => api.createTag(kanban.id, name))}
-          onRename={(id, name) => run(() => api.updateTag(kanban.id, id, name))}
-          onDelete={(id) => run(() => api.cancelTag(kanban.id, id))}
+          onCreate={(name) =>
+            run('Etiqueta creada correctamente.', () =>
+              api.createTag(kanban.id, name),
+            )
+          }
+          onRename={(id, name) =>
+            run('Etiqueta actualizada correctamente.', () =>
+              api.updateTag(kanban.id, id, name),
+            )
+          }
+          onDelete={(id) =>
+            run('Etiqueta cancelada correctamente.', () =>
+              api.cancelTag(kanban.id, id),
+            )
+          }
         />
       </div>
     </details>
@@ -612,7 +712,7 @@ function IconButton({
   onClick,
 }: {
   label: string;
-  icon: typeof Pencil;
+  icon: LucideIcon;
   danger?: boolean;
   disabled?: boolean;
   onClick: () => void;
