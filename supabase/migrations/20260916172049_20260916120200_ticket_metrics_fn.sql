@@ -1,9 +1,3 @@
-create index "Ticket_createdAt_platform_idx"
-on public."Ticket" ("createdAt" desc, platform);
-
-create index "TicketActivity_createdAt_idx"
-on public."TicketActivity" ("createdAt" desc);
-
 create or replace function public.get_ticket_metrics(
   p_days integer default 30,
   p_platform public."Platform" default null,
