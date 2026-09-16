@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   Columns3,
+  BarChart3,
   ListTodo,
   LogOut,
   Settings,
@@ -50,6 +51,7 @@ export function DashboardShell({
       links: [
         { href: '/tickets/kanban', label: 'Kanban', icon: Columns3 },
         { href: '/tickets/table', label: 'Tabla', icon: Table2 },
+        { href: '/metrics', label: 'Métricas', icon: BarChart3 },
       ],
     },
     {
