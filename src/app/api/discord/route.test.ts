@@ -529,6 +529,60 @@ Revisa los datos e inténtalo nuevamente, bestie. El ticket sigue esperando a su
     expect(mocks.archiveThread).toHaveBeenCalledWith('thread-1');
   });
 
+  it('cierra el hilo cuando el ticket se marca como cancelado', async () => {
+    const current = {
+      id: 42,
+      publicId: '3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71',
+      title: 'Error crítico',
+      description: 'No carga',
+      type: 'BUG',
+      status: 'EN_PROGRESO',
+      platform: 'NESTOR',
+      createdByName: 'Operaciones',
+      createdByDiscordId: 'creator-1',
+      discordThreadId: 'thread-1',
+      createdAt: '2026-08-24T12:00:00.000Z',
+      updatedAt: '2026-08-24T13:00:00.000Z',
+    } as const;
+    mocks.getTicket.mockResolvedValue(current);
+    mocks.updateTicket.mockResolvedValue({ ...current, status: 'CANCELADO' });
+
+    const response = await POST(
+      signedRequest({
+        id: 'status-cancelled-1',
+        application_id: 'app',
+        token: 'token',
+        type: 3,
+        guild_id: 'guild-1',
+        member: {
+          roles: ['platform-role'],
+          user: { id: 'operator-1', username: 'operaciones' },
+        },
+        data: {
+          custom_id: 'status_CANCELADO_3d7b8cb4-4eaf-4d9a-ae97-1c3c807d8c71',
+        },
+      }),
+    );
+
+    expect(response.status).toBe(202);
+    expect(mocks.updateTicket).toHaveBeenCalledWith(
+      current.publicId,
+      { status: 'CANCELADO' },
+      'DISCORD',
+      expect.objectContaining({ id: 'operator-1' }),
+    );
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app',
+      'token',
+      expect.objectContaining({
+        content: expect.stringContaining(
+          'marcó el ticket `RTP-42` como **CANCELADO**',
+        ),
+      }),
+    );
+    expect(mocks.archiveThread).toHaveBeenCalledWith('thread-1');
+  });
+
   it('rechaza el cambio de estado cuando el ticket no tiene plataforma', async () => {
     mocks.getTicket.mockResolvedValue({
       id: 42,

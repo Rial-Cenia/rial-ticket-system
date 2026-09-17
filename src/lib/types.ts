@@ -5,6 +5,7 @@ export const TICKET_STATUSES = [
   'EN_STAGING',
   'EN_ESPERA',
   'RESUELTO',
+  'CANCELADO',
 ] as const;
 export const PLATFORMS = [
   'NESTOR',
@@ -207,6 +208,7 @@ export const STATUS_LABELS: Record<TicketStatus, string> = {
   EN_STAGING: '🧪 En pruebibas',
   EN_ESPERA: '💤 En pausita',
   RESUELTO: '✨ Resuelto, slay',
+  CANCELADO: '🚫 Cancelado',
 };
 
 export const TYPE_LABELS: Record<TicketType, string> = {

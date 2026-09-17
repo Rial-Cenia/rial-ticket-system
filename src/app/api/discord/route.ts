@@ -255,7 +255,10 @@ Toca invocar a alguien con más aura administrativa, porque el sistema te dijo: 
     await followupInteraction(interaction.application_id, interaction.token, {
       ...creatorUpdate(ticket, statusUpdateMessage(ticket, actor.name)),
     });
-    if (status === 'RESUELTO' && ticket.discordThreadId)
+    if (
+      (status === 'RESUELTO' || status === 'CANCELADO') &&
+      ticket.discordThreadId
+    )
       await archiveThread(ticket.discordThreadId);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error inesperado';

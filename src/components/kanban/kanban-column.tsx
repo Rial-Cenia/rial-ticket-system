@@ -10,6 +10,7 @@ const dots: Record<TicketStatus, string> = {
   EN_STAGING: 'bg-blue-400',
   EN_ESPERA: 'bg-orange-400',
   RESUELTO: 'bg-emerald-400',
+  CANCELADO: 'bg-zinc-400',
 };
 
 export function KanbanColumn({

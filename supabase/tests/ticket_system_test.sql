@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(74);
+select plan(78);
 select has_table('public', 'Ticket', 'Ticket table exists');
 select has_table('public', 'TicketActivity', 'Activity table exists');
 select has_table('public', 'TicketSyncOutbox', 'Outbox table exists');
@@ -36,6 +36,7 @@ select is((select relrowsecurity from pg_class where oid = 'public."Kanban"'::re
 select is((select count(*)::integer from information_schema.role_table_grants where table_schema = 'public' and table_name in ('AppUser', 'Team', 'TeamMembership', 'Kanban', 'KanbanTeam', 'KanbanState', 'KanbanTag', 'KanbanCard', 'KanbanCardTag') and grantee = 'authenticated'), 0, 'Kanban tables have no direct authenticated grants');
 select is((select count(*)::integer from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'Ticket'), 1, 'Ticket is published to Realtime');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketStatus' and e.enumlabel = 'EN_STAGING'), 1, 'Ticket status includes staging');
+select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketStatus' and e.enumlabel = 'CANCELADO'), 1, 'Ticket status includes cancelled');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'Platform' and e.enumlabel = 'EXTERNO'), 1, 'Platform includes external tickets');
 select lives_ok($$select public.create_ticket('Prueba', 'Detalle', 'BUG', null, 'WEB', 'pgTAP', 'test-user', null)$$, 'Atomic create RPC works');
 select is((select priority::text from public."Ticket" where title = 'Prueba'), 'MEDIA', 'Legacy and existing tickets default to medium priority');
@@ -54,6 +55,9 @@ select is((select count(*)::integer from public."TicketSyncOutbox" o join public
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"status":"EN_STAGING"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket can move to staging');
 select is((select status::text from public."Ticket" where title = 'Prueba'), 'EN_STAGING', 'Ticket persists staging status');
 select like((select payload->>'content' from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba' and o.type = 'SEND_THREAD_MESSAGE' order by o."createdAt" desc limit 1), '%¡Entramos en la era de las pruebibas!%', 'Web status update uses the friendly Discord message');
+select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"status":"CANCELADO"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket can be cancelled');
+select is((select status::text from public."Ticket" where title = 'Prueba'), 'CANCELADO', 'Ticket persists cancelled status');
+select like((select payload->>'content' from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba' and o.type = 'SEND_THREAD_MESSAGE' order by o."createdAt" desc limit 1), '%Ticket cancelado%', 'Web cancellation update uses the friendly Discord message');
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"priority":"BAJA"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket priority can be updated');
 select is((select priority::text from public."Ticket" where title = 'Prueba'), 'BAJA', 'Ticket persists updated priority');
 select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"platform":"NESTOR"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket platform can be updated from web');

@@ -86,6 +86,10 @@ describe('Discord interactions', () => {
       status: 'EN_STAGING',
       publicId,
     });
+    expect(parseStatusId(`status_CANCELADO_${publicId}`)).toEqual({
+      status: 'CANCELADO',
+      publicId,
+    });
     expect(parseTriageId('triage_platform_drop table')).toBeNull();
   });
 });

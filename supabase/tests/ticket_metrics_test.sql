@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(17);
 
 insert into public."Ticket" ("publicId", title, description, type, priority, status, platform, "createdByName", "createdAt", "updatedAt")
 values
@@ -8,7 +8,8 @@ values
   ('50000000-0000-0000-0000-000000000002', 'Error recurrente', 'Detalle B', 'BUG', 'MEDIA', 'RESUELTO', 'EXTERNO', 'pgTAP', now() - interval '8 days', now() - interval '4 days 16 hours'),
   ('50000000-0000-0000-0000-000000000003', 'Error recurrente', 'Detalle C', 'BUG', 'ALTA', 'RESUELTO', 'EXTERNO', 'pgTAP', now() - interval '5 days', now() - interval '3 days 8 hours'),
   ('50000000-0000-0000-0000-000000000004', 'Ticket estancado', 'Detalle D', 'BUG', 'ALTA', 'EN_PROGRESO', 'EXTERNO', 'pgTAP', now() - interval '10 days', now() - interval '10 days'),
-  ('50000000-0000-0000-0000-000000000005', 'Ticket sin encargado', 'Detalle E', 'BUG', 'ALTA', 'EN_PROGRESO', null, 'pgTAP', now() - interval '10 days', now() - interval '10 days');
+  ('50000000-0000-0000-0000-000000000005', 'Ticket sin encargado', 'Detalle E', 'BUG', 'ALTA', 'EN_PROGRESO', null, 'pgTAP', now() - interval '10 days', now() - interval '10 days'),
+  ('50000000-0000-0000-0000-000000000006', 'Ticket cancelado', 'Detalle F', 'BUG', 'CRITICA', 'CANCELADO', null, 'pgTAP', now() - interval '10 days', now() - interval '10 days');
 
 insert into public."TicketActivity" ("ticketPublicId", source, action, "actorName", "actorId", changes, "createdAt")
 values
@@ -83,6 +84,11 @@ select is(
 select ok(
   (public.get_ticket_metrics(30, null, 3, 4)->'quality'->>'unassignedAfterHours')::integer >= 1,
   'Metrics count unassigned tickets beyond the configured threshold'
+);
+select is(
+  (public.get_ticket_metrics(30, null, 3, 4)->'summary'->>'openHighToday')::integer,
+  2,
+  'Metrics exclude cancelled tickets from open high-priority work'
 );
 select is(
   (public.get_ticket_metrics(1, 'EXTERNO', 3, 4)->'volume'->'createdByPlatform'->0->>'count')::integer,

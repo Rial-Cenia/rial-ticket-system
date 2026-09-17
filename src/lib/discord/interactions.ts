@@ -101,7 +101,7 @@ export function parseTriageId(customId: string) {
 
 export function parseStatusId(customId: string) {
   const match =
-    /^status_(PENDIENTE|EN_PROGRESO|EN_STAGING|EN_ESPERA|RESUELTO)_([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(
+    /^status_(PENDIENTE|EN_PROGRESO|EN_STAGING|EN_ESPERA|RESUELTO|CANCELADO)_([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.exec(
       customId,
     );
   if (!match) return null;

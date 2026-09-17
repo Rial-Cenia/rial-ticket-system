@@ -163,6 +163,12 @@ El problema fue derrotado, la paz regresó al reino y el team sirvió desarrollo
 Common support W, besties ʕっ•ᴥ•ʔっ♡`,
     ],
     [
+      'CANCELADO',
+      `🚫 **Ticket cancelado** ✨
+**Operaciones** marcó el ticket \`RTP-42\` como **CANCELADO** 🧾
+Ya no hace falta desarrollarlo, así que cerramos esta vueltita y dejamos registro prolijo, bestie 🎀`,
+    ],
+    [
       'EN_ESPERA',
       `🛑 **El ticket entró en modo “ahí te aviso”** 🧍🏻‍♀️💭
 **Operaciones** cambió el estado de \`RTP-42\` a **EN ESPERA** ⏸️🎀
@@ -178,7 +184,7 @@ No está olvidado, solo está teniendo su training arc, uwu 🌸✨`,
     },
   );
 
-  it('incluye botones para los cuatro estados', () => {
+  it('incluye botones para todos los estados', () => {
     const payload = JSON.stringify(
       ticketControls(ticket, 'Operaciones', 'platform-role'),
     );
@@ -188,6 +194,7 @@ No está olvidado, solo está teniendo su training arc, uwu 🌸✨`,
       'EN_STAGING',
       'EN_ESPERA',
       'RESUELTO',
+      'CANCELADO',
     ]) {
       expect(payload).toContain(`status_${status}_${ticket.publicId}`);
     }

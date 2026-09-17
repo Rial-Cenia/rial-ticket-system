@@ -247,6 +247,9 @@ Manifestando cero bugs, uwu 🕯️ʕ•́ᴥ•̀ʔっ`,
 El ticket \`${code}\` fue marcado como **RESUELTO** por **${user}** ✅💖
 El problema fue derrotado, la paz regresó al reino y el team sirvió desarrollo con éxito 💅🏻✨
 Common support W, besties ʕっ•ᴥ•ʔっ♡`,
+    CANCELADO: `🚫 **Ticket cancelado** ✨
+**${user}** marcó el ticket \`${code}\` como **CANCELADO** 🧾
+Ya no hace falta desarrollarlo, así que cerramos esta vueltita y dejamos registro prolijo, bestie 🎀`,
     EN_ESPERA: `🛑 **El ticket entró en modo “ahí te aviso”** 🧍🏻‍♀️💭
 **${user}** cambió el estado de \`${code}\` a **EN ESPERA** ⏸️🎀
 Por ahora toca hacer una pausita dramática y aguardar novedades…
@@ -276,7 +279,12 @@ ${assignment}`,
       {
         title: `🎟️ ${sanitize(ticket.title)}`,
         description: sanitize(ticket.description),
-        color: ticket.status === 'RESUELTO' ? 0x12b76a : 0x407db7,
+        color:
+          ticket.status === 'RESUELTO'
+            ? 0x12b76a
+            : ticket.status === 'CANCELADO'
+              ? 0x71717a
+              : 0x407db7,
 
         fields: [
           {
@@ -351,6 +359,19 @@ ${assignment}`,
             label: '✨ Resuelto',
             custom_id: `status_RESUELTO_${ticket.publicId}`,
             disabled: ticket.status === 'RESUELTO',
+          },
+        ],
+      },
+      {
+        type: 1,
+
+        components: [
+          {
+            type: 2,
+            style: 4,
+            label: '🚫 Cancelado',
+            custom_id: `status_CANCELADO_${ticket.publicId}`,
+            disabled: ticket.status === 'CANCELADO',
           },
         ],
       },

@@ -30,6 +30,12 @@ describe('ticket schemas', () => {
     });
   });
 
+  it('acepta tickets cancelados', () => {
+    expect(updateTicketSchema.parse({ status: 'CANCELADO' })).toEqual({
+      status: 'CANCELADO',
+    });
+  });
+
   it('valida los cuatro niveles de prioridad', () => {
     for (const priority of ['BAJA', 'MEDIA', 'ALTA', 'CRITICA']) {
       expect(updateTicketSchema.parse({ priority })).toEqual({ priority });
