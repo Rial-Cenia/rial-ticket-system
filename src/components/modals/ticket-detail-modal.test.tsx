@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Ticket } from '@/lib/types';
@@ -36,6 +37,11 @@ vi.mock('@/hooks/use-tickets', () => ({
     error: null,
     isLoading: false,
   }),
+  useTicketKanbans: () => ({ data: [], error: null }),
+}));
+
+vi.mock('@/hooks/use-kanbans', () => ({
+  useKanbans: () => ({ data: [], error: null }),
 }));
 
 import { TicketDetailModal } from '@/components/modals/ticket-detail-modal';
@@ -57,6 +63,14 @@ const ticket: Ticket = {
   updatedAt: '2026-08-25T10:30:00.000Z',
 };
 
+function renderModal(selectedTicket: Ticket = ticket) {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TicketDetailModal ticket={selectedTicket} onOpenChange={vi.fn()} />
+    </QueryClientProvider>,
+  );
+}
+
 describe('ticket detail modal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,7 +81,7 @@ describe('ticket detail modal', () => {
   });
 
   it('muestra el detalle y el chat antes de entrar a edición', () => {
-    render(<TicketDetailModal ticket={ticket} onOpenChange={vi.fn()} />);
+    renderModal();
 
     expect(screen.getByText('Error al descargar')).toBeInTheDocument();
     expect(screen.getByText('La descarga no comienza.')).toBeInTheDocument();
@@ -81,7 +95,7 @@ describe('ticket detail modal', () => {
   });
 
   it('activa la edición con el lápiz y conserva abierto el detalle al guardar', async () => {
-    render(<TicketDetailModal ticket={ticket} onOpenChange={vi.fn()} />);
+    renderModal();
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Editar ticket' }),
@@ -101,25 +115,20 @@ describe('ticket detail modal', () => {
   });
 
   it('muestra documentos como enlaces en vez de previews de imagen', () => {
-    render(
-      <TicketDetailModal
-        ticket={{
-          ...ticket,
-          images: [
-            {
-              id: 'document-1',
-              fileName: 'Template_producto.xlsx',
-              mimeType:
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              size: 1024,
-              url: '/api/tickets/ticket-1/images/document-1',
-              createdAt: '2026-08-25T10:15:00.000Z',
-            },
-          ],
-        }}
-        onOpenChange={vi.fn()}
-      />,
-    );
+    renderModal({
+      ...ticket,
+      images: [
+        {
+          id: 'document-1',
+          fileName: 'Template_producto.xlsx',
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          size: 1024,
+          url: '/api/tickets/ticket-1/images/document-1',
+          createdAt: '2026-08-25T10:15:00.000Z',
+        },
+      ],
+    });
 
     expect(
       screen.getByRole('link', { name: 'Template_producto.xlsx' }),

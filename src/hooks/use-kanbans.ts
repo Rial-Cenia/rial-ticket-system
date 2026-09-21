@@ -53,3 +53,17 @@ export function useArchiveFinalStateCards(kanbanId: string) {
     (stateId) => api.archiveFinalStateCards(kanbanId, stateId),
   );
 }
+
+export function useTransferKanbanCard(kanbanId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      cardId,
+      targetKanbanId,
+    }: {
+      cardId: string;
+      targetKanbanId: string;
+    }) => api.transferCard(kanbanId, cardId, targetKanbanId),
+    onSuccess: () => client.invalidateQueries({ queryKey: kanbanKeys.all }),
+  });
+}

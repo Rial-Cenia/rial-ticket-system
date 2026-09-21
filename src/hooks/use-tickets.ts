@@ -11,6 +11,7 @@ export const ticketKeys = {
   list: (filters: TicketFilters) => ['tickets', 'list', filters] as const,
   discordConversation: (publicId: string) =>
     ['tickets', publicId, 'discord-conversation'] as const,
+  kanbans: (publicId: string) => ['tickets', publicId, 'kanbans'] as const,
 };
 
 export function useTickets(filters: TicketFilters) {
@@ -76,5 +77,13 @@ export function useDiscordConversation(ticket: Ticket | null) {
     queryFn: () => api.fetchDiscordConversation(ticket!.publicId),
     enabled: Boolean(ticket?.discordThreadId),
     staleTime: 30_000,
+  });
+}
+
+export function useTicketKanbans(ticket: Ticket | null) {
+  return useQuery({
+    queryKey: ticketKeys.kanbans(ticket?.publicId ?? ''),
+    queryFn: () => api.fetchTicketKanbans(ticket!.publicId),
+    enabled: Boolean(ticket?.publicId),
   });
 }

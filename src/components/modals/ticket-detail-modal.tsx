@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PlatformBadge,
   PriorityBadge,
@@ -34,10 +35,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  ticketKeys,
   useDeleteTicket,
   useDiscordConversation,
+  useTicketKanbans,
   useUpdateTicket,
 } from '@/hooks/use-tickets';
+import { useKanbans } from '@/hooks/use-kanbans';
+import * as ticketApi from '@/lib/api/tickets';
 import {
   PLATFORM_LABELS,
   PLATFORMS,
@@ -195,6 +200,8 @@ function TicketOverview({
 
       <TicketImages ticket={ticket} />
 
+      <TicketKanbanSection ticket={ticket} />
+
       {ticket.discordThreadId ? (
         <DiscordConversationSection
           conversation={conversation}
@@ -207,6 +214,123 @@ function TicketOverview({
         </section>
       )}
     </div>
+  );
+}
+
+function TicketKanbanSection({ ticket }: { ticket: Ticket }) {
+  const client = useQueryClient();
+  const kanbans = useKanbans();
+  const associated = useTicketKanbans(ticket);
+  const [selectedKanbanId, setSelectedKanbanId] = useState('');
+  const [title, setTitle] = useState(ticket.title);
+  const [description, setDescription] = useState(ticket.description);
+  const associate = useMutation({
+    mutationFn: (kanbanId: string) =>
+      ticketApi.associateTicketKanban(ticket.publicId, kanbanId),
+    onSuccess: () => {
+      void client.invalidateQueries({
+        queryKey: ticketKeys.kanbans(ticket.publicId),
+      });
+    },
+  });
+  const createCard = useMutation({
+    mutationFn: () =>
+      ticketApi.createTicketKanbanCard(ticket.publicId, {
+        kanbanId: selectedKanbanId,
+        title,
+        description,
+        priority: ticket.priority,
+        tagIds: [],
+      }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['team-kanbans'] });
+    },
+  });
+  const manageableKanbans = (kanbans.data ?? []).filter(
+    (kanban) => kanban.canManage,
+  );
+  const associatedIds = new Set(
+    (associated.data ?? []).map((kanban) => kanban.kanbanId),
+  );
+  const availableKanbans = manageableKanbans.filter(
+    (kanban) => !associatedIds.has(kanban.id),
+  );
+  const selectedAssociation = (associated.data ?? []).find(
+    (kanban) => kanban.kanbanId === selectedKanbanId,
+  );
+  return (
+    <section className="space-y-3 rounded-xl border border-white/8 bg-black/20 p-4">
+      <div>
+        <h3 className="text-sm font-medium text-zinc-300">
+          Kanbans relacionados
+        </h3>
+        <p className="text-xs text-zinc-500">
+          Solo jefes de equipo pueden asociar kanbans y crear tarjetas desde
+          este ticket.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {(associated.data ?? []).map((kanban) => (
+          <Button
+            key={kanban.kanbanId}
+            type="button"
+            size="sm"
+            variant={
+              selectedKanbanId === kanban.kanbanId ? 'default' : 'outline'
+            }
+            onClick={() => setSelectedKanbanId(kanban.kanbanId)}
+          >
+            {kanban.kanbanName}
+          </Button>
+        ))}
+        {availableKanbans.length > 0 && (
+          <Select
+            value={selectedKanbanId}
+            onValueChange={(kanbanId) => {
+              setSelectedKanbanId(kanbanId);
+              associate.mutate(kanbanId);
+            }}
+          >
+            <SelectTrigger className="w-52">
+              <SelectValue placeholder="Asociar kanban" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableKanbans.map((kanban) => (
+                <SelectItem key={kanban.id} value={kanban.id}>
+                  {kanban.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+      {selectedAssociation && (
+        <form
+          className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            createCard.mutate();
+          }}
+        >
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+          <Input
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+          <Button type="submit" disabled={createCard.isPending}>
+            Crear tarjeta
+          </Button>
+        </form>
+      )}
+      {(associate.error || createCard.error) && (
+        <p className="text-sm text-red-300">
+          {(associate.error ?? createCard.error)?.message}
+        </p>
+      )}
+    </section>
   );
 }
 

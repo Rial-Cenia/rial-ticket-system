@@ -1,4 +1,7 @@
 import 'server-only';
+import type { AuthenticatedUser } from '@/lib/auth';
+import { requireKanbanManager } from '@/lib/kanbans/authorization';
+import { createTicketKanbanCard } from '@/lib/kanbans/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { DiscordAttachment } from '@/lib/discord/types';
 import type { CreateTicketInput, UpdateTicketInput } from '@/lib/schemas';
@@ -8,6 +11,7 @@ import type {
   TicketFilters,
   TicketImage,
 } from '@/lib/types';
+import type { CreateTicketKanbanCardInput } from '@/lib/schemas';
 
 const TICKET_ATTACHMENTS_BUCKET = 'ticket-images';
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -229,6 +233,72 @@ export async function getTicket(publicId: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? serializeTicket(data) : null;
+}
+
+export async function listTicketKanbans(publicId: string) {
+  const { data, error } = await createAdminClient()
+    .from('TicketKanban')
+    .select('id, kanbanId, Kanban(id, name)')
+    .eq('ticketPublicId', publicId)
+    .eq('status', 'ACTIVE');
+  if (error) throw new Error(error.message);
+  return (data ?? []).flatMap((association) => {
+    const kanban = association.Kanban as { id?: string; name?: string } | null;
+    if (!kanban?.id || !kanban.name) return [];
+    return {
+      id: association.id as string,
+      kanbanId: association.kanbanId as string,
+      kanbanName: kanban.name,
+    };
+  });
+}
+
+export async function associateTicketKanban(
+  actor: AuthenticatedUser,
+  publicId: string,
+  kanbanId: string,
+) {
+  await requireKanbanManager(actor, kanbanId);
+  const { data: ticket, error: ticketError } = await createAdminClient()
+    .from('Ticket')
+    .select('publicId')
+    .eq('publicId', publicId)
+    .maybeSingle();
+  if (ticketError) throw new Error(ticketError.message);
+  if (!ticket) throw new Error('Ticket not found');
+  const admin = createAdminClient();
+  const { data: current, error: currentError } = await admin
+    .from('TicketKanban')
+    .select('id')
+    .eq('ticketPublicId', publicId)
+    .eq('kanbanId', kanbanId)
+    .maybeSingle();
+  if (currentError) throw new Error(currentError.message);
+  if (current) {
+    const { data, error } = await admin
+      .from('TicketKanban')
+      .update({ status: 'ACTIVE', createdByUserId: actor.id })
+      .eq('id', current.id)
+      .select('id, kanbanId')
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  const { data, error } = await admin
+    .from('TicketKanban')
+    .insert({ ticketPublicId: publicId, kanbanId, createdByUserId: actor.id })
+    .select('id, kanbanId')
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function createCardFromTicket(
+  actor: AuthenticatedUser,
+  publicId: string,
+  input: CreateTicketKanbanCardInput,
+) {
+  return createTicketKanbanCard(actor, publicId, input);
 }
 
 export async function createTicket(

@@ -186,6 +186,20 @@ export interface KanbanCard {
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
+  ticketPublicId?: string | null;
+}
+
+export interface KanbanConnection {
+  id: string;
+  sourceKanbanId: string;
+  targetKanbanId: string;
+  targetKanbanName: string;
+}
+
+export interface TicketKanban {
+  id: string;
+  kanbanId: string;
+  kanbanName: string;
 }
 
 export interface Kanban {
@@ -200,6 +214,7 @@ export interface Kanban {
   canDeleteCards: boolean;
   createdAt: string;
   updatedAt: string;
+  outgoingConnections?: KanbanConnection[];
 }
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {

@@ -39,6 +39,9 @@ export const createKanbanSchema = z.object({
   name: z.string().trim().min(1).max(100),
   teamIds: z.array(z.string().uuid()).min(1),
 });
+export const createKanbanConnectionSchema = z.object({
+  targetKanbanId: z.string().uuid(),
+});
 export const updateKanbanSchema = createKanbanSchema
   .partial()
   .refine(
@@ -79,11 +82,24 @@ export const updateKanbanCardSchema = createKanbanCardSchema
     (value) => Object.keys(value).length > 0,
     'Debes enviar al menos un cambio',
   );
+export const createTicketKanbanCardSchema = z.object({
+  kanbanId: z.string().uuid(),
+  title: z.string().trim().min(1).max(200),
+  description: z.string(),
+  priority: kanbanPrioritySchema.default('MEDIA'),
+  stateId: z.string().uuid().optional(),
+  assigneeUserId: z.string().uuid().nullable().optional(),
+  reviewerUserId: z.string().uuid().nullable().optional(),
+  tagIds: z.array(z.string().uuid()).default([]),
+});
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 export type CreateKanbanInput = z.infer<typeof createKanbanSchema>;
 export type CreateKanbanCardInput = z.infer<typeof createKanbanCardSchema>;
 export type UpdateKanbanCardInput = z.infer<typeof updateKanbanCardSchema>;
+export type CreateTicketKanbanCardInput = z.infer<
+  typeof createTicketKanbanCardSchema
+>;
 
 export const createTicketSchema = z.object({
   title: z.string().trim().min(1).max(200),

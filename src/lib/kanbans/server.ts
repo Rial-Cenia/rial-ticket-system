@@ -2,6 +2,7 @@ import 'server-only';
 import type { AuthenticatedUser } from '@/lib/auth';
 import type {
   CreateKanbanCardInput,
+  CreateTicketKanbanCardInput,
   UpdateKanbanCardInput,
 } from '@/lib/schemas';
 import { HttpError } from '@/lib/http';
@@ -13,7 +14,7 @@ import {
 } from '@/lib/kanbans/authorization';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { listUserDirectory } from '@/lib/users/server';
-import type { Kanban, KanbanPriority } from '@/lib/types';
+import type { Kanban, KanbanConnection, KanbanPriority } from '@/lib/types';
 
 interface KanbanTeamRow {
   kanbanId: string;
@@ -70,6 +71,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     { data: tags, error: tagError },
     { data: cards, error: cardError },
     { data: cardTags, error: cardTagError },
+    { data: connections, error: connectionError },
     users,
   ] = await Promise.all([
     admin
@@ -94,12 +96,17 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     admin
       .from('KanbanCard')
       .select(
-        'id, kanbanId, title, description, stateId, priority, assigneeUserId, reviewerUserId, createdByUserId, createdAt, updatedAt',
+        'id, kanbanId, title, description, stateId, priority, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId, createdAt, updatedAt',
       )
       .in('kanbanId', kanbanIds)
       .eq('status', 'ACTIVE')
       .order('updatedAt', { ascending: false }),
     admin.from('KanbanCardTag').select('cardId, tagId').eq('status', 'ACTIVE'),
+    admin
+      .from('KanbanConnection')
+      .select('id, sourceKanbanId, targetKanbanId')
+      .in('sourceKanbanId', kanbanIds)
+      .eq('status', 'ACTIVE'),
     listUserDirectory(),
   ]);
   for (const error of [
@@ -109,6 +116,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     tagError,
     cardError,
     cardTagError,
+    connectionError,
   ])
     if (error) throw new Error(error.message);
 
@@ -117,6 +125,12 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     (teams ?? []).map((team) => [team.id as string, team.name as string]),
   );
   const tagsById = new Map((tags ?? []).map((tag) => [tag.id as string, tag]));
+  const kanbanNamesById = new Map(
+    (kanbans ?? []).map((kanban) => [
+      kanban.id as string,
+      kanban.name as string,
+    ]),
+  );
   const tagsByCardId = new Map<string, unknown[]>();
   for (const association of cardTags ?? []) {
     const tag = tagsById.get(association.tagId as string);
@@ -177,11 +191,127 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
           createdByUserId: card.createdByUserId as string,
           createdAt: card.createdAt as string,
           updatedAt: card.updatedAt as string,
+          ticketPublicId: card.ticketPublicId as string | null,
         })),
+      outgoingConnections: (connections ?? [])
+        .filter((connection) => connection.sourceKanbanId === kanban.id)
+        .flatMap((connection) => {
+          const targetKanbanId = connection.targetKanbanId as string;
+          const targetKanbanName = kanbanNamesById.get(targetKanbanId);
+          if (!targetKanbanName) return [];
+          return [
+            {
+              id: connection.id as string,
+              sourceKanbanId: connection.sourceKanbanId as string,
+              targetKanbanId,
+              targetKanbanName,
+            } satisfies KanbanConnection,
+          ];
+        }),
       canManage: actor.role === 'ADMIN' || isLeader,
       canDeleteCards: actor.role === 'ADMIN' || isLeader,
     };
   });
+}
+
+export async function listKanbanConnections(
+  actor: AuthenticatedUser,
+  kanbanId: string,
+) {
+  await requireKanbanMember(actor, kanbanId);
+  const { data, error } = await createAdminClient()
+    .from('KanbanConnection')
+    .select('id, sourceKanbanId, targetKanbanId')
+    .eq('sourceKanbanId', kanbanId)
+    .eq('status', 'ACTIVE');
+  if (error) throw new Error(error.message);
+  const targetIds = (data ?? []).map(
+    (connection) => connection.targetKanbanId as string,
+  );
+  const { data: targets, error: targetError } = targetIds.length
+    ? await createAdminClient()
+        .from('Kanban')
+        .select('id, name')
+        .in('id', targetIds)
+        .eq('status', 'ACTIVE')
+    : { data: [], error: null };
+  if (targetError) throw new Error(targetError.message);
+  const targetNames = new Map(
+    (targets ?? []).map((target) => [
+      target.id as string,
+      target.name as string,
+    ]),
+  );
+  return (data ?? []).flatMap((connection) => {
+    const targetKanbanId = connection.targetKanbanId as string;
+    const targetKanbanName = targetNames.get(targetKanbanId);
+    if (!targetKanbanName) return [];
+    return {
+      id: connection.id as string,
+      sourceKanbanId: connection.sourceKanbanId as string,
+      targetKanbanId,
+      targetKanbanName,
+    } satisfies KanbanConnection;
+  });
+}
+
+export async function createKanbanConnection(
+  actor: AuthenticatedUser,
+  sourceKanbanId: string,
+  targetKanbanId: string,
+) {
+  if (sourceKanbanId === targetKanbanId)
+    throw new HttpError('Un kanban no puede conectarse consigo mismo', 400);
+  await requireKanbanManager(actor, sourceKanbanId);
+  await requireKanbanManager(actor, targetKanbanId);
+  const admin = createAdminClient();
+  const { data: sourceTeams, error: sourceError } = await admin
+    .from('KanbanTeam')
+    .select('teamId')
+    .eq('kanbanId', sourceKanbanId)
+    .eq('status', 'ACTIVE');
+  if (sourceError) throw new Error(sourceError.message);
+  const sourceTeamIds = (sourceTeams ?? []).map(
+    (team) => team.teamId as string,
+  );
+  const { data: targetTeams, error: targetError } = await admin
+    .from('KanbanTeam')
+    .select('teamId')
+    .eq('kanbanId', targetKanbanId)
+    .eq('status', 'ACTIVE');
+  if (targetError) throw new Error(targetError.message);
+  if (
+    !(targetTeams ?? []).some((team) =>
+      sourceTeamIds.includes(team.teamId as string),
+    )
+  )
+    throw new HttpError('Los kanbans deben compartir al menos un equipo', 400);
+  const { data, error } = await admin
+    .from('KanbanConnection')
+    .insert({ sourceKanbanId, targetKanbanId, createdByUserId: actor.id })
+    .select('id, sourceKanbanId, targetKanbanId')
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function cancelKanbanConnection(
+  actor: AuthenticatedUser,
+  sourceKanbanId: string,
+  connectionId: string,
+) {
+  await requireKanbanManager(actor, sourceKanbanId);
+  const { data, error } = await createAdminClient()
+    .from('KanbanConnection')
+    .update({ status: 'CANCELLED' })
+    .eq('id', connectionId)
+    .eq('sourceKanbanId', sourceKanbanId)
+    .eq('status', 'ACTIVE')
+    .select('id')
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new HttpError('Conexión no encontrada', 404);
+  return { id: connectionId, status: 'CANCELLED' as const };
 }
 
 export async function createKanban(
@@ -585,6 +715,144 @@ export async function createKanbanCard(
   if (error) throw new Error(error.message);
   await syncCardTags(kanbanId, data.id as string, tagIds);
   return { id: data.id as string };
+}
+
+export async function createTicketKanbanCard(
+  actor: AuthenticatedUser,
+  ticketPublicId: string,
+  input: CreateTicketKanbanCardInput,
+) {
+  await requireKanbanManager(actor, input.kanbanId);
+  const admin = createAdminClient();
+  const { data: association, error: associationError } = await admin
+    .from('TicketKanban')
+    .select('id')
+    .eq('ticketPublicId', ticketPublicId)
+    .eq('kanbanId', input.kanbanId)
+    .eq('status', 'ACTIVE')
+    .maybeSingle();
+  if (associationError) throw new Error(associationError.message);
+  if (!association)
+    throw new HttpError('El ticket no está asociado a este kanban', 403);
+  const { data: firstState, error: stateError } = await admin
+    .from('KanbanState')
+    .select('id')
+    .eq('kanbanId', input.kanbanId)
+    .eq('status', 'ACTIVE')
+    .order('position')
+    .limit(1)
+    .maybeSingle();
+  if (stateError) throw new Error(stateError.message);
+  if (!firstState)
+    throw new HttpError('El kanban no tiene estados activos', 400);
+  const { kanbanId, stateId, tagIds, ...card } = input;
+  await validateCardRelations(kanbanId, {
+    ...card,
+    stateId: stateId ?? (firstState.id as string),
+    tagIds,
+  });
+  const { data, error } = await admin
+    .from('KanbanCard')
+    .insert({
+      ...card,
+      kanbanId,
+      stateId: stateId ?? firstState.id,
+      ticketPublicId,
+      createdByUserId: actor.id,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+  await syncCardTags(kanbanId, data.id as string, tagIds);
+  return { id: data.id as string, kanbanId, ticketPublicId };
+}
+
+export async function transferKanbanCard(
+  actor: AuthenticatedUser,
+  sourceKanbanId: string,
+  cardId: string,
+  targetKanbanId: string,
+) {
+  await requireKanbanMember(actor, sourceKanbanId);
+  const connections = await listKanbanConnections(actor, sourceKanbanId);
+  if (
+    !connections.some(
+      (connection) => connection.targetKanbanId === targetKanbanId,
+    )
+  )
+    throw new HttpError('No existe una conexión activa hacia ese kanban', 400);
+  await requireKanbanMember(actor, targetKanbanId);
+  const admin = createAdminClient();
+  const { data: finalState, error: finalError } = await admin
+    .from('KanbanState')
+    .select('id')
+    .eq('kanbanId', sourceKanbanId)
+    .eq('status', 'ACTIVE')
+    .order('position', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (finalError) throw new Error(finalError.message);
+  const { data: firstState, error: firstError } = await admin
+    .from('KanbanState')
+    .select('id')
+    .eq('kanbanId', targetKanbanId)
+    .eq('status', 'ACTIVE')
+    .order('position')
+    .limit(1)
+    .maybeSingle();
+  if (firstError) throw new Error(firstError.message);
+  if (!finalState || !firstState)
+    throw new HttpError('Ambos kanbans deben tener estados activos', 400);
+  const { data: card, error: cardError } = await admin
+    .from('KanbanCard')
+    .select('id')
+    .eq('id', cardId)
+    .eq('kanbanId', sourceKanbanId)
+    .eq('stateId', finalState.id)
+    .eq('status', 'ACTIVE')
+    .maybeSingle();
+  if (cardError) throw new Error(cardError.message);
+  if (!card)
+    throw new HttpError('La tarjeta debe estar en el estado final', 400);
+  const { data: sourceCard, error: sourceCardError } = await admin
+    .from('KanbanCard')
+    .select(
+      'title, description, priority, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId',
+    )
+    .eq('id', cardId)
+    .eq('kanbanId', sourceKanbanId)
+    .eq('status', 'ACTIVE')
+    .single();
+  if (sourceCardError) throw new Error(sourceCardError.message);
+  const { data: transferredCard, error: insertError } = await admin
+    .from('KanbanCard')
+    .insert({
+      ...sourceCard,
+      kanbanId: targetKanbanId,
+      stateId: firstState.id,
+      createdByUserId: actor.id,
+    })
+    .select('id')
+    .single();
+  if (insertError) throw new Error(insertError.message);
+  const { error: cancelError } = await admin
+    .from('KanbanCard')
+    .update({ status: 'CANCELLED' })
+    .eq('id', cardId)
+    .eq('kanbanId', sourceKanbanId)
+    .eq('status', 'ACTIVE');
+  if (cancelError) throw new Error(cancelError.message);
+  const { error: tagsError } = await admin
+    .from('KanbanCardTag')
+    .update({ status: 'CANCELLED' })
+    .eq('cardId', cardId)
+    .eq('status', 'ACTIVE');
+  if (tagsError) throw new Error(tagsError.message);
+  return {
+    id: transferredCard.id as string,
+    kanbanId: targetKanbanId,
+    stateId: firstState.id as string,
+  };
 }
 
 export async function updateKanbanCard(

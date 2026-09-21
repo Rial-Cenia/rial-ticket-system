@@ -394,6 +394,7 @@ function KanbansSection({
             <KanbanSettings
               key={`${kanban.id}:${kanban.teams.map((team) => team.id).join(',')}`}
               kanban={kanban}
+              kanbans={kanbans}
               teams={teams}
               run={run}
             />
@@ -441,10 +442,12 @@ function TeamMemberRoleControl({
 
 function KanbanSettings({
   kanban,
+  kanbans,
   teams,
   run,
 }: {
   kanban: Kanban;
+  kanbans: Kanban[];
   teams: Team[];
   run: Runner;
 }) {
@@ -461,6 +464,11 @@ function KanbanSettings({
       (team) => !kanban.teams.some((assigned) => assigned.id === team.id),
     ),
   ];
+  const connections = useQuery({
+    queryKey: ['kanban-connections', kanban.id],
+    queryFn: () => api.fetchConnections(kanban.id),
+  });
+  const availableTargets = kanbansWithSharedTeam(kanban, kanbans);
   return (
     <details className="rounded-xl border border-white/8 bg-black/10 p-4">
       <summary className="cursor-pointer font-medium">{kanban.name}</summary>
@@ -515,6 +523,52 @@ function KanbanSettings({
             Guardar equipos
           </Button>
         </div>
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-sm font-medium">Conexiones salientes</h4>
+            <p className="text-xs text-zinc-500">
+              Las tarjetas del último estado podrán pasar al primer estado del
+              kanban destino.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {connections.data?.map((connection) => (
+              <div
+                key={connection.id}
+                className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm"
+              >
+                <span>→ {connection.targetKanbanName}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    run('Conexión eliminada correctamente.', () =>
+                      api.cancelConnection(kanban.id, connection.id),
+                    )
+                  }
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          {availableTargets.length > 0 && (
+            <ConnectionForm
+              targets={availableTargets.filter(
+                (target) =>
+                  !connections.data?.some(
+                    (connection) => connection.targetKanbanId === target.id,
+                  ),
+              )}
+              onCreate={(targetKanbanId) =>
+                run('Kanban conectado correctamente.', () =>
+                  api.createConnection(kanban.id, targetKanbanId),
+                )
+              }
+            />
+          )}
+        </div>
         <ManageNames
           title="Estados"
           values={kanban.states}
@@ -567,6 +621,45 @@ function KanbanSettings({
         />
       </div>
     </details>
+  );
+}
+
+function ConnectionForm({
+  targets,
+  onCreate,
+}: {
+  targets: Kanban[];
+  onCreate: (targetKanbanId: string) => void;
+}) {
+  const [targetKanbanId, setTargetKanbanId] = useState(targets[0]?.id ?? '');
+  if (!targets.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      <select
+        className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 text-sm"
+        value={targetKanbanId}
+        onChange={(event) => setTargetKanbanId(event.target.value)}
+      >
+        {targets.map((target) => (
+          <option key={target.id} value={target.id}>
+            {target.name}
+          </option>
+        ))}
+      </select>
+      <Button type="button" size="sm" onClick={() => onCreate(targetKanbanId)}>
+        Conectar kanban
+      </Button>
+    </div>
+  );
+}
+
+function kanbansWithSharedTeam(kanban: Kanban, kanbans: Kanban[]) {
+  const sourceTeamIds = new Set(kanban.teams.map((team) => team.id));
+  return kanbans.filter(
+    (candidate) =>
+      candidate.id !== kanban.id &&
+      candidate.canManage &&
+      candidate.teams.some((team) => sourceTeamIds.has(team.id)),
   );
 }
 

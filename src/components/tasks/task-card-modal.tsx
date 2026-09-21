@@ -23,6 +23,7 @@ import {
   useCancelKanbanCard,
   useCreateKanbanCard,
   useUpdateKanbanCard,
+  useTransferKanbanCard,
 } from '@/hooks/use-kanbans';
 import {
   KANBAN_PRIORITIES,
@@ -42,9 +43,14 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
   const create = useCreateKanbanCard(kanban.id);
   const update = useUpdateKanbanCard(kanban.id);
   const cancel = useCancelKanbanCard(kanban.id);
+  const transfer = useTransferKanbanCard(kanban.id);
   const { showToast } = useToast();
   const [error, setError] = useState('');
   const [form, setForm] = useState(() => initialForm(kanban, card));
+  const [targetKanbanId, setTargetKanbanId] = useState(
+    kanban.outgoingConnections?.[0]?.targetKanbanId ?? '',
+  );
+  const outgoingConnections = kanban.outgoingConnections ?? [];
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -182,6 +188,49 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
               />
             </Field>
           </div>
+          {card &&
+            kanban.states.at(-1)?.id === card.stateId &&
+            outgoingConnections.length > 0 && (
+              <div className="rounded-lg border border-indigo-400/20 bg-indigo-500/5 p-3">
+                <p className="mb-2 text-sm text-zinc-300">
+                  Pasar al siguiente kanban
+                </p>
+                <div className="flex gap-2">
+                  <Select
+                    value={targetKanbanId}
+                    onValueChange={setTargetKanbanId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {outgoingConnections.map((connection) => (
+                        <SelectItem
+                          key={connection.targetKanbanId}
+                          value={connection.targetKanbanId}
+                        >
+                          {connection.targetKanbanName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={transfer.isPending}
+                    onClick={async () => {
+                      await transfer.mutateAsync({
+                        cardId: card.id,
+                        targetKanbanId,
+                      });
+                      onOpenChange(false);
+                    }}
+                  >
+                    Pasar tarjeta
+                  </Button>
+                </div>
+              </div>
+            )}
           <fieldset className="space-y-2">
             <legend className="text-sm">Etiquetas</legend>
             <div className="flex flex-wrap gap-2">

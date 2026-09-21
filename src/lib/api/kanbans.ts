@@ -11,6 +11,7 @@ import type {
   Kanban,
   Team,
   TeamMembershipRole,
+  KanbanConnection,
 } from '@/lib/types';
 
 const json = (method: string, body?: unknown): RequestInit => ({
@@ -38,6 +39,27 @@ export const updateCard = (
   apiRequest(`/api/kanbans/${kanbanId}/cards/${cardId}`, json('PATCH', input));
 export const cancelCard = (kanbanId: string, cardId: string) =>
   apiRequest(`/api/kanbans/${kanbanId}/cards/${cardId}`, json('DELETE'));
+export const fetchConnections = (kanbanId: string) =>
+  apiRequest<KanbanConnection[]>(`/api/kanbans/${kanbanId}/connections`);
+export const createConnection = (kanbanId: string, targetKanbanId: string) =>
+  apiRequest(
+    `/api/kanbans/${kanbanId}/connections`,
+    json('POST', { targetKanbanId }),
+  );
+export const cancelConnection = (kanbanId: string, connectionId: string) =>
+  apiRequest(
+    `/api/kanbans/${kanbanId}/connections/${connectionId}`,
+    json('DELETE'),
+  );
+export const transferCard = (
+  kanbanId: string,
+  cardId: string,
+  targetKanbanId: string,
+) =>
+  apiRequest(
+    `/api/kanbans/${kanbanId}/cards/${cardId}/transfer`,
+    json('POST', { targetKanbanId }),
+  );
 
 export const createState = (kanbanId: string, name: string) =>
   apiRequest(`/api/kanbans/${kanbanId}/states`, json('POST', { name }));

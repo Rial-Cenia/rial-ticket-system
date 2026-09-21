@@ -1,5 +1,12 @@
 import type { CreateTicketInput, UpdateTicketInput } from '@/lib/schemas';
-import type { DiscordConversation, Ticket, TicketFilters } from '@/lib/types';
+import type {
+  DiscordConversation,
+  KanbanCard,
+  Ticket,
+  TicketFilters,
+  TicketKanban,
+} from '@/lib/types';
+import type { CreateTicketKanbanCardInput } from '@/lib/schemas';
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -43,4 +50,25 @@ export function fetchDiscordConversation(publicId: string) {
   return request<DiscordConversation>(
     `/api/tickets/${publicId}/discord-conversation`,
   );
+}
+
+export function fetchTicketKanbans(publicId: string) {
+  return request<TicketKanban[]>(`/api/tickets/${publicId}/kanbans`);
+}
+
+export function associateTicketKanban(publicId: string, kanbanId: string) {
+  return request<TicketKanban>(`/api/tickets/${publicId}/kanbans`, {
+    method: 'POST',
+    body: JSON.stringify({ kanbanId }),
+  });
+}
+
+export function createTicketKanbanCard(
+  publicId: string,
+  input: CreateTicketKanbanCardInput,
+) {
+  return request<KanbanCard>(`/api/tickets/${publicId}/kanban-cards`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
