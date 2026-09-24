@@ -22,6 +22,7 @@ import type { OutboxJob } from '@/lib/types';
 const messageJobSchema = z.object({
   threadId: z.string(),
   content: z.string().min(1).max(2000),
+  notifyTicketeraAdmins: z.boolean().optional(),
 });
 
 async function getPlatformRoleId(
@@ -138,13 +139,22 @@ async function processJob(job: OutboxJob) {
     const payload = messageJobSchema.parse(job.payload);
     if (ticket) await renameThread(payload.threadId, ticketThreadName(ticket));
     const creatorId = ticket?.createdByDiscordId ?? null;
+    const ticketeraAdminRoleId =
+      payload.notifyTicketeraAdmins && ticket?.platform === 'TICKETERA'
+        ? getDiscordEnv().ticketeraAdminRoleId
+        : null;
     await sendThreadMessage(payload.threadId, {
-      content: creatorId
-        ? `<@${creatorId}> ${payload.content}`
-        : payload.content,
+      content: [
+        ticketeraAdminRoleId ? `<@&${ticketeraAdminRoleId}>` : null,
+        creatorId ? `<@${creatorId}>` : null,
+        payload.content,
+      ]
+        .filter(Boolean)
+        .join(' '),
       allowed_mentions: {
         parse: [],
         ...(creatorId ? { users: [creatorId] } : {}),
+        ...(ticketeraAdminRoleId ? { roles: [ticketeraAdminRoleId] } : {}),
       },
     });
     return complete(job.id);

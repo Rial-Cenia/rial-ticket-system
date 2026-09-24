@@ -10,6 +10,7 @@ export function platformRoleId(platform: Platform) {
     DYLAN: env.dylanRoleId,
     ATOM: env.atomRoleId,
     KAYS: env.kaysRoleId,
+    TICKETERA: env.ticketeraAdminRoleId,
     EXTERNO: null,
   };
   return roles[platform];

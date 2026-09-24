@@ -72,13 +72,24 @@ async function getPlatformRoleId(
   return roles.platformRoleId(platform);
 }
 
-function creatorUpdate(ticket: Ticket, content: string) {
+function creatorUpdate(
+  ticket: Ticket,
+  content: string,
+  roleId: string | null = null,
+) {
   const creatorId = ticket.createdByDiscordId;
   return {
-    content: creatorId ? `<@${creatorId}> ${content}` : content,
+    content: [
+      roleId ? `<@&${roleId}>` : null,
+      creatorId ? `<@${creatorId}>` : null,
+      content,
+    ]
+      .filter(Boolean)
+      .join(' '),
     allowed_mentions: {
       parse: [],
       ...(creatorId ? { users: [creatorId] } : {}),
+      ...(roleId ? { roles: [roleId] } : {}),
     },
   };
 }
@@ -265,7 +276,11 @@ Toca invocar a alguien con más aura administrativa, porque el sistema te dijo: 
       ),
     );
     await followupInteraction(interaction.application_id, interaction.token, {
-      ...creatorUpdate(ticket, statusUpdateMessage(ticket, actor.name)),
+      ...creatorUpdate(
+        ticket,
+        statusUpdateMessage(ticket, actor.name),
+        ticket.platform === 'TICKETERA' ? env.ticketeraAdminRoleId : null,
+      ),
     });
     if (
       (status === 'RESUELTO' || status === 'CANCELADO') &&

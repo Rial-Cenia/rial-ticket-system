@@ -12,6 +12,7 @@ export const PLATFORMS = [
   'DYLAN',
   'ATOM',
   'KAYS',
+  'TICKETERA',
   'EXTERNO',
 ] as const;
 export const TICKET_PRIORITIES = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'] as const;
@@ -267,5 +268,6 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   DYLAN: '⭐ Dylan',
   ATOM: '⚛️ Atom',
   KAYS: '🎀 Kays',
+  TICKETERA: '🎟️ Ticketera',
   EXTERNO: '🌍 Externo',
 };

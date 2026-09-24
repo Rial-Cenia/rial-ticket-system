@@ -23,6 +23,7 @@ const schema = z.object({
   DISCORD_DYLAN_ROLE_ID: optionalString,
   DISCORD_ATOM_ROLE_ID: optionalString,
   DISCORD_KAYS_ROLE_ID: optionalString,
+  DISCORD_TICKETERA_ADMIN_ROLE_ID: optionalString,
   DISCORD_PANEL_MESSAGE_ID: optionalString,
 });
 
@@ -52,6 +53,7 @@ export function getDiscordEnv() {
     dylanRoleId: env.DISCORD_DYLAN_ROLE_ID,
     atomRoleId: env.DISCORD_ATOM_ROLE_ID,
     kaysRoleId: env.DISCORD_KAYS_ROLE_ID,
+    ticketeraAdminRoleId: env.DISCORD_TICKETERA_ADMIN_ROLE_ID,
   };
 
   for (const [name, value] of Object.entries(required)) {

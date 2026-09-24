@@ -38,6 +38,7 @@ select is((select count(*)::integer from pg_publication_tables where pubname = '
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketStatus' and e.enumlabel = 'EN_STAGING'), 1, 'Ticket status includes staging');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'TicketStatus' and e.enumlabel = 'CANCELADO'), 1, 'Ticket status includes cancelled');
 select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'Platform' and e.enumlabel = 'EXTERNO'), 1, 'Platform includes external tickets');
+select is((select count(*)::integer from pg_enum e join pg_type t on t.oid = e.enumtypid where t.typnamespace = 'public'::regnamespace and t.typname = 'Platform' and e.enumlabel = 'TICKETERA'), 1, 'Platform includes ticketera tickets');
 select lives_ok($$select public.create_ticket('Prueba', 'Detalle', 'BUG', null, 'WEB', 'pgTAP', 'test-user', null)$$, 'Atomic create RPC works');
 select is((select priority::text from public."Ticket" where title = 'Prueba'), 'MEDIA', 'Legacy and existing tickets default to medium priority');
 select lives_ok($$select public.create_ticket('Prioridad alta', 'Detalle', 'BUG', 'ALTA', null, 'WEB', 'pgTAP', 'priority-test-user', null)$$, 'Create RPC accepts priority');

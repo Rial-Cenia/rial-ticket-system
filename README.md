@@ -42,6 +42,7 @@ No existe registro público. Crea las cuentas de email/contraseña previamente d
 | `DISCORD_TRIAGE_CHANNEL_ID`                       | Canal de texto donde viven el panel y los threads                               |
 | `DISCORD_TRIAGER_ROLE_ID`                         | Rol Barbilla Roja                                                               |
 | `DISCORD_NESTOR_ROLE_ID` … `DISCORD_KAYS_ROLE_ID` | Roles responsables de las plataformas internas; Externo queda a cargo de triage |
+| `DISCORD_TICKETERA_ADMIN_ROLE_ID`                 | Rol de administradores de rial-ticket-system, mencionado en cambios de estado de Ticketera |
 | `DISCORD_PANEL_MESSAGE_ID`                        | Opcional; permite actualizar el panel ya publicado                              |
 
 Las claves servidor, el token del bot y `CRON_SECRET` nunca deben llevar el prefijo `NEXT_PUBLIC_` ni almacenarse en Git.

@@ -7,6 +7,7 @@ vi.mock('@/lib/env/server', () => ({
     dylanRoleId: 'dylan-role',
     atomRoleId: 'atom-role',
     kaysRoleId: 'kays-role',
+    ticketeraAdminRoleId: 'ticketera-admin-role',
   }),
 }));
 
@@ -15,6 +16,7 @@ import { platformRoleId } from '@/lib/discord/roles';
 describe('Discord platform roles', () => {
   it('no exige un rol de Discord para tickets externos', () => {
     expect(platformRoleId('NESTOR')).toBe('nestor-role');
+    expect(platformRoleId('TICKETERA')).toBe('ticketera-admin-role');
     expect(platformRoleId('EXTERNO')).toBeNull();
   });
 });

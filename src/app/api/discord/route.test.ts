@@ -75,6 +75,7 @@ describe('Discord interaction route', () => {
       publicKey: rawPublicKey,
       guildId: 'guild-1',
       triagerRoleId: 'triager-role',
+      ticketeraAdminRoleId: 'ticketera-admin-role',
     });
     mocks.callback.mockImplementation(async () => {
       mocks.order.push('ack');

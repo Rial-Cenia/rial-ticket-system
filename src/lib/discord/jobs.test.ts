@@ -28,7 +28,10 @@ vi.mock('@/lib/discord/client', () => ({
   sendThreadMessage: mocks.sendThreadMessage,
 }));
 vi.mock('@/lib/env/server', () => ({
-  getDiscordEnv: () => ({ triagerRoleId: 'triager-role' }),
+  getDiscordEnv: () => ({
+    triagerRoleId: 'triager-role',
+    ticketeraAdminRoleId: 'ticketera-admin-role',
+  }),
 }));
 vi.mock('@/lib/discord/roles', () => ({
   platformRoleId: () => 'platform-role',
@@ -116,6 +119,33 @@ describe('Discord outbox jobs', () => {
     expect(mocks.sendThreadMessage).toHaveBeenCalledWith('thread-1', {
       content: '<@discord-user-1> El ticket fue actualizado.',
       allowed_mentions: { parse: [], users: ['discord-user-1'] },
+    });
+  });
+
+  it('menciona a los administradores de Ticketera cuando cambia su estado', async () => {
+    mocks.getTicket.mockResolvedValue({ ...ticket, platform: 'TICKETERA' });
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: [
+          job('SEND_THREAD_MESSAGE', {
+            threadId: 'thread-1',
+            content: 'El ticket cambió de estado.',
+            notifyTicketeraAdmins: true,
+          }),
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(processOutboxJobs()).resolves.toMatchObject({ delivered: 1 });
+    expect(mocks.sendThreadMessage).toHaveBeenCalledWith('thread-1', {
+      content:
+        '<@&ticketera-admin-role> <@discord-user-1> El ticket cambió de estado.',
+      allowed_mentions: {
+        parse: [],
+        users: ['discord-user-1'],
+        roles: ['ticketera-admin-role'],
+      },
     });
   });
 
