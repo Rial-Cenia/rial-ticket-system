@@ -21,6 +21,113 @@ body {
   color: var(--foreground);
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
+
+html.light {
+  color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #172033;
+}
+
+html.light body {
+  background: radial-gradient(circle at top, #dbeafe 0, #f8fafc 35rem);
+}
+
+html.light [class~='bg-zinc-950'] {
+  background-color: #f8fafc;
+}
+html.light [class~='bg-zinc-950/80'] {
+  background-color: rgb(248 250 252 / 0.9);
+}
+html.light [class~='bg-zinc-950/60'],
+html.light [class~='bg-zinc-950/55'] {
+  background-color: rgb(248 250 252 / 0.78);
+}
+html.light [class~='bg-zinc-950/50'] {
+  background-color: rgb(248 250 252 / 0.65);
+}
+html.light [class~='bg-zinc-950/45'] {
+  background-color: rgb(248 250 252 / 0.6);
+}
+html.light [class~='bg-zinc-900'],
+html.light [class~='bg-zinc-900/85'],
+html.light [class~='bg-zinc-900/70'],
+html.light [class~='bg-zinc-900/60'] {
+  background-color: rgb(255 255 255 / 0.88);
+}
+html.light [class~='bg-black/10'],
+html.light [class~='bg-black/20'],
+html.light [class~='bg-black/25'] {
+  background-color: rgb(15 23 42 / 0.04);
+}
+html.light [class~='bg-white/3'],
+html.light [class~='bg-white/4'],
+html.light [class~='bg-white/5'],
+html.light [class~='bg-white/6'],
+html.light [class~='bg-white/7'],
+html.light [class~='bg-white/8'],
+html.light [class~='bg-white/10'],
+html.light [class~='bg-white/12'] {
+  background-color: rgb(15 23 42 / 0.05);
+}
+html.light [class~='border-white/6'],
+html.light [class~='border-white/8'],
+html.light [class~='border-white/10'],
+html.light [class~='border-white/12'],
+html.light [class~='border-white/15'],
+html.light [class~='border-white/20'],
+html.light [class~='divide-white/8'] {
+  border-color: rgb(15 23 42 / 0.12);
+}
+html.light [class~='divide-white/8'] {
+  --tw-divide-opacity: 0.12;
+}
+html.light [class~='text-zinc-100'] {
+  color: #172033;
+}
+html.light [class~='text-zinc-200'] {
+  color: #334155;
+}
+html.light [class~='text-zinc-300'] {
+  color: #475569;
+}
+html.light [class~='text-zinc-400'] {
+  color: #64748b;
+}
+html.light [class~='text-zinc-500'] {
+  color: #64748b;
+}
+html.light [class~='text-zinc-600'] {
+  color: #94a3b8;
+}
+html.light [class~='text-zinc-700'] {
+  color: #cbd5e1;
+}
+html.light [class~='text-white'] {
+  color: #172033;
+}
+html.light [class~='bg-blue-600'],
+html.light [class~='bg-red-600'] {
+  color: #fff;
+}
+html.light [class~='bg-blue-600'][class~='text-white'],
+html.light [class~='bg-red-600'][class~='text-white'] {
+  color: #fff;
+}
+html.light [class~='hover:bg-white/4']:hover,
+html.light [class~='hover:bg-white/5']:hover,
+html.light [class~='hover:bg-white/6']:hover,
+html.light [class~='hover:bg-white/7']:hover,
+html.light [class~='hover:bg-white/8']:hover,
+html.light [class~='hover:bg-white/12']:hover {
+  background-color: rgb(15 23 42 / 0.09);
+}
+html.light [class~='hover:text-white']:hover,
+html.light [class~='data-[highlighted]:text-white'][data-highlighted] {
+  color: #172033;
+}
+html.light [class~='placeholder:text-zinc-600']::placeholder {
+  color: #94a3b8;
+}
 button,
 input,
 textarea {

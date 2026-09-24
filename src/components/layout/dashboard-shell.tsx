@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { cn } from '@/lib/utils';
 
 export function DashboardShell({
@@ -144,10 +145,13 @@ export function DashboardShell({
               </p>
             )}
           </div>
-          <Button variant="ghost" size="sm" onClick={logout}>
-            <LogOut className="size-4" />
-            Salir
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={logout}>
+              <LogOut className="size-4" />
+              Salir
+            </Button>
+          </div>
         </header>
         <main className="min-w-0 p-4 sm:p-6">{children}</main>
       </div>

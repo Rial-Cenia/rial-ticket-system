@@ -5,6 +5,7 @@ import { Suspense, useState } from 'react';
 import { LockKeyhole } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -55,7 +56,10 @@ function LoginForm() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center px-4">
+    <main className="relative grid min-h-screen place-items-center px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <section className="w-full max-w-md rounded-3xl border border-white/10 bg-zinc-900/85 p-8 shadow-2xl backdrop-blur">
         <div className="mb-8 flex items-center gap-3">
           <div className="grid size-11 place-items-center rounded-xl bg-blue-600">
