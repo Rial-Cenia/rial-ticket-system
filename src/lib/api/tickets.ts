@@ -28,6 +28,10 @@ export function fetchTickets(filters: TicketFilters) {
   return request<Ticket[]>(`/api/tickets?${params}`);
 }
 
+export function fetchTicket(publicId: string) {
+  return request<Ticket>(`/api/tickets/${publicId}`);
+}
+
 export function fetchDefaultTicketFilters() {
   return request<TicketFilters>('/api/tickets/default-filters');
 }

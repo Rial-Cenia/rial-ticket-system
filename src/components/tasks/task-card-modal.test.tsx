@@ -21,6 +21,10 @@ vi.mock('@/hooks/use-kanbans', () => ({
   }),
 }));
 
+vi.mock('@/hooks/use-tickets', () => ({
+  useTicket: () => ({ data: null, isLoading: false, error: null }),
+}));
+
 vi.mock('@/components/ui/toast', () => ({
   useToast: () => ({ showToast: mocks.showToast }),
 }));
@@ -40,6 +44,12 @@ const card: KanbanCard = {
   createdByUserId: 'user-1',
   createdAt: '2026-09-08T10:00:00.000Z',
   updatedAt: '2026-09-08T10:30:00.000Z',
+};
+
+const linkedCard: KanbanCard = {
+  ...card,
+  id: 'card-from-ticket',
+  ticketPublicId: 'ticket-42',
 };
 
 const kanban: Kanban = {
@@ -85,5 +95,21 @@ describe('TaskCardModal', () => {
     await userEvent.click(editButtons.at(-1)!);
     expect(screen.getByDisplayValue('Revisar integración')).toBeInTheDocument();
     expect(screen.getByLabelText('Título')).toBeInTheDocument();
+  });
+
+  it('indica cuando la tarjeta viene de un ticket', () => {
+    render(
+      <TaskCardModal
+        kanban={kanban}
+        card={linkedCard}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Viene de un ticket')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Vista previa/ }),
+    ).toBeInTheDocument();
   });
 });

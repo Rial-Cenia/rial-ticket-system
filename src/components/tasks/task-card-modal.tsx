@@ -1,6 +1,6 @@
 'use client';
 
-import { Maximize2, Minimize2, Pencil } from 'lucide-react';
+import { ExternalLink, Maximize2, Minimize2, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import {
   Dialog,
@@ -30,11 +30,14 @@ import {
   useUpdateKanbanCard,
   useTransferKanbanCard,
 } from '@/hooks/use-kanbans';
+import { useTicket } from '@/hooks/use-tickets';
+import { TicketDetailModal } from '@/components/modals/ticket-detail-modal';
 import {
   KANBAN_PRIORITIES,
   PRIORITY_LABELS,
   type Kanban,
   type KanbanCard,
+  type Ticket,
 } from '@/lib/types';
 
 interface Props {
@@ -53,10 +56,12 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(card === null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [ticketPreviewOpen, setTicketPreviewOpen] = useState(false);
   const [form, setForm] = useState(() => initialForm(kanban, card));
   const [targetKanbanId, setTargetKanbanId] = useState(
     kanban.outgoingConnections?.[0]?.targetKanbanId ?? '',
   );
+  const linkedTicket = useTicket(card?.ticketPublicId ?? null);
   const outgoingConnections = kanban.outgoingConnections ?? [];
 
   async function submit(event: React.FormEvent) {
@@ -314,6 +319,7 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
           <TaskCardPreview
             card={card!}
             kanban={kanban}
+            ticket={linkedTicket.data}
             fullscreen={fullscreen}
             onToggleFullscreen={() => setFullscreen((value) => !value)}
             onEdit={() => {
@@ -321,8 +327,48 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
               setEditing(true);
             }}
             onClose={() => onOpenChange(false)}
+            onOpenTicket={() => setTicketPreviewOpen(true)}
           />
         )}
+      </DialogContent>
+      {card?.ticketPublicId && (
+        <LinkedTicketPreview
+          publicId={card.ticketPublicId}
+          open={ticketPreviewOpen}
+          onOpenChange={setTicketPreviewOpen}
+        />
+      )}
+    </Dialog>
+  );
+}
+
+function LinkedTicketPreview({
+  publicId,
+  open,
+  onOpenChange,
+}: {
+  publicId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const ticketQuery = useTicket(publicId);
+  return ticketQuery.data ? (
+    <TicketDetailModal
+      ticket={open ? ticketQuery.data : null}
+      onOpenChange={onOpenChange}
+    />
+  ) : (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Ticket {publicId}</DialogTitle>
+          <DialogDescription>
+            {ticketQuery.isLoading
+              ? 'Cargando ticket…'
+              : (ticketQuery.error?.message ??
+                'No fue posible cargar el ticket.')}
+          </DialogDescription>
+        </DialogHeader>
       </DialogContent>
     </Dialog>
   );
@@ -331,17 +377,21 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
 function TaskCardPreview({
   card,
   kanban,
+  ticket,
   fullscreen,
   onToggleFullscreen,
   onEdit,
   onClose,
+  onOpenTicket,
 }: {
   card: KanbanCard;
   kanban: Kanban;
+  ticket?: Ticket;
   fullscreen: boolean;
   onToggleFullscreen: () => void;
   onEdit: () => void;
   onClose: () => void;
+  onOpenTicket: () => void;
 }) {
   const state = kanban.states.find(
     (candidate) => candidate.id === card.stateId,
@@ -387,6 +437,21 @@ function TaskCardPreview({
         </Button>
       </div>
       <div className="flex-1 space-y-6 overflow-y-auto pr-1">
+        {card.ticketPublicId && (
+          <section className="flex items-center justify-between gap-3 rounded-xl border border-indigo-400/20 bg-indigo-500/5 p-4">
+            <div>
+              <p className="text-xs text-zinc-500">Viene de un ticket</p>
+              <p className="mt-1 font-mono text-sm text-indigo-300">
+                {ticket
+                  ? `RTP-${ticket.id} · ${ticket.title}`
+                  : card.ticketPublicId}
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={onOpenTicket}>
+              Vista previa <ExternalLink className="size-3.5" />
+            </Button>
+          </section>
+        )}
         <div className="flex flex-wrap gap-2">
           <Badge>{PRIORITY_LABELS[card.priority]}</Badge>
           {state && <Badge>{state.name}</Badge>}

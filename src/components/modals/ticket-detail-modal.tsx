@@ -42,6 +42,7 @@ import {
   useUpdateTicket,
 } from '@/hooks/use-tickets';
 import { useKanbans } from '@/hooks/use-kanbans';
+import { TaskCardModal } from '@/components/tasks/task-card-modal';
 import * as ticketApi from '@/lib/api/tickets';
 import {
   PLATFORM_LABELS,
@@ -224,6 +225,10 @@ function TicketKanbanSection({ ticket }: { ticket: Ticket }) {
   const [selectedKanbanId, setSelectedKanbanId] = useState('');
   const [title, setTitle] = useState(ticket.title);
   const [description, setDescription] = useState(ticket.description);
+  const [selectedCard, setSelectedCard] = useState<{
+    card: NonNullable<typeof kanbans.data>[number]['cards'][number];
+    kanban: NonNullable<typeof kanbans.data>[number];
+  } | null>(null);
   const associate = useMutation({
     mutationFn: (kanbanId: string) =>
       ticketApi.associateTicketKanban(ticket.publicId, kanbanId),
@@ -257,6 +262,11 @@ function TicketKanbanSection({ ticket }: { ticket: Ticket }) {
   );
   const selectedAssociation = (associated.data ?? []).find(
     (kanban) => kanban.kanbanId === selectedKanbanId,
+  );
+  const linkedCards = (kanbans.data ?? []).flatMap((kanban) =>
+    kanban.cards
+      .filter((card) => card.ticketPublicId === ticket.publicId)
+      .map((card) => ({ card, kanban })),
   );
   return (
     <section className="space-y-3 rounded-xl border border-white/8 bg-black/20 p-4">
@@ -325,10 +335,41 @@ function TicketKanbanSection({ ticket }: { ticket: Ticket }) {
           </Button>
         </form>
       )}
+      {linkedCards.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-indigo-400/20 bg-indigo-500/5 p-3">
+          <p className="text-sm font-medium text-zinc-300">
+            Tarjetas creadas desde este ticket
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {linkedCards.map(({ card, kanban }) => (
+              <Button
+                key={card.id}
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedCard({ card, kanban })}
+              >
+                {card.title} · {kanban.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
       {(associate.error || createCard.error) && (
         <p className="text-sm text-red-300">
           {(associate.error ?? createCard.error)?.message}
         </p>
+      )}
+      {selectedCard && (
+        <TaskCardModal
+          key={selectedCard.card.id}
+          kanban={selectedCard.kanban}
+          card={selectedCard.card}
+          open
+          onOpenChange={(open) => {
+            if (!open) setSelectedCard(null);
+          }}
+        />
       )}
     </section>
   );

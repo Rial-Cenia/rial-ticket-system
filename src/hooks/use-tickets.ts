@@ -21,6 +21,17 @@ export function useTickets(filters: TicketFilters) {
   });
 }
 
+export function useTicket(publicId: string | null) {
+  return useQuery({
+    queryKey: [...ticketKeys.all, publicId],
+    queryFn: () => {
+      if (!publicId) throw new Error('Falta el identificador del ticket');
+      return api.fetchTicket(publicId);
+    },
+    enabled: Boolean(publicId),
+  });
+}
+
 export function useDefaultTicketFilters() {
   return useQuery({
     queryKey: [...ticketKeys.all, 'default-filters'],

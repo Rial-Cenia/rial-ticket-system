@@ -7,6 +7,7 @@ import type { Ticket } from '@/lib/types';
 const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   remove: vi.fn(),
+  kanbans: [] as unknown[],
 }));
 
 vi.mock('@/hooks/use-tickets', () => ({
@@ -41,7 +42,7 @@ vi.mock('@/hooks/use-tickets', () => ({
 }));
 
 vi.mock('@/hooks/use-kanbans', () => ({
-  useKanbans: () => ({ data: [], error: null }),
+  useKanbans: () => ({ data: mocks.kanbans, error: null }),
 }));
 
 import { TicketDetailModal } from '@/components/modals/ticket-detail-modal';
@@ -134,5 +135,48 @@ describe('ticket detail modal', () => {
       screen.getByRole('link', { name: 'Template_producto.xlsx' }),
     ).toHaveAttribute('href', '/api/tickets/ticket-1/images/document-1');
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('muestra las tarjetas visibles creadas desde el ticket', () => {
+    mocks.kanbans = [
+      {
+        id: 'kanban-1',
+        name: 'Producto',
+        teams: [],
+        states: [],
+        tags: [],
+        members: [],
+        canManage: false,
+        canDeleteCards: false,
+        createdAt: ticket.createdAt,
+        updatedAt: ticket.updatedAt,
+        cards: [
+          {
+            id: 'card-1',
+            kanbanId: 'kanban-1',
+            title: 'Revisar descarga',
+            description: '',
+            stateId: 'state-1',
+            priority: 'MEDIA',
+            assignee: null,
+            reviewer: null,
+            tags: [],
+            createdByUserId: 'user-1',
+            createdAt: ticket.createdAt,
+            updatedAt: ticket.updatedAt,
+            ticketPublicId: ticket.publicId,
+          },
+        ],
+      },
+    ];
+
+    renderModal();
+
+    expect(
+      screen.getByText('Tarjetas creadas desde este ticket'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Revisar descarga/ }),
+    ).toBeInTheDocument();
   });
 });
