@@ -25,7 +25,7 @@ import {
   parseTriageId,
   selectedPlatform,
 } from '@/lib/discord/interactions';
-import { platformRoleId } from '@/lib/discord/roles';
+import * as discordRoles from '@/lib/discord/roles';
 import { verifyDiscordRequest } from '@/lib/discord/signature';
 import { processOutboxJobs } from '@/lib/discord/jobs';
 import {
@@ -59,6 +59,18 @@ const ephemeral = (content: string) => ({
     allowed_mentions: { parse: [] },
   },
 });
+
+async function getPlatformRoleId(
+  platform: Parameters<typeof discordRoles.platformRoleId>[0],
+) {
+  const roles = discordRoles as unknown as {
+    resolvePlatformRoleId?: (value: typeof platform) => Promise<string | null>;
+    platformRoleId: (value: typeof platform) => string | null;
+  };
+  if (Object.prototype.hasOwnProperty.call(roles, 'resolvePlatformRoleId'))
+    return roles.resolvePlatformRoleId!(platform);
+  return roles.platformRoleId(platform);
+}
 
 function creatorUpdate(ticket: Ticket, content: string) {
   const creatorId = ticket.createdByDiscordId;
@@ -163,7 +175,7 @@ El resto somos simples mortales sin esos permisos, uwu. Toca invocarlo y esperar
     const ticket = await updateTicket(publicId, { platform }, 'DISCORD', actor);
     const imageUrls = await getTicketImageSignedUrls(publicId);
     const platformLabel = PLATFORM_LABELS[ticket.platform!];
-    const roleId = platformRoleId(platform);
+    const roleId = await getPlatformRoleId(platform);
     await editInteractionResponse(
       interaction.application_id,
       interaction.token,
@@ -227,7 +239,7 @@ Primero hay que ponerle una, porque enviarlo así sería soltarlo al mundo sin c
     const allowed = canChangeTicketStatus(
       actor.roles,
       env.triagerRoleId,
-      platformRoleId(current.platform),
+      await getPlatformRoleId(current.platform),
     );
     if (!allowed) {
       await followupInteraction(interaction.application_id, interaction.token, {
@@ -248,7 +260,7 @@ Toca invocar a alguien con más aura administrativa, porque el sistema te dijo: 
       ticketControls(
         ticket,
         actor.name,
-        platformRoleId(ticket.platform!),
+        await getPlatformRoleId(ticket.platform!),
         imageUrls,
       ),
     );

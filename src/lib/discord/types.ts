@@ -76,6 +76,11 @@ export interface DiscordGuildMember {
   user?: DiscordUser;
 }
 
+export interface DiscordGuildRole {
+  id: string;
+  name: string;
+}
+
 export interface DiscordApiMessage {
   id: string;
   content: string;

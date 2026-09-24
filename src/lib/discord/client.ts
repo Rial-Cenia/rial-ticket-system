@@ -3,6 +3,7 @@ import { getDiscordEnv } from '@/lib/env/server';
 import type {
   DiscordApiMessage,
   DiscordGuildMember,
+  DiscordGuildRole,
   DiscordMessagePayload,
   DiscordThread,
 } from '@/lib/discord/types';
@@ -262,6 +263,11 @@ export async function getGuildMember(discordUserId: string) {
     if (error instanceof DiscordApiError && error.status === 404) return null;
     throw error;
   }
+}
+
+export function getGuildRoles() {
+  const { guildId } = getDiscordEnv();
+  return request<DiscordGuildRole[]>(`/guilds/${guildId}/roles`);
 }
 
 export function addGuildMemberRole(

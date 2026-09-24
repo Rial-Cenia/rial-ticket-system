@@ -74,4 +74,32 @@ describe('useUpdateTicket', () => {
     );
     expect(client.getQueryData(conversationKey)).toEqual(conversation);
   });
+
+  it('revierte el movimiento optimista si falla la actualización', async () => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const listKey = ticketKeys.list({});
+    client.setQueryData(listKey, [ticket]);
+    mocks.updateTicket.mockRejectedValue(new Error('falló'));
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useUpdateTicket(), { wrapper });
+
+    await expect(
+      act(() =>
+        result.current.mutateAsync({
+          publicId: ticket.publicId,
+          patch: { status: 'RESUELTO' },
+        }),
+      ),
+    ).rejects.toThrow('falló');
+    expect(client.getQueryData<Ticket[]>(listKey)?.[0].status).toBe(
+      'PENDIENTE',
+    );
+  });
 });

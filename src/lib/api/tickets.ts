@@ -23,9 +23,13 @@ export function fetchTickets(filters: TicketFilters) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== false && value !== '')
-      params.set(key, String(value));
+      params.set(key, Array.isArray(value) ? value.join(',') : String(value));
   });
   return request<Ticket[]>(`/api/tickets?${params}`);
+}
+
+export function fetchDefaultTicketFilters() {
+  return request<TicketFilters>('/api/tickets/default-filters');
 }
 
 export function createTicket(input: CreateTicketInput) {

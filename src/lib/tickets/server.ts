@@ -205,9 +205,12 @@ export async function listTickets(filters: TicketFilters = {}) {
 
   if (filters.status) query = query.eq('status', filters.status);
   if (filters.type) query = query.eq('type', filters.type);
+  if (filters.priority) query = query.eq('priority', filters.priority);
   if (filters.unassignedOnly || filters.platform === 'UNASSIGNED')
     query = query.is('platform', null);
   else if (filters.platform) query = query.eq('platform', filters.platform);
+  else if (filters.platforms?.length)
+    query = query.in('platform', filters.platforms);
   if (filters.search) {
     const search = filters.search.replace(/[,%()]/g, ' ').trim();
     if (search) {

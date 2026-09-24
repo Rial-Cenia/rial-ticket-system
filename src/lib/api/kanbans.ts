@@ -12,6 +12,10 @@ import type {
   Team,
   TeamMembershipRole,
   KanbanConnection,
+  DiscordRole,
+  DiscordRoleConnection,
+  TeamPlatformConnection,
+  Platform,
 } from '@/lib/types';
 
 const json = (method: string, body?: unknown): RequestInit => ({
@@ -111,3 +115,30 @@ export const cancelTeamMember = (teamId: string, membershipId: string) =>
 export const fetchUsers = () => apiRequest<AppUser[]>('/api/users');
 export const updateUserRole = (userId: string, role: AppRole) =>
   apiRequest(`/api/users/${userId}/role`, json('PATCH', { role }));
+
+export const fetchTicketScope = () =>
+  apiRequest<{
+    teamPlatforms: TeamPlatformConnection[];
+    roleConnections: DiscordRoleConnection[];
+  }>('/api/ticket-scope');
+export const fetchDiscordRoles = () =>
+  apiRequest<DiscordRole[]>('/api/discord/roles');
+export const saveTeamPlatform = (teamId: string, platform: Platform) =>
+  apiRequest(
+    '/api/ticket-scope',
+    json('POST', { kind: 'team-platform', teamId, platform }),
+  );
+export const saveDiscordRoleConnection = (input: {
+  roleId: string;
+  roleName: string;
+  platform: Platform | null;
+  teamId: string | null;
+}) =>
+  apiRequest(
+    '/api/ticket-scope',
+    json('POST', { kind: 'discord-role', ...input }),
+  );
+export const removeTicketScopeConnection = (
+  kind: 'team-platform' | 'discord-role',
+  id: string,
+) => apiRequest('/api/ticket-scope', { ...json('DELETE', { kind, id }) });

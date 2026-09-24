@@ -105,8 +105,10 @@ export interface OutboxJob {
 
 export interface TicketFilters {
   platform?: Platform | 'UNASSIGNED';
+  platforms?: Platform[];
   type?: TicketType;
   status?: TicketStatus;
+  priority?: TicketPriority;
   search?: string;
   unassignedOnly?: boolean;
 }
@@ -151,6 +153,26 @@ export interface Team {
   canManage: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TeamPlatformConnection {
+  id: string;
+  teamId: string;
+  platform: Platform;
+  teamName: string;
+}
+
+export interface DiscordRoleConnection {
+  roleId: string;
+  roleName: string;
+  platform: Platform | null;
+  teamId: string | null;
+  teamName: string | null;
+}
+
+export interface DiscordRole {
+  id: string;
+  name: string;
 }
 
 export interface KanbanState {

@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   Columns3,
+  PanelLeftClose,
+  PanelLeftOpen,
   BarChart3,
   ListTodo,
   LogOut,
@@ -32,6 +34,17 @@ export function DashboardShell({
   const router = useRouter();
   const showsTicketSync = pathname.startsWith('/tickets');
   const [sync, setSync] = useState('Conectando');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () =>
+        setSidebarOpen(
+          window.localStorage.getItem('rial-sidebar') !== 'hidden',
+        ),
+      0,
+    );
+    return () => window.clearTimeout(timeout);
+  }, []);
   useEffect(() => {
     const listener = (event: Event) =>
       setSync((event as CustomEvent<string>).detail);
@@ -65,67 +78,74 @@ export function DashboardShell({
     },
   ];
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[240px_1fr]">
-      <aside className="border-b border-white/8 bg-zinc-950/80 p-4 backdrop-blur lg:min-h-screen lg:border-b-0 lg:border-r">
-        <div className="flex items-center gap-3 px-2 py-3">
-          <div className="grid size-9 place-items-center rounded-xl bg-blue-600">
-            <TicketCheck className="size-5" />
-          </div>
-          <div>
-            <p className="font-semibold">Ticketera Rial</p>
-            <p className="text-xs text-zinc-600">Soporte interno</p>
-          </div>
-        </div>
-        <nav className="mt-4 flex gap-3 overflow-x-auto lg:block lg:space-y-4">
-          {groups.map(({ label, icon: GroupIcon, links }) => (
-            <div key={label} className="shrink-0">
-              <p className="mb-1 flex items-center gap-2 px-3 text-xs font-medium uppercase tracking-wider text-zinc-600">
-                <GroupIcon className="size-3.5" />
-                {label}
-              </p>
-              <div className="flex gap-1 lg:block lg:space-y-1">
-                {links.map(({ href, label: linkLabel, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/6 hover:text-white',
-                      pathname === href && 'bg-blue-500/12 text-blue-300',
-                    )}
-                  >
-                    <Icon className="size-4" />
-                    {linkLabel}
-                  </Link>
-                ))}
-              </div>
+    <div
+      className={cn(
+        'min-h-screen lg:grid',
+        sidebarOpen ? 'lg:grid-cols-[240px_1fr]' : 'lg:grid-cols-[1fr]',
+      )}
+    >
+      {sidebarOpen && (
+        <aside className="border-b border-white/8 bg-zinc-950/80 p-4 backdrop-blur lg:min-h-screen lg:border-b-0 lg:border-r">
+          <div className="flex items-center gap-3 px-2 py-3">
+            <div className="grid size-9 place-items-center rounded-xl bg-blue-600">
+              <TicketCheck className="size-5" />
             </div>
-          ))}
-          <div className="shrink-0 lg:space-y-1">
-            <Link
-              href="/discord"
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-white/6 hover:text-white',
-                pathname === '/discord' && 'bg-blue-500/12 text-blue-300',
-              )}
-            >
-              <Users className="size-4" />
-              Discord
-            </Link>
-            {canConfigure && (
+            <div>
+              <p className="font-semibold">Ticketera Rial</p>
+              <p className="text-xs text-zinc-600">Soporte interno</p>
+            </div>
+          </div>
+          <nav className="mt-4 flex gap-3 overflow-x-auto lg:block lg:space-y-4">
+            {groups.map(({ label, icon: GroupIcon, links }) => (
+              <div key={label} className="shrink-0">
+                <p className="mb-1 flex items-center gap-2 px-3 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                  <GroupIcon className="size-3.5" />
+                  {label}
+                </p>
+                <div className="flex gap-1 lg:block lg:space-y-1">
+                  {links.map(({ href, label: linkLabel, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/6 hover:text-white',
+                        pathname === href && 'bg-blue-500/12 text-blue-300',
+                      )}
+                    >
+                      <Icon className="size-4" />
+                      {linkLabel}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="shrink-0 lg:space-y-1">
               <Link
-                href="/settings"
+                href="/discord"
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-white/6 hover:text-white',
-                  pathname === '/settings' && 'bg-blue-500/12 text-blue-300',
+                  pathname === '/discord' && 'bg-blue-500/12 text-blue-300',
                 )}
               >
-                <Settings className="size-4" />
-                Configuración
+                <Users className="size-4" />
+                Discord
               </Link>
-            )}
-          </div>
-        </nav>
-      </aside>
+              {canConfigure && (
+                <Link
+                  href="/settings"
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-white/6 hover:text-white',
+                    pathname === '/settings' && 'bg-blue-500/12 text-blue-300',
+                  )}
+                >
+                  <Settings className="size-4" />
+                  Configuración
+                </Link>
+              )}
+            </div>
+          </nav>
+        </aside>
+      )}
       <div className="min-w-0">
         <header className="flex h-16 items-center justify-between border-b border-white/8 bg-zinc-950/55 px-5 backdrop-blur">
           <div>
@@ -146,6 +166,27 @@ export function DashboardShell({
             )}
           </div>
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={
+                sidebarOpen ? 'Ocultar menú lateral' : 'Mostrar menú lateral'
+              }
+              onClick={() => {
+                const next = !sidebarOpen;
+                setSidebarOpen(next);
+                window.localStorage.setItem(
+                  'rial-sidebar',
+                  next ? 'visible' : 'hidden',
+                );
+              }}
+            >
+              {sidebarOpen ? (
+                <PanelLeftClose className="size-4" />
+              ) : (
+                <PanelLeftOpen className="size-4" />
+              )}
+            </Button>
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={logout}>
               <LogOut className="size-4" />

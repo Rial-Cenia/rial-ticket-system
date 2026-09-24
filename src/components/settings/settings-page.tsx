@@ -17,7 +17,15 @@ import { kanbanKeys } from '@/hooks/use-kanbans';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import type { AppRole, Kanban, Team, TeamMembershipRole } from '@/lib/types';
+import {
+  PLATFORM_LABELS,
+  PLATFORMS,
+  type AppRole,
+  type Kanban,
+  type Platform,
+  type Team,
+  type TeamMembershipRole,
+} from '@/lib/types';
 
 export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
   const client = useQueryClient();
@@ -43,6 +51,9 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
         client.invalidateQueries({ queryKey: ['app-users'] }),
         client.invalidateQueries({ queryKey: ['teams'] }),
         client.invalidateQueries({ queryKey: kanbanKeys.all }),
+        client.invalidateQueries({ queryKey: ['ticket-scope'] }),
+        client.invalidateQueries({ queryKey: ['discord-roles'] }),
+        client.invalidateQueries({ queryKey: ['tickets', 'default-filters'] }),
       ]);
     },
     onError: (mutationError) => {
@@ -83,7 +94,10 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
         </p>
       )}
       {currentRole === 'ADMIN' && (
-        <UsersSection users={users.data ?? []} run={run} />
+        <>
+          <UsersSection users={users.data ?? []} run={run} />
+          <TicketScopeSection teams={teams.data ?? []} run={run} />
+        </>
       )}
       <TeamsSection
         teams={teams.data ?? []}
@@ -97,6 +111,189 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
         run={run}
       />
     </div>
+  );
+}
+
+function TicketScopeSection({ teams, run }: { teams: Team[]; run: Runner }) {
+  const scope = useQuery({
+    queryKey: ['ticket-scope'],
+    queryFn: () =>
+      Object.prototype.hasOwnProperty.call(api, 'fetchTicketScope')
+        ? api.fetchTicketScope()
+        : Promise.resolve({ teamPlatforms: [], roleConnections: [] }),
+  });
+  const roles = useQuery({
+    queryKey: ['discord-roles'],
+    queryFn: () =>
+      Object.prototype.hasOwnProperty.call(api, 'fetchDiscordRoles')
+        ? api.fetchDiscordRoles()
+        : Promise.resolve([]),
+  });
+  const [teamId, setTeamId] = useState(teams[0]?.id ?? '');
+  const [platform, setPlatform] = useState<Platform>('NESTOR');
+  const [roleId, setRoleId] = useState('');
+  const [rolePlatform, setRolePlatform] = useState<Platform | ''>('');
+  const [roleTeamId, setRoleTeamId] = useState('');
+  const connections = scope.data?.roleConnections ?? [];
+  return (
+    <Section
+      title="Alcance de tickets y roles de Discord"
+      description="Conecta plataformas con equipos y roles para aplicar filtros iniciales por persona."
+    >
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className="space-y-3 rounded-xl border border-white/8 p-4">
+          <h3 className="text-sm font-medium">Plataforma → equipo</h3>
+          <div className="flex gap-2">
+            <select
+              className="min-w-0 flex-1 rounded-lg border border-white/10 bg-zinc-950 px-2 text-sm"
+              value={teamId}
+              onChange={(event) => setTeamId(event.target.value)}
+            >
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="min-w-0 flex-1 rounded-lg border border-white/10 bg-zinc-950 px-2 text-sm"
+              value={platform}
+              onChange={(event) => setPlatform(event.target.value as Platform)}
+            >
+              {PLATFORMS.filter((item) => item !== 'EXTERNO').map((item) => (
+                <option key={item} value={item}>
+                  {PLATFORM_LABELS[item]}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              onClick={() =>
+                run('Conexión guardada.', () =>
+                  api.saveTeamPlatform(teamId, platform),
+                )
+              }
+            >
+              Guardar
+            </Button>
+          </div>
+          <div className="space-y-1 text-sm text-zinc-400">
+            {(scope.data?.teamPlatforms ?? []).map((connection) => (
+              <div
+                key={connection.id}
+                className="flex items-center justify-between gap-2 rounded bg-white/4 px-2 py-1"
+              >
+                <span>
+                  {PLATFORM_LABELS[connection.platform]} → {connection.teamName}
+                </span>
+                <IconButton
+                  label="Quitar conexión"
+                  icon={Trash2}
+                  danger
+                  onClick={() =>
+                    run('Conexión eliminada.', () =>
+                      api.removeTicketScopeConnection(
+                        'team-platform',
+                        connection.id,
+                      ),
+                    )
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3 rounded-xl border border-white/8 p-4">
+          <h3 className="text-sm font-medium">Rol de Discord → alcance</h3>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <select
+              className="rounded-lg border border-white/10 bg-zinc-950 px-2 text-sm sm:col-span-2"
+              value={roleId}
+              onChange={(event) => setRoleId(event.target.value)}
+            >
+              <option value="">Selecciona un rol de Discord</option>
+              {(roles.data ?? []).map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded-lg border border-white/10 bg-zinc-950 px-2 text-sm"
+              value={rolePlatform}
+              onChange={(event) =>
+                setRolePlatform(event.target.value as Platform | '')
+              }
+            >
+              <option value="">Sin plataforma</option>
+              {PLATFORMS.filter((item) => item !== 'EXTERNO').map((item) => (
+                <option key={item} value={item}>
+                  {PLATFORM_LABELS[item]}
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded-lg border border-white/10 bg-zinc-950 px-2 text-sm"
+              value={roleTeamId}
+              onChange={(event) => setRoleTeamId(event.target.value)}
+            >
+              <option value="">Sin equipo</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button
+            size="sm"
+            disabled={!roleId || (!rolePlatform && !roleTeamId)}
+            onClick={() => {
+              const role = roles.data?.find((item) => item.id === roleId);
+              if (role)
+                run('Rol conectado correctamente.', () =>
+                  api.saveDiscordRoleConnection({
+                    roleId,
+                    roleName: role.name,
+                    platform: rolePlatform || null,
+                    teamId: roleTeamId || null,
+                  }),
+                );
+            }}
+          >
+            Guardar conexión
+          </Button>
+          <div className="space-y-1 text-sm text-zinc-400">
+            {connections.map((connection) => (
+              <div
+                key={connection.roleId}
+                className="flex items-center justify-between gap-2 rounded bg-white/4 px-2 py-1"
+              >
+                <span>
+                  {connection.roleName} →{' '}
+                  {connection.platform
+                    ? PLATFORM_LABELS[connection.platform]
+                    : connection.teamName}
+                </span>
+                <IconButton
+                  label="Quitar conexión"
+                  icon={Trash2}
+                  danger
+                  onClick={() =>
+                    run('Conexión eliminada.', () =>
+                      api.removeTicketScopeConnection(
+                        'discord-role',
+                        connection.roleId,
+                      ),
+                    )
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Section>
   );
 }
 

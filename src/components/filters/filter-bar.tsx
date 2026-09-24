@@ -12,6 +12,8 @@ import {
 import {
   PLATFORM_LABELS,
   PLATFORMS,
+  PRIORITY_LABELS,
+  TICKET_PRIORITIES,
   TICKET_TYPES,
   TYPE_LABELS,
   type TicketFilters,
@@ -28,14 +30,17 @@ export function FilterBar({
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/8 bg-zinc-900/60 p-3">
       <SlidersHorizontal className="hidden size-4 shrink-0 text-zinc-500 lg:block" />
       <Select
-        value={filters.platform ?? 'ALL'}
+        value={
+          filters.platform ?? (filters.platforms?.length ? 'SCOPED' : 'ALL')
+        }
         onValueChange={(value) =>
           onChange({
             ...filters,
             platform:
-              value === 'ALL'
+              value === 'ALL' || value === 'SCOPED'
                 ? undefined
                 : (value as TicketFilters['platform']),
+            platforms: value === 'SCOPED' ? filters.platforms : undefined,
           })
         }
       >
@@ -44,10 +49,37 @@ export function FilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="ALL">Todas las plataformas</SelectItem>
+          {filters.platforms?.length && (
+            <SelectItem value="SCOPED">Mi equipo/plataformas</SelectItem>
+          )}
           <SelectItem value="UNASSIGNED">Pendiente Barbilla Roja</SelectItem>
           {PLATFORMS.map((platform) => (
             <SelectItem key={platform} value={platform}>
               {PLATFORM_LABELS[platform]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={filters.priority ?? 'ALL'}
+        onValueChange={(value) =>
+          onChange({
+            ...filters,
+            priority:
+              value === 'ALL'
+                ? undefined
+                : (value as TicketFilters['priority']),
+          })
+        }
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Prioridad" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Todas las prioridades</SelectItem>
+          {TICKET_PRIORITIES.map((priority) => (
+            <SelectItem key={priority} value={priority}>
+              {PRIORITY_LABELS[priority]}
             </SelectItem>
           ))}
         </SelectContent>

@@ -21,6 +21,14 @@ export function useTickets(filters: TicketFilters) {
   });
 }
 
+export function useDefaultTicketFilters() {
+  return useQuery({
+    queryKey: [...ticketKeys.all, 'default-filters'],
+    queryFn: api.fetchDefaultTicketFilters,
+    staleTime: 60_000,
+  });
+}
+
 export function useCreateTicket() {
   const client = useQueryClient();
   return useMutation({
@@ -40,7 +48,6 @@ export function useUpdateTicket() {
       patch: UpdateTicketInput;
     }) => api.updateTicket(publicId, patch),
     onMutate: async ({ publicId, patch }) => {
-      await client.cancelQueries({ queryKey: ticketKeys.lists });
       const snapshots = client.getQueriesData<Ticket[]>({
         queryKey: ticketKeys.lists,
       });
@@ -53,6 +60,7 @@ export function useUpdateTicket() {
               : ticket,
           ),
       );
+      await client.cancelQueries({ queryKey: ticketKeys.lists });
       return { snapshots };
     },
     onError: (_, __, context) =>

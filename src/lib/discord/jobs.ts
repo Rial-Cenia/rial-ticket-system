@@ -13,7 +13,7 @@ import {
 } from '@/lib/discord/client';
 import { ticketControls, triageMessage } from '@/lib/discord/components';
 import { getDiscordEnv } from '@/lib/env/server';
-import { platformRoleId } from '@/lib/discord/roles';
+import * as discordRoles from '@/lib/discord/roles';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTicket, getTicketImageSignedUrls } from '@/lib/tickets/server';
 import { ticketThreadName } from '@/lib/tickets/format';
@@ -23,6 +23,18 @@ const messageJobSchema = z.object({
   threadId: z.string(),
   content: z.string().min(1).max(2000),
 });
+
+async function getPlatformRoleId(
+  platform: Parameters<typeof discordRoles.platformRoleId>[0],
+) {
+  const roles = discordRoles as unknown as {
+    resolvePlatformRoleId?: (value: typeof platform) => Promise<string | null>;
+    platformRoleId: (value: typeof platform) => string | null;
+  };
+  if (Object.prototype.hasOwnProperty.call(roles, 'resolvePlatformRoleId'))
+    return roles.resolvePlatformRoleId!(platform);
+  return roles.platformRoleId(platform);
+}
 const syncControlsJobSchema = z.object({
   threadId: z.string(),
   syncControls: z.literal(true),
@@ -116,7 +128,7 @@ async function processJob(job: OutboxJob) {
         ticketControls(
           ticket,
           syncControls.data.assignedBy,
-          platformRoleId(ticket.platform),
+          await getPlatformRoleId(ticket.platform),
           imageUrls,
         ),
       );

@@ -8,14 +8,18 @@ import { TicketDetailModal } from '@/components/modals/ticket-detail-modal';
 import { TicketTable } from '@/components/tickets/ticket-table';
 import { Button } from '@/components/ui/button';
 import { useRealtimeTickets } from '@/hooks/use-realtime-tickets';
-import { useTickets } from '@/hooks/use-tickets';
+import { useDefaultTicketFilters, useTickets } from '@/hooks/use-tickets';
 import type { Ticket, TicketFilters } from '@/lib/types';
 
 export default function TicketsTablePage() {
   const [filters, setFilters] = useState<TicketFilters>({});
   const [newOpen, setNewOpen] = useState(false);
   const [selected, setSelected] = useState<Ticket | null>(null);
-  const tickets = useTickets(filters);
+  const defaults = useDefaultTicketFilters();
+  const effectiveFilters = defaults.data
+    ? { ...defaults.data, ...filters }
+    : filters;
+  const tickets = useTickets(effectiveFilters);
   useRealtimeTickets();
   return (
     <div className="space-y-5">
@@ -36,7 +40,7 @@ export default function TicketsTablePage() {
           Nuevo ticket
         </Button>
       </div>
-      <FilterBar filters={filters} onChange={setFilters} />
+      <FilterBar filters={effectiveFilters} onChange={setFilters} />
       {tickets.isLoading && (
         <div className="h-72 animate-pulse rounded-xl border border-white/8 bg-white/4" />
       )}

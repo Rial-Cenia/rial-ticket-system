@@ -125,8 +125,21 @@ export const updateTicketSchema = z
 
 export const ticketFiltersSchema = z.object({
   platform: z.union([platformSchema, z.literal('UNASSIGNED')]).optional(),
+  platforms: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(',')
+            .filter((platform): platform is (typeof PLATFORMS)[number] =>
+              PLATFORMS.includes(platform as (typeof PLATFORMS)[number]),
+            )
+        : undefined,
+    ),
   type: ticketTypeSchema.optional(),
   status: ticketStatusSchema.optional(),
+  priority: ticketPrioritySchema.optional(),
   search: z.string().trim().max(200).optional(),
   unassignedOnly: z
     .enum(['true', 'false'])

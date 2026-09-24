@@ -4,6 +4,7 @@ import {
   createKanbanSchema,
   createTicketSchema,
   discordRoleUpdateSchema,
+  ticketFiltersSchema,
   updateTicketSchema,
 } from '@/lib/schemas';
 
@@ -54,6 +55,12 @@ describe('ticket schemas', () => {
       enabled: true,
     });
     expect(() => discordRoleUpdateSchema.parse({ enabled: 'true' })).toThrow();
+  });
+
+  it('valida filtros de prioridad y varias plataformas', () => {
+    expect(
+      ticketFiltersSchema.parse({ priority: 'ALTA', platforms: 'ATOM,DYLAN' }),
+    ).toEqual({ priority: 'ALTA', platforms: ['ATOM', 'DYLAN'] });
   });
 });
 
