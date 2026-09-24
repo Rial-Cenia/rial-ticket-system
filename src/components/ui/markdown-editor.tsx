@@ -164,7 +164,7 @@ export function MarkdownEditor({ value, onChange, id }: Props) {
         </div>
       </div>
       {preview ? (
-        <div className="min-h-72 max-w-none space-y-3 overflow-auto p-4 text-sm text-zinc-200">
+        <div className="markdown-content min-h-72 max-w-none space-y-3 overflow-auto p-4 text-sm text-zinc-200">
           {value ? (
             <ReactMarkdown
               components={markdownComponents}
@@ -191,7 +191,7 @@ export function MarkdownEditor({ value, onChange, id }: Props) {
 
 export function MarkdownContent({ children }: { children: string }) {
   return (
-    <div className="space-y-3 text-sm text-zinc-300">
+    <div className="markdown-content space-y-3 text-sm text-zinc-300">
       <ReactMarkdown
         components={markdownComponents}
         remarkPlugins={[remarkGfm]}

@@ -97,10 +97,10 @@ html.light [class~='text-zinc-500'] {
   color: #64748b;
 }
 html.light [class~='text-zinc-600'] {
-  color: #94a3b8;
+  color: #475569;
 }
 html.light [class~='text-zinc-700'] {
-  color: #cbd5e1;
+  color: #334155;
 }
 html.light [class~='text-white'] {
   color: #172033;
@@ -127,6 +127,33 @@ html.light [class~='data-[highlighted]:text-white'][data-highlighted] {
 }
 html.light [class~='placeholder:text-zinc-600']::placeholder {
   color: #94a3b8;
+}
+html.light .markdown-content code {
+  border: 1px solid #cbd5e1;
+  background-color: #e2e8f0;
+  color: #3730a3;
+}
+html.light .markdown-content pre {
+  border: 1px solid #cbd5e1;
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+html.light .markdown-content pre code {
+  border: 0;
+  background-color: transparent;
+  color: #1e293b;
+}
+html.light .markdown-content a {
+  color: #3730a3;
+}
+html.light .markdown-content a:hover {
+  color: #312e81;
+}
+html.light .markdown-content blockquote {
+  color: #475569;
+}
+html.light .markdown-content hr {
+  border-color: #cbd5e1;
 }
 button,
 input,
