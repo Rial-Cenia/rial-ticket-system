@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DiscordConversation, Ticket } from '@/lib/types';
@@ -101,5 +101,43 @@ describe('useUpdateTicket', () => {
     expect(client.getQueryData<Ticket[]>(listKey)?.[0].status).toBe(
       'PENDIENTE',
     );
+  });
+
+  it('muestra el cambio de estado mientras la actualización sigue pendiente', async () => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const listKey = ticketKeys.list({});
+    client.setQueryData(listKey, [ticket]);
+    let resolveUpdate: (updatedTicket: Ticket) => void = () => undefined;
+    mocks.updateTicket.mockReturnValue(
+      new Promise<Ticket>((resolve) => {
+        resolveUpdate = resolve;
+      }),
+    );
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useUpdateTicket(), { wrapper });
+
+    act(() => {
+      result.current.mutate({
+        publicId: ticket.publicId,
+        patch: { status: 'RESUELTO' },
+      });
+    });
+
+    await waitFor(() => {
+      expect(client.getQueryData<Ticket[]>(listKey)?.[0].status).toBe(
+        'RESUELTO',
+      );
+    });
+
+    await act(async () => {
+      resolveUpdate({ ...ticket, status: 'RESUELTO' });
+    });
   });
 });
