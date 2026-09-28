@@ -67,7 +67,20 @@ describe('ticket schemas', () => {
 describe('kanban schemas', () => {
   it('exige al menos un equipo al crear un kanban', () => {
     expect(() =>
-      createKanbanSchema.parse({ name: 'Producto', teamIds: [] }),
+      createKanbanSchema.parse({ name: 'Producto', code: 'ABC', teamIds: [] }),
+    ).toThrow();
+  });
+
+  it('normaliza y valida el código del kanban', () => {
+    expect(
+      createKanbanSchema.parse({
+        name: 'Producto',
+        code: 'abc',
+        teamIds: ['10000000-0000-4000-8000-000000000001'],
+      }).code,
+    ).toBe('ABC');
+    expect(() =>
+      createKanbanSchema.parse({ name: 'Producto', code: 'A-1', teamIds: [] }),
     ).toThrow();
   });
 

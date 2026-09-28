@@ -16,6 +16,7 @@ import type {
   DiscordRoleConnection,
   TeamPlatformConnection,
   Platform,
+  GithubRepository,
 } from '@/lib/types';
 
 const json = (method: string, body?: unknown): RequestInit => ({
@@ -32,6 +33,42 @@ export const updateKanban = (
 ) => apiRequest(`/api/kanbans/${kanbanId}`, json('PATCH', input));
 export const cancelKanban = (kanbanId: string) =>
   apiRequest(`/api/kanbans/${kanbanId}`, json('DELETE'));
+export const getGithubInstallUrl = () =>
+  apiRequest<{ url: string }>('/api/github/install');
+export const fetchGithubRepositories = () =>
+  apiRequest<GithubRepository[]>('/api/github/repositories');
+export const fetchTeamGithubRepositories = (teamId: string) =>
+  apiRequest<Array<{ linkId: string } & GithubRepository>>(
+    `/api/teams/${teamId}/github-repositories`,
+  );
+export const linkTeamGithubRepository = (
+  teamId: string,
+  repositoryId: string,
+  kanbanIds: string[],
+) =>
+  apiRequest(`/api/teams/${teamId}/github-repositories`, {
+    ...json('POST', { repositoryId, kanbanIds }),
+  });
+export const unlinkTeamGithubRepository = (
+  teamId: string,
+  repositoryId: string,
+) =>
+  apiRequest(
+    `/api/teams/${teamId}/github-repositories/${repositoryId}`,
+    json('DELETE'),
+  );
+export const fetchKanbanGithubRepositories = (kanbanId: string) =>
+  apiRequest<GithubRepository[]>(
+    `/api/kanbans/${kanbanId}/github-repositories`,
+  );
+export const updateKanbanGithubRepositories = (
+  kanbanId: string,
+  repositoryIds: string[],
+) =>
+  apiRequest(
+    `/api/kanbans/${kanbanId}/github-repositories`,
+    json('PUT', { repositoryIds }),
+  );
 
 export const createCard = (kanbanId: string, input: CreateKanbanCardInput) =>
   apiRequest(`/api/kanbans/${kanbanId}/cards`, json('POST', input));

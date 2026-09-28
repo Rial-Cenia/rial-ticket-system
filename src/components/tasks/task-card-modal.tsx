@@ -400,7 +400,9 @@ function TaskCardPreview({
     <div className="flex min-h-full flex-col">
       <DialogHeader className="pr-20">
         <DialogTitle>{card.title}</DialogTitle>
-        <DialogDescription>{kanban.name}</DialogDescription>
+        <DialogDescription>
+          {kanban.name} · {kanban.code}-{card.number}
+        </DialogDescription>
       </DialogHeader>
       <div className="absolute right-14 top-4 flex gap-1">
         <Button
@@ -471,6 +473,34 @@ function TaskCardPreview({
             <p className="text-sm text-zinc-500">Sin descripción.</p>
           )}
         </section>
+        {card.pullRequests.length > 0 && (
+          <section className="space-y-2 rounded-xl border border-purple-400/20 bg-purple-500/5 p-4">
+            <h3 className="text-sm font-medium">Pull requests vinculadas</h3>
+            {card.pullRequests.map((pullRequest) => (
+              <a
+                key={pullRequest.id}
+                href={pullRequest.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-lg border border-white/8 bg-black/20 p-3 hover:border-purple-300/50"
+              >
+                <p className="font-medium text-purple-300">
+                  {pullRequest.repository.fullName} #{pullRequest.number}
+                </p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  {pullRequest.title}
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {pullRequest.state === 'MERGED'
+                    ? 'Mergeada'
+                    : pullRequest.state === 'OPEN'
+                      ? 'Abierta'
+                      : 'Cerrada'}
+                </p>
+              </a>
+            ))}
+          </section>
+        )}
         <dl className="grid gap-3 rounded-xl border border-white/8 bg-black/20 p-4 text-sm sm:grid-cols-2">
           <PreviewMetadata
             label="Encargado"

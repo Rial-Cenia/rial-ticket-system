@@ -90,6 +90,7 @@ export function TaskBoard({
             key={state.id}
             stateId={state.id}
             name={state.name}
+            kanbanCode={kanban.code}
             cards={kanban.cards.filter((card) => card.stateId === state.id)}
             isFinal={state.id === finalStateId}
             canArchive={kanban.canDeleteCards}
@@ -109,6 +110,7 @@ export function TaskBoard({
 function TaskColumn({
   stateId,
   name,
+  kanbanCode,
   cards,
   isFinal,
   canArchive,
@@ -118,6 +120,7 @@ function TaskColumn({
 }: {
   stateId: string;
   name: string;
+  kanbanCode: string;
   cards: KanbanCard[];
   isFinal: boolean;
   canArchive: boolean;
@@ -156,7 +159,12 @@ function TaskColumn({
       </header>
       <div className="min-h-24 space-y-3">
         {cards.map((card) => (
-          <DraggableTaskCard key={card.id} card={card} onOpen={onOpen} />
+          <DraggableTaskCard
+            key={card.id}
+            card={card}
+            kanbanCode={kanbanCode}
+            onOpen={onOpen}
+          />
         ))}
       </div>
     </section>
@@ -165,9 +173,11 @@ function TaskColumn({
 
 function DraggableTaskCard({
   card,
+  kanbanCode,
   onOpen,
 }: {
   card: KanbanCard;
+  kanbanCode: string;
   onOpen: (card: KanbanCard) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -185,6 +195,9 @@ function DraggableTaskCard({
       {...attributes}
     >
       <div className="mb-2 flex flex-wrap gap-1">
+        <Badge className="font-mono text-blue-300">
+          {kanbanCode}-{card.number}
+        </Badge>
         <Badge>{PRIORITY_LABELS[card.priority]}</Badge>
         {card.tags.map((tag) => (
           <Badge
@@ -196,6 +209,13 @@ function DraggableTaskCard({
         ))}
       </div>
       <h3 className="font-medium text-zinc-100">{card.title}</h3>
+      {card.pullRequests.length > 0 && (
+        <p className="mt-2 text-xs text-purple-300">
+          {card.pullRequests.length} PR
+          {card.pullRequests.length === 1 ? '' : 's'} vinculada
+          {card.pullRequests.length === 1 ? '' : 's'}
+        </p>
+      )}
       {card.description && (
         <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs text-zinc-500">
           {card.description}

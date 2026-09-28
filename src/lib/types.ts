@@ -199,6 +199,7 @@ export interface KanbanCardUser {
 export interface KanbanCard {
   id: string;
   kanbanId: string;
+  number: number;
   title: string;
   description: string;
   stateId: string;
@@ -210,6 +211,39 @@ export interface KanbanCard {
   createdAt: string;
   updatedAt: string;
   ticketPublicId?: string | null;
+  pullRequests: GithubPullRequest[];
+}
+
+export interface GithubOrganization {
+  id: string;
+  login: string;
+}
+
+export interface GithubRepository {
+  id: string;
+  githubId: string;
+  organizationId: string;
+  owner: string;
+  name: string;
+  fullName: string;
+  htmlUrl: string;
+  defaultBranch: string | null;
+}
+
+export interface GithubPullRequest {
+  id: string;
+  repositoryId: string;
+  number: number;
+  title: string;
+  state: 'OPEN' | 'CLOSED' | 'MERGED';
+  isDraft: boolean;
+  authorLogin: string | null;
+  url: string;
+  githubCreatedAt: string | null;
+  githubUpdatedAt: string | null;
+  githubClosedAt: string | null;
+  githubMergedAt: string | null;
+  repository: Pick<GithubRepository, 'fullName' | 'htmlUrl'>;
 }
 
 export interface KanbanConnection {
@@ -228,6 +262,7 @@ export interface TicketKanban {
 export interface Kanban {
   id: string;
   name: string;
+  code: string;
   teams: Array<Pick<Team, 'id' | 'name'>>;
   states: KanbanState[];
   tags: KanbanTag[];

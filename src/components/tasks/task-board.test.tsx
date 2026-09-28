@@ -26,6 +26,7 @@ import { TaskBoard } from '@/components/tasks/task-board';
 const kanban: Kanban = {
   id: 'kanban-1',
   name: 'Producto',
+  code: 'PROD',
   teams: [{ id: 'team-1', name: 'Equipo' }],
   states: [
     { id: 'state-start', kanbanId: 'kanban-1', name: 'Por hacer', position: 0 },
@@ -37,6 +38,7 @@ const kanban: Kanban = {
     {
       id: 'card-1',
       kanbanId: 'kanban-1',
+      number: 1,
       title: 'Cerrar flujo',
       description: '',
       stateId: 'state-final',
@@ -47,6 +49,7 @@ const kanban: Kanban = {
       createdByUserId: 'user-1',
       createdAt: '2026-09-08T10:00:00.000Z',
       updatedAt: '2026-09-08T10:00:00.000Z',
+      pullRequests: [],
     },
   ],
   canManage: true,

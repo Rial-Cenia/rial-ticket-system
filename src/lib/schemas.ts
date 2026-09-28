@@ -37,6 +37,11 @@ export const updateAppRoleSchema = z.object({ role: appRoleSchema });
 
 export const createKanbanSchema = z.object({
   name: z.string().trim().min(1).max(100),
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z][A-Z0-9]{1,9}$/, 'Código inválido'),
   teamIds: z.array(z.string().uuid()).min(1),
 });
 export const createKanbanConnectionSchema = z.object({

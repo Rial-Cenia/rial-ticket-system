@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => ({
   fetchKanbans: vi.fn(),
   updateUserRole: vi.fn(),
   updateTeamMember: vi.fn(),
+  fetchGithubRepositories: vi.fn(),
+  fetchTeamGithubRepositories: vi.fn(),
+  fetchKanbanGithubRepositories: vi.fn(),
+  getGithubInstallUrl: vi.fn(),
   showToast: vi.fn(),
 }));
 
@@ -19,6 +23,10 @@ vi.mock('@/lib/api/kanbans', () => ({
   fetchKanbans: mocks.fetchKanbans,
   updateUserRole: mocks.updateUserRole,
   updateTeamMember: mocks.updateTeamMember,
+  fetchGithubRepositories: mocks.fetchGithubRepositories,
+  fetchTeamGithubRepositories: mocks.fetchTeamGithubRepositories,
+  fetchKanbanGithubRepositories: mocks.fetchKanbanGithubRepositories,
+  getGithubInstallUrl: mocks.getGithubInstallUrl,
 }));
 
 vi.mock('@/components/ui/toast', () => ({
@@ -83,6 +91,9 @@ describe('SettingsPage', () => {
     mocks.fetchUsers.mockResolvedValue(users);
     mocks.fetchTeams.mockResolvedValue(teams);
     mocks.fetchKanbans.mockResolvedValue(kanbans);
+    mocks.fetchGithubRepositories.mockResolvedValue([]);
+    mocks.fetchTeamGithubRepositories.mockResolvedValue([]);
+    mocks.fetchKanbanGithubRepositories.mockResolvedValue([]);
     mocks.updateUserRole.mockResolvedValue({});
     mocks.updateTeamMember.mockResolvedValue({});
   });

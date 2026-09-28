@@ -14,6 +14,7 @@ import {
 } from '@/lib/kanbans/authorization';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { listUserDirectory } from '@/lib/users/server';
+import { listCardPullRequests } from '@/lib/github/server';
 import type { Kanban, KanbanConnection, KanbanPriority } from '@/lib/types';
 
 interface KanbanTeamRow {
@@ -76,7 +77,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
   ] = await Promise.all([
     admin
       .from('Kanban')
-      .select('id, name, createdAt, updatedAt')
+      .select('id, name, code, createdAt, updatedAt')
       .in('id', kanbanIds)
       .eq('status', 'ACTIVE')
       .order('name'),
@@ -96,7 +97,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     admin
       .from('KanbanCard')
       .select(
-        'id, kanbanId, title, description, stateId, priority, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId, createdAt, updatedAt',
+        'id, kanbanId, number, title, description, stateId, priority, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId, createdAt, updatedAt',
       )
       .in('kanbanId', kanbanIds)
       .eq('status', 'ACTIVE')
@@ -139,6 +140,9 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     current.push(tag);
     tagsByCardId.set(association.cardId as string, current);
   }
+  const pullRequestsByCardId = await listCardPullRequests(
+    (cards ?? []).map((card) => card.id as string),
+  );
 
   return (kanbans ?? []).map((kanban) => {
     const boardTeamIds = kanbanTeams
@@ -164,6 +168,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     return {
       id: kanban.id as string,
       name: kanban.name as string,
+      code: kanban.code as string,
       createdAt: kanban.createdAt as string,
       updatedAt: kanban.updatedAt as string,
       teams: boardTeamIds.flatMap((teamId) => {
@@ -181,6 +186,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
         .map((card) => ({
           id: card.id as string,
           kanbanId: card.kanbanId as string,
+          number: card.number as number,
           title: card.title as string,
           description: card.description as string,
           stateId: card.stateId as string,
@@ -192,6 +198,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
           createdAt: card.createdAt as string,
           updatedAt: card.updatedAt as string,
           ticketPublicId: card.ticketPublicId as string | null,
+          pullRequests: pullRequestsByCardId.get(card.id as string) ?? [],
         })),
       outgoingConnections: (connections ?? [])
         .filter((connection) => connection.sourceKanbanId === kanban.id)
@@ -317,6 +324,7 @@ export async function cancelKanbanConnection(
 export async function createKanban(
   actor: AuthenticatedUser,
   name: string,
+  code: string,
   teamIds: string[],
 ) {
   const leaderTeamIds = await requireLeader(actor);
@@ -330,6 +338,7 @@ export async function createKanban(
     );
   const { data, error } = await createAdminClient().rpc('create_kanban', {
     p_name: name,
+    p_code: code,
     p_team_ids: [...new Set(teamIds)],
     p_actor_id: actor.id,
   });
@@ -340,14 +349,17 @@ export async function createKanban(
 export async function updateKanban(
   actor: AuthenticatedUser,
   kanbanId: string,
-  patch: { name?: string; teamIds?: string[] },
+  patch: { name?: string; code?: string; teamIds?: string[] },
 ) {
   await requireKanbanManager(actor, kanbanId);
   const admin = createAdminClient();
-  if (patch.name) {
+  if (patch.name || patch.code) {
     const { error } = await admin
       .from('Kanban')
-      .update({ name: patch.name })
+      .update({
+        ...(patch.name ? { name: patch.name } : {}),
+        ...(patch.code ? { code: patch.code } : {}),
+      })
       .eq('id', kanbanId)
       .eq('status', 'ACTIVE');
     if (error) throw new Error(error.message);
@@ -835,6 +847,22 @@ export async function transferKanbanCard(
     .select('id')
     .single();
   if (insertError) throw new Error(insertError.message);
+  const { data: sourcePullRequestLinks, error: pullRequestLinksError } =
+    await admin
+      .from('KanbanCardGithubPullRequest')
+      .select('pullRequestId')
+      .eq('cardId', cardId)
+      .eq('status', 'ACTIVE');
+  if (pullRequestLinksError) throw new Error(pullRequestLinksError.message);
+  if (sourcePullRequestLinks?.length) {
+    const { error } = await admin.from('KanbanCardGithubPullRequest').insert(
+      sourcePullRequestLinks.map((link) => ({
+        cardId: transferredCard.id,
+        pullRequestId: link.pullRequestId,
+      })),
+    );
+    if (error) throw new Error(error.message);
+  }
   const { error: cancelError } = await admin
     .from('KanbanCard')
     .update({ status: 'CANCELLED' })

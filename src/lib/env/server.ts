@@ -25,6 +25,10 @@ const schema = z.object({
   DISCORD_KAYS_ROLE_ID: optionalString,
   DISCORD_TICKETERA_ADMIN_ROLE_ID: optionalString,
   DISCORD_PANEL_MESSAGE_ID: optionalString,
+  GITHUB_APP_ID: optionalString,
+  GITHUB_APP_SLUG: optionalString,
+  GITHUB_APP_PRIVATE_KEY: optionalString,
+  GITHUB_WEBHOOK_SECRET: optionalString,
 });
 
 export function getServerEnv() {
@@ -78,4 +82,20 @@ export function getDiscordOAuthEnv() {
     ...(required as { [Key in keyof typeof required]: string }),
     redirectUri: new URL('/api/discord/oauth/callback', env.APP_URL).toString(),
   };
+}
+
+export function getGithubEnv() {
+  const env = getServerEnv();
+  const required = {
+    appId: env.GITHUB_APP_ID,
+    appSlug: env.GITHUB_APP_SLUG,
+    privateKey: env.GITHUB_APP_PRIVATE_KEY,
+    webhookSecret: env.GITHUB_WEBHOOK_SECRET,
+  };
+
+  for (const [name, value] of Object.entries(required)) {
+    if (!value) throw new Error(`Falta configuración GitHub: ${name}`);
+  }
+
+  return required as { [Key in keyof typeof required]: string };
 }

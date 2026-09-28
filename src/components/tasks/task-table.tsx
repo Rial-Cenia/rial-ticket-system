@@ -16,6 +16,7 @@ export function TaskTable({
       <table className="w-full min-w-[850px] text-left text-sm">
         <thead className="bg-white/5 text-xs uppercase text-zinc-500">
           <tr>
+            <th className="px-4 py-3">Código</th>
             <th className="px-4 py-3">Título</th>
             <th className="px-4 py-3">Estado</th>
             <th className="px-4 py-3">Prioridad</th>
@@ -31,6 +32,9 @@ export function TaskTable({
               className="cursor-pointer hover:bg-white/4"
               onClick={() => onOpen(card)}
             >
+              <td className="px-4 py-3 font-mono text-blue-300">
+                {kanban.code}-{card.number}
+              </td>
               <td className="px-4 py-3 font-medium">{card.title}</td>
               <td className="px-4 py-3">{states.get(card.stateId)}</td>
               <td className="px-4 py-3">{PRIORITY_LABELS[card.priority]}</td>

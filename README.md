@@ -26,24 +26,28 @@ No existe registro público. Crea las cuentas de email/contraseña previamente d
 
 ## Variables de entorno
 
-| Variable                                          | Uso                                                                             |
-| ------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`                        | URL del proyecto Supabase                                                       |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Clave pública moderna; puede reemplazarse por`NEXT_PUBLIC_SUPABASE_ANON_KEY`    |
-| `SUPABASE_SECRET_KEY`                             | Clave servidor moderna; puede reemplazarse por`SUPABASE_SERVICE_ROLE_KEY`       |
-| `AUTH_ALLOWED_GOOGLE_DOMAINS`                     | Dominios Google autorizados, separados por coma                                 |
-| `APP_URL`                                         | URL pública de la aplicación                                                    |
-| `CRON_SECRET`                                     | Secreto Bearer del dispatcher                                                   |
-| `DISCORD_PUBLIC_KEY`                              | Clave pública Ed25519 de la aplicación Discord                                  |
-| `DISCORD_CLIENT_ID`                               | Client ID OAuth2 de la aplicación Discord                                       |
-| `DISCORD_CLIENT_SECRET`                           | Client secret OAuth2; solo servidor                                             |
-| `DISCORD_BOT_TOKEN`                               | Token del bot                                                                   |
-| `DISCORD_GUILD_ID`                                | Servidor autorizado                                                             |
-| `DISCORD_TRIAGE_CHANNEL_ID`                       | Canal de texto donde viven el panel y los threads                               |
-| `DISCORD_TRIAGER_ROLE_ID`                         | Rol Barbilla Roja                                                               |
-| `DISCORD_NESTOR_ROLE_ID` … `DISCORD_KAYS_ROLE_ID` | Roles responsables de las plataformas internas; Externo queda a cargo de triage |
+| Variable                                          | Uso                                                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`                        | URL del proyecto Supabase                                                                  |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`            | Clave pública moderna; puede reemplazarse por`NEXT_PUBLIC_SUPABASE_ANON_KEY`               |
+| `SUPABASE_SECRET_KEY`                             | Clave servidor moderna; puede reemplazarse por`SUPABASE_SERVICE_ROLE_KEY`                  |
+| `AUTH_ALLOWED_GOOGLE_DOMAINS`                     | Dominios Google autorizados, separados por coma                                            |
+| `APP_URL`                                         | URL pública de la aplicación                                                               |
+| `CRON_SECRET`                                     | Secreto Bearer del dispatcher                                                              |
+| `DISCORD_PUBLIC_KEY`                              | Clave pública Ed25519 de la aplicación Discord                                             |
+| `DISCORD_CLIENT_ID`                               | Client ID OAuth2 de la aplicación Discord                                                  |
+| `DISCORD_CLIENT_SECRET`                           | Client secret OAuth2; solo servidor                                                        |
+| `DISCORD_BOT_TOKEN`                               | Token del bot                                                                              |
+| `DISCORD_GUILD_ID`                                | Servidor autorizado                                                                        |
+| `DISCORD_TRIAGE_CHANNEL_ID`                       | Canal de texto donde viven el panel y los threads                                          |
+| `DISCORD_TRIAGER_ROLE_ID`                         | Rol Barbilla Roja                                                                          |
+| `DISCORD_NESTOR_ROLE_ID` … `DISCORD_KAYS_ROLE_ID` | Roles responsables de las plataformas internas; Externo queda a cargo de triage            |
 | `DISCORD_TICKETERA_ADMIN_ROLE_ID`                 | Rol de administradores de rial-ticket-system, mencionado en cambios de estado de Ticketera |
-| `DISCORD_PANEL_MESSAGE_ID`                        | Opcional; permite actualizar el panel ya publicado                              |
+| `DISCORD_PANEL_MESSAGE_ID`                        | Opcional; permite actualizar el panel ya publicado                                         |
+| `GITHUB_APP_ID`                                   | App ID de la GitHub App de la organización; solo servidor                                  |
+| `GITHUB_APP_SLUG`                                 | Slug de la GitHub App usado para iniciar la instalación                                    |
+| `GITHUB_APP_PRIVATE_KEY`                          | Clave privada de la GitHub App; usa `\\n` para saltos de línea en variables de entorno     |
+| `GITHUB_WEBHOOK_SECRET`                           | Secreto usado para validar `X-Hub-Signature-256`; solo servidor                            |
 
 Las claves servidor, el token del bot y `CRON_SECRET` nunca deben llevar el prefijo `NEXT_PUBLIC_` ni almacenarse en Git.
 
@@ -87,6 +91,12 @@ Desde **Configuración**, los administradores pueden cambiar roles y crear equip
 Cada usuario interno puede abrir **Discord → Vincular mi Discord**. La autorización solicita únicamente `identify` y `guilds.members.read`, verifica que la cuenta pertenezca al servidor configurado y luego descarta el access token. La plataforma guarda solo la identidad pública enlazada. Desde esa misma pantalla, una cuenta autenticada puede asignar o quitar el rol Barbilla Roja a usuarios que ya vincularon Discord.
 
 En **Configuración → Alcance de tickets y roles de Discord**, un administrador puede conectar cada plataforma con uno o más equipos y conectar los roles de Discord del servidor con una plataforma o equipo. Los usuarios reciben al abrir Tickets un filtro inicial basado en sus equipos, roles y plataformas conectadas. Si tienen Barbilla Roja, primero se muestran tickets sin plataforma; cuando no hay pendientes de triage, se aplica su alcance de equipo/plataforma. Las variables `DISCORD_*_ROLE_ID` siguen funcionando como fallback mientras se completa la configuración editable.
+
+### GitHub y tarjetas Kanban
+
+Crea una GitHub App para la organización con permisos `Metadata: Read-only` y `Pull requests: Read-only`. Activa los eventos **Pull request** e **Installation targets** (`installation_repositories`), configura el webhook en `<APP_URL>/api/github/webhook` y la URL de instalación en `<APP_URL>/api/github/setup`. Completa las variables `GITHUB_*` y conecta la organización desde **Configuración → Integración con GitHub**.
+
+Los kanbans nuevos requieren un código único de 2 a 10 caracteres, por ejemplo `ABC`. Los kanbans existentes reciben un código temporal aleatorio durante la migración y se puede cambiar desde su configuración. Una PR se vincula cuando su título contiene códigos como `[ABC-12]`; el webhook conserva la relación aunque el título cambie.
 
 El bot limita las menciones a IDs de rol configurados y al usuario de Discord que creó cada ticket. No requiere `Mention Everyone`. Cada ticket usa un código correlativo `RTP-{n}` y su thread se llama `RTP-{n}: {título}`. El panel abre un modal con título, descripción, tipo y hasta cinco adjuntos opcionales. El servidor copia los adjuntos de Discord al bucket privado de Supabase; el hilo usa URLs firmadas temporales para las imágenes y la interfaz entrega todos los archivos mediante una ruta autenticada. Barbilla Roja hace triage y luego Barbilla Roja o el rol de la plataforma pueden cambiar el estado con botones; cada actualización menciona al creador cuando el ticket nació en Discord.
 

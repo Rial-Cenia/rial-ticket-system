@@ -53,6 +53,7 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
         client.invalidateQueries({ queryKey: kanbanKeys.all }),
         client.invalidateQueries({ queryKey: ['ticket-scope'] }),
         client.invalidateQueries({ queryKey: ['discord-roles'] }),
+        client.invalidateQueries({ queryKey: ['github'] }),
         client.invalidateQueries({ queryKey: ['tickets', 'default-filters'] }),
       ]);
     },
@@ -102,6 +103,12 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
       <TeamsSection
         teams={teams.data ?? []}
         users={users.data ?? []}
+        isAdmin={currentRole === 'ADMIN'}
+        run={run}
+      />
+      <GithubSection
+        teams={teams.data ?? []}
+        kanbans={kanbans.data ?? []}
         isAdmin={currentRole === 'ADMIN'}
         run={run}
       />
@@ -547,6 +554,7 @@ function KanbansSection({
 }) {
   const manageableTeams = teams.filter((team) => team.canManage);
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [teamIds, setTeamIds] = useState<string[]>([]);
   return (
     <Section
@@ -558,10 +566,11 @@ function KanbansSection({
           className="mb-6 space-y-3 rounded-xl border border-white/8 p-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!name.trim() || !teamIds.length) return;
+            if (!name.trim() || !code.trim() || !teamIds.length) return;
             run('Kanban creado correctamente.', async () => {
-              await api.createKanban({ name, teamIds });
+              await api.createKanban({ name, code, teamIds });
               setName('');
+              setCode('');
               setTeamIds([]);
             });
           }}
@@ -571,6 +580,12 @@ function KanbansSection({
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Nombre del kanban"
+            />
+            <Input
+              value={code}
+              onChange={(event) => setCode(event.target.value.toUpperCase())}
+              placeholder="Código, ej. ABC"
+              maxLength={10}
             />
             <Button>
               <Plus className="size-4" />
@@ -637,6 +652,186 @@ function TeamMemberRoleControl({
   );
 }
 
+function GithubSection({
+  teams,
+  kanbans,
+  isAdmin,
+  run,
+}: {
+  teams: Team[];
+  kanbans: Kanban[];
+  isAdmin: boolean;
+  run: Runner;
+}) {
+  const manageableTeams = teams.filter((team) => team.canManage);
+  const [teamId, setTeamId] = useState(manageableTeams[0]?.id ?? '');
+  const [repositoryId, setRepositoryId] = useState('');
+  const [kanbanIds, setKanbanIds] = useState<string[]>(() =>
+    kanbans
+      .filter((kanban) =>
+        kanban.teams.some((team) => team.id === manageableTeams[0]?.id),
+      )
+      .map((kanban) => kanban.id),
+  );
+  const repositories = useQuery({
+    queryKey: ['github', 'repositories'],
+    queryFn: api.fetchGithubRepositories,
+    enabled: isAdmin || manageableTeams.length > 0,
+  });
+  const teamKanbans = kanbans.filter((kanban) =>
+    kanban.teams.some((team) => team.id === teamId),
+  );
+  const teamRepositories = useQuery({
+    queryKey: ['github', 'team-repositories', teamId],
+    queryFn: () => api.fetchTeamGithubRepositories(teamId),
+    enabled: Boolean(teamId),
+  });
+  const linkedIds = new Set(
+    (teamRepositories.data ?? []).map((repository) => repository.id),
+  );
+  if (!manageableTeams.length && !isAdmin) return null;
+  return (
+    <Section
+      title="Integración con GitHub"
+      description="Vincula repositorios de la organización con equipos, kanbans y tarjetas."
+    >
+      {isAdmin && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() =>
+            run('Redirigiendo a GitHub…', async () => {
+              const result = await api.getGithubInstallUrl();
+              window.location.assign(result.url);
+            })
+          }
+        >
+          Conectar organización de GitHub
+        </Button>
+      )}
+      {manageableTeams.length > 0 && (
+        <div className="mt-5 space-y-4 rounded-xl border border-white/8 p-4">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <select
+              className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 text-sm"
+              value={teamId}
+              onChange={(event) => {
+                const nextTeamId = event.target.value;
+                setTeamId(nextTeamId);
+                setKanbanIds(
+                  kanbans
+                    .filter((kanban) =>
+                      kanban.teams.some((team) => team.id === nextTeamId),
+                    )
+                    .map((kanban) => kanban.id),
+                );
+              }}
+            >
+              {manageableTeams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  Equipo: {team.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded-lg border border-white/10 bg-zinc-950 px-3 py-2 text-sm"
+              value={repositoryId}
+              onChange={(event) => setRepositoryId(event.target.value)}
+            >
+              <option value="">Selecciona un repositorio</option>
+              {(repositories.data ?? [])
+                .filter((repository) => !linkedIds.has(repository.id))
+                .map((repository) => (
+                  <option key={repository.id} value={repository.id}>
+                    {repository.fullName}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Kanbans donde vincularlo</p>
+            {teamKanbans.length === 0 && (
+              <p className="text-sm text-zinc-500">
+                Este equipo todavía no tiene kanbans.
+              </p>
+            )}
+            {teamKanbans.map((kanban) => (
+              <label
+                key={kanban.id}
+                className="flex items-center gap-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={kanbanIds.includes(kanban.id)}
+                  onChange={(event) =>
+                    setKanbanIds(
+                      event.target.checked
+                        ? [...kanbanIds, kanban.id]
+                        : kanbanIds.filter((id) => id !== kanban.id),
+                    )
+                  }
+                />
+                {kanban.name} · {kanban.code}
+              </label>
+            ))}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!repositoryId}
+            onClick={() =>
+              run('Repositorio vinculado correctamente.', () =>
+                api.linkTeamGithubRepository(teamId, repositoryId, kanbanIds),
+              )
+            }
+          >
+            Vincular repositorio
+          </Button>
+          {teamRepositories.data?.length ? (
+            <div className="space-y-2 border-t border-white/8 pt-3">
+              <p className="text-sm font-medium">Repositorios vinculados</p>
+              {teamRepositories.data.map((repository) => (
+                <div
+                  key={repository.id}
+                  className="flex items-center justify-between rounded-lg bg-white/4 px-3 py-2 text-sm"
+                >
+                  <a
+                    className="text-blue-300 hover:underline"
+                    href={repository.htmlUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {repository.fullName}
+                  </a>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      confirmRun(
+                        '¿Desvincular este repositorio del equipo?',
+                        () =>
+                          run('Repositorio desvinculado correctamente.', () =>
+                            api.unlinkTeamGithubRepository(
+                              teamId,
+                              repository.id,
+                            ),
+                          ),
+                      )
+                    }
+                  >
+                    Desvincular
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </Section>
+  );
+}
+
 function KanbanSettings({
   kanban,
   kanbans,
@@ -668,7 +863,10 @@ function KanbanSettings({
   const availableTargets = kanbansWithSharedTeam(kanban, kanbans);
   return (
     <details className="rounded-xl border border-white/8 bg-black/10 p-4">
-      <summary className="cursor-pointer font-medium">{kanban.name}</summary>
+      <summary className="cursor-pointer font-medium">
+        {kanban.name} ·{' '}
+        <span className="font-mono text-blue-300">{kanban.code}</span>
+      </summary>
       <div className="mt-5 space-y-6">
         <div className="flex flex-wrap gap-2">
           <Button
@@ -684,6 +882,20 @@ function KanbanSettings({
           >
             <Pencil className="size-4" />
             Renombrar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              renameWithPrompt(kanban.code, (code) =>
+                run('Código del kanban actualizado correctamente.', () =>
+                  api.updateKanban(kanban.id, { code: code.toUpperCase() }),
+                ),
+              )
+            }
+          >
+            <Pencil className="size-4" />
+            Cambiar código
           </Button>
           <Button
             variant="danger"
@@ -766,6 +978,7 @@ function KanbanSettings({
             />
           )}
         </div>
+        <KanbanGithubRepositories kanban={kanban} run={run} />
         <ManageNames
           title="Estados"
           values={kanban.states}
@@ -818,6 +1031,71 @@ function KanbanSettings({
         />
       </div>
     </details>
+  );
+}
+
+function KanbanGithubRepositories({
+  kanban,
+  run,
+}: {
+  kanban: Kanban;
+  run: Runner;
+}) {
+  const repositories = useQuery({
+    queryKey: ['github', 'repositories'],
+    queryFn: api.fetchGithubRepositories,
+  });
+  const linkedRepositories = useQuery({
+    queryKey: ['github', 'kanban-repositories', kanban.id],
+    queryFn: () => api.fetchKanbanGithubRepositories(kanban.id),
+  });
+  const linkedIds =
+    linkedRepositories.data?.map((repository) => repository.id) ?? [];
+  const [draftIds, setDraftIds] = useState<string[] | undefined>();
+  const selectedIds = draftIds ?? linkedIds;
+  if (repositories.error || linkedRepositories.error) return null;
+  return (
+    <div className="space-y-3">
+      <div>
+        <h4 className="text-sm font-medium">Repositorios de GitHub</h4>
+        <p className="text-xs text-zinc-500">
+          Las PR solo se vinculan si pertenecen a uno de estos repositorios.
+        </p>
+      </div>
+      {repositories.data?.map((repository) => (
+        <label key={repository.id} className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(repository.id)}
+            onChange={(event) =>
+              setDraftIds(
+                event.target.checked
+                  ? [...selectedIds, repository.id]
+                  : selectedIds.filter((id) => id !== repository.id),
+              )
+            }
+          />
+          <span>{repository.fullName}</span>
+        </label>
+      ))}
+      {repositories.data?.length ? (
+        <Button
+          type="button"
+          size="sm"
+          onClick={() =>
+            run('Repositorios del kanban actualizados correctamente.', () =>
+              api.updateKanbanGithubRepositories(kanban.id, selectedIds),
+            )
+          }
+        >
+          Guardar repositorios
+        </Button>
+      ) : (
+        <p className="text-sm text-zinc-500">
+          No hay repositorios disponibles.
+        </p>
+      )}
+    </div>
   );
 }
 

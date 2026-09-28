@@ -17,7 +17,9 @@ export async function POST(request: Request) {
     const actor = await requireApiUser();
     const input = createKanbanSchema.parse(await request.json());
     return Response.json(
-      { data: await createKanban(actor, input.name, input.teamIds) },
+      {
+        data: await createKanban(actor, input.name, input.code, input.teamIds),
+      },
       { status: 201 },
     );
   } catch (error) {

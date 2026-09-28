@@ -34,6 +34,7 @@ import { TaskCardModal } from '@/components/tasks/task-card-modal';
 const card: KanbanCard = {
   id: 'card-1',
   kanbanId: 'kanban-1',
+  number: 1,
   title: 'Revisar integración',
   description: '**Validar** el flujo completo.',
   stateId: 'state-start',
@@ -44,6 +45,7 @@ const card: KanbanCard = {
   createdByUserId: 'user-1',
   createdAt: '2026-09-08T10:00:00.000Z',
   updatedAt: '2026-09-08T10:30:00.000Z',
+  pullRequests: [],
 };
 
 const linkedCard: KanbanCard = {
@@ -55,6 +57,7 @@ const linkedCard: KanbanCard = {
 const kanban: Kanban = {
   id: 'kanban-1',
   name: 'Producto',
+  code: 'PROD',
   teams: [],
   states: [
     { id: 'state-start', kanbanId: 'kanban-1', name: 'Por hacer', position: 0 },
