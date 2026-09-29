@@ -135,6 +135,15 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
     ).toContain('RTP-42');
   });
 
+  it('muestra la prioridad en la tarjeta de controles del ticket', () => {
+    const controls = ticketControls(ticket, 'Operaciones', 'platform-role');
+
+    expect(JSON.stringify(controls)).toContain('🚦 Nivel de fueguito');
+    expect(JSON.stringify(controls)).toContain(
+      '✨ Importante, pero respiramos',
+    );
+  });
+
   it.each([
     [
       'EN_PROGRESO',

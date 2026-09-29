@@ -302,6 +302,11 @@ ${assignment}`,
             inline: true,
           },
           {
+            name: '🚦 Nivel de fueguito',
+            value: PRIORITY_LABELS[ticket.priority],
+            inline: true,
+          },
+          {
             name: '🖥️ Plataforma elegida',
             value: ticket.platform
               ? PLATFORM_LABELS[ticket.platform]
