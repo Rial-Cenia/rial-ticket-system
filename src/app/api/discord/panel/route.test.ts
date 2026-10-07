@@ -42,8 +42,30 @@ describe('Discord panel cron route', () => {
     expect(mocks.createOrUpdatePanel).not.toHaveBeenCalled();
   });
 
-  it('actualiza el panel a las 09:00 de un día hábil en Chile', async () => {
+  it('actualiza el panel a las 09:00 de un día hábil en Chile en horario de invierno', async () => {
     vi.setSystemTime(new Date('2026-06-01T13:00:00.000Z'));
+
+    const response = await POST(request('cron-secret'));
+
+    await expect(response.json()).resolves.toEqual({
+      messageId: 'panel-message',
+    });
+    expect(mocks.createOrUpdatePanel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        components: expect.arrayContaining([
+          expect.objectContaining({
+            components: expect.arrayContaining([
+              expect.objectContaining({ custom_id: 'open_ticket_modal' }),
+            ]),
+          }),
+        ]),
+      }),
+      'panel-message',
+    );
+  });
+
+  it('actualiza el panel a las 09:00 de un día hábil en Chile en horario de verano', async () => {
+    vi.setSystemTime(new Date('2026-01-05T12:00:00.000Z'));
 
     const response = await POST(request('cron-secret'));
 
