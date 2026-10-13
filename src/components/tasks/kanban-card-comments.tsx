@@ -1,6 +1,6 @@
 'use client';
 
-import { FileIcon, Paperclip, Send, Trash2 } from 'lucide-react';
+import { FileIcon, Paperclip, Reply, Send, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { MarkdownContent } from '@/components/ui/markdown-editor';
 import { Button } from '@/components/ui/button';
@@ -43,17 +43,20 @@ export function KanbanCardComments({ kanbanId, cardId }: Props) {
   const [content, setContent] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError('');
     const formData = new FormData();
     formData.set('content', content);
+    if (replyingTo) formData.set('parentCommentId', replyingTo);
     files.forEach((file) => formData.append('attachments', file));
     try {
       await create.mutateAsync(formData);
       setContent('');
       setFiles([]);
+      setReplyingTo(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (mutationError) {
       const message =
@@ -87,6 +90,19 @@ export function KanbanCardComments({ kanbanId, cardId }: Props) {
         </p>
       </div>
       <form className="space-y-3" onSubmit={submit}>
+        {replyingTo && (
+          <div className="flex items-center justify-between rounded-lg bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
+            Respondiendo a un comentario
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setReplyingTo(null)}
+            >
+              Cancelar
+            </Button>
+          </div>
+        )}
         <Textarea
           value={content}
           maxLength={4000}
@@ -141,7 +157,7 @@ export function KanbanCardComments({ kanbanId, cardId }: Props) {
         {comments.data?.map((comment) => (
           <article
             key={comment.id}
-            className="rounded-xl border border-white/8 bg-black/20 p-4"
+            className={`rounded-xl border border-white/8 bg-black/20 p-4 ${comment.parentCommentId ? 'ml-6 border-indigo-400/20' : ''}`}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -191,6 +207,15 @@ export function KanbanCardComments({ kanbanId, cardId }: Props) {
                 ))}
               </ul>
             )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-3"
+              onClick={() => setReplyingTo(comment.id)}
+            >
+              <Reply className="size-3.5" /> Responder
+            </Button>
           </article>
         ))}
       </div>

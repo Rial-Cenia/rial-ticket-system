@@ -226,6 +226,7 @@ export interface KanbanCardCommentAttachment {
 export interface KanbanCardComment {
   id: string;
   kanbanCardId: string;
+  parentCommentId: string | null;
   content: string;
   createdBy: Pick<AppUser, 'userId' | 'name'>;
   createdAt: string;

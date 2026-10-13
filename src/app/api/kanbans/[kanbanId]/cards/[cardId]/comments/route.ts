@@ -29,22 +29,28 @@ export async function POST(request: Request, context: Context) {
     const formData = await request.formData();
     const input = createKanbanCardCommentSchema.parse({
       content: formData.get('content') ?? '',
+      parentCommentId: formData.get('parentCommentId') || null,
     });
     const attachments = formData
       .getAll('attachments')
       .filter((value): value is File => typeof value !== 'string');
-    return Response.json(
-      {
-        data: await createKanbanCardComment(
+    const data = input.parentCommentId
+      ? await createKanbanCardComment(
           actor,
           kanbanId,
           cardId,
           input.content,
           attachments,
-        ),
-      },
-      { status: 201 },
-    );
+          input.parentCommentId,
+        )
+      : await createKanbanCardComment(
+          actor,
+          kanbanId,
+          cardId,
+          input.content,
+          attachments,
+        );
+    return Response.json({ data }, { status: 201 });
   } catch (error) {
     return apiError(error);
   }

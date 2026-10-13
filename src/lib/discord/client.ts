@@ -109,6 +109,20 @@ export function sendThreadMessage(
   });
 }
 
+export async function sendDirectMessage(
+  discordUserId: string,
+  payload: DiscordMessagePayload,
+) {
+  const channel = await request<{ id: string }>('/users/@me/channels', {
+    method: 'POST',
+    body: JSON.stringify({ recipient_id: discordUserId }),
+  });
+  return request<{ id: string }>(`/channels/${channel.id}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function findTicketControlMessageId(
   threadId: string,
   publicId: string,

@@ -9,6 +9,9 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { KanbanCardComment } from '@/lib/types';
 import { listUserDirectory } from '@/lib/users/server';
+import { getDiscordAccountLink } from '@/lib/discord/accounts';
+import { sendDirectMessage } from '@/lib/discord/client';
+import { getServerEnv } from '@/lib/env/server';
 
 const ATTACHMENTS_BUCKET = 'ticket-images';
 const MAX_ATTACHMENTS = 5;
@@ -78,6 +81,7 @@ interface CommentRow {
   content: string;
   createdByUserId: string;
   createdAt: string;
+  parentCommentId: string | null;
   KanbanCardCommentAttachment?: CommentAttachmentRow[];
 }
 
@@ -148,6 +152,7 @@ function serializeComment(
   return {
     id: comment.id,
     kanbanCardId: comment.kanbanCardId,
+    parentCommentId: comment.parentCommentId,
     content: comment.content,
     createdBy: author ?? {
       userId: comment.createdByUserId,
@@ -177,7 +182,7 @@ export async function listKanbanCardComments(
     createAdminClient()
       .from('KanbanCardComment')
       .select(
-        'id, kanbanCardId, content, createdByUserId, createdAt, KanbanCardCommentAttachment(id, fileName, mimeType, size, createdAt)',
+        'id, kanbanCardId, content, createdByUserId, createdAt, parentCommentId, KanbanCardCommentAttachment(id, fileName, mimeType, size, createdAt)',
       )
       .eq('kanbanCardId', cardId)
       .order('createdAt'),
@@ -196,6 +201,7 @@ export async function createKanbanCardComment(
   cardId: string,
   content: string,
   attachments: File[],
+  parentCommentId: string | null = null,
 ) {
   await requireKanbanMember(actor, kanbanId);
   await requireActiveCard(kanbanId, cardId);
@@ -208,10 +214,29 @@ export async function createKanbanCardComment(
     ...validateAttachment(file),
   }));
   const admin = createAdminClient();
+  let parentAuthorId: string | null = null;
+  if (parentCommentId) {
+    const { data: parent, error: parentError } = await admin
+      .from('KanbanCardComment')
+      .select('id, kanbanCardId, createdByUserId')
+      .eq('id', parentCommentId)
+      .eq('kanbanCardId', cardId)
+      .maybeSingle();
+    if (parentError) throw new Error(parentError.message);
+    if (!parent) throw new HttpError('Comentario padre no encontrado', 404);
+    parentAuthorId = parent.createdByUserId as string;
+  }
   const { data: comment, error: commentError } = await admin
     .from('KanbanCardComment')
-    .insert({ kanbanCardId: cardId, content, createdByUserId: actor.id })
-    .select('id, kanbanCardId, content, createdByUserId, createdAt')
+    .insert({
+      kanbanCardId: cardId,
+      content,
+      createdByUserId: actor.id,
+      parentCommentId,
+    })
+    .select(
+      'id, kanbanCardId, content, createdByUserId, createdAt, parentCommentId',
+    )
     .single();
   if (commentError) throw new Error(commentError.message);
 
@@ -256,7 +281,7 @@ export async function createKanbanCardComment(
   const usersById = new Map(
     (await listUserDirectory()).map((user) => [user.userId, user]),
   );
-  return serializeComment(
+  const result = serializeComment(
     {
       ...comment,
       KanbanCardCommentAttachment: uploaded.map((attachment) => ({
@@ -272,6 +297,62 @@ export async function createKanbanCardComment(
     true,
     usersById,
   );
+  await notifyCommentRecipients(
+    admin,
+    actor,
+    kanbanId,
+    cardId,
+    content,
+    parentAuthorId,
+  ).catch(() => {
+    console.error('No fue posible preparar las notificaciones del comentario');
+  });
+  return result;
+}
+
+async function notifyCommentRecipients(
+  admin: ReturnType<typeof createAdminClient>,
+  actor: AuthenticatedUser,
+  kanbanId: string,
+  cardId: string,
+  content: string,
+  parentAuthorId: string | null,
+) {
+  const { data: card, error } = await admin
+    .from('KanbanCard')
+    .select('number, title, assigneeUserId, reviewerUserId')
+    .eq('id', cardId)
+    .eq('kanbanId', kanbanId)
+    .single();
+  if (error) throw new Error(error.message);
+  const recipientIds = parentAuthorId
+    ? [parentAuthorId]
+    : [card.assigneeUserId, card.reviewerUserId].filter(
+        (userId): userId is string => Boolean(userId),
+      );
+  const uniqueRecipientIds = [...new Set(recipientIds)].filter(
+    (userId) => userId !== actor.id,
+  );
+  if (!uniqueRecipientIds.length) return;
+  const message =
+    `${parentAuthorId ? '↩️' : '💬'} ${actor.name} ${parentAuthorId ? 'respondió a tu comentario' : 'comentó en una tarjeta'}\n**#${card.number} · ${card.title}**\n${content || '(adjunto)'}\n${new URL(`/tasks?kanban=${kanbanId}&card=${cardId}`, getServerEnv().APP_URL)}`.slice(
+      0,
+      2000,
+    );
+  const deliveries = await Promise.allSettled(
+    uniqueRecipientIds.map(async (userId) => {
+      const link = await getDiscordAccountLink(userId);
+      if (!link) return;
+      await sendDirectMessage(link.discordUserId, {
+        content: message,
+        allowed_mentions: { parse: [] },
+      });
+    }),
+  );
+  for (const delivery of deliveries) {
+    if (delivery.status === 'rejected')
+      console.error('No fue posible notificar un comentario por Discord');
+  }
 }
 
 export async function deleteKanbanCardComment(
