@@ -32,6 +32,7 @@ import {
 } from '@/hooks/use-kanbans';
 import { useTicket } from '@/hooks/use-tickets';
 import { TicketDetailModal } from '@/components/modals/ticket-detail-modal';
+import { KanbanCardComments } from '@/components/tasks/kanban-card-comments';
 import {
   KANBAN_PRIORITIES,
   PRIORITY_LABELS,
@@ -473,6 +474,7 @@ function TaskCardPreview({
             <p className="text-sm text-zinc-500">Sin descripción.</p>
           )}
         </section>
+        <KanbanCardComments kanbanId={kanban.id} cardId={card.id} />
         {card.pullRequests.length > 0 && (
           <section className="space-y-2 rounded-xl border border-purple-400/20 bg-purple-500/5 p-4">
             <h3 className="text-sm font-medium">Pull requests vinculadas</h3>

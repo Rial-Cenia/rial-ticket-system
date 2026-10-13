@@ -8,7 +8,11 @@ import type {
   UpdateKanbanCardInput,
 } from '@/lib/schemas';
 
-export const kanbanKeys = { all: ['team-kanbans'] as const };
+export const kanbanKeys = {
+  all: ['team-kanbans'] as const,
+  comments: (kanbanId: string, cardId: string) =>
+    ['team-kanbans', kanbanId, 'cards', cardId, 'comments'] as const,
+};
 
 export function useKanbans() {
   return useQuery({ queryKey: kanbanKeys.all, queryFn: api.fetchKanbans });
@@ -46,6 +50,37 @@ export function useCancelKanbanCard(kanbanId: string) {
   return useRefreshMutation<string>((cardId) =>
     api.cancelCard(kanbanId, cardId),
   );
+}
+
+export function useKanbanCardComments(kanbanId: string, cardId: string) {
+  return useQuery({
+    queryKey: kanbanKeys.comments(kanbanId, cardId),
+    queryFn: () => api.fetchCardComments(kanbanId, cardId),
+  });
+}
+
+export function useCreateKanbanCardComment(kanbanId: string, cardId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (formData: FormData) =>
+      api.createCardComment(kanbanId, cardId, formData),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: kanbanKeys.comments(kanbanId, cardId),
+      }),
+  });
+}
+
+export function useDeleteKanbanCardComment(kanbanId: string, cardId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) =>
+      api.deleteCardComment(kanbanId, cardId, commentId),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: kanbanKeys.comments(kanbanId, cardId),
+      }),
+  });
 }
 
 export function useArchiveFinalStateCards(kanbanId: string) {

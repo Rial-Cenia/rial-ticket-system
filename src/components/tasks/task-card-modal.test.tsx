@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   cancel: vi.fn(),
   transfer: vi.fn(),
+  comments: [],
+  createComment: vi.fn(),
+  deleteComment: vi.fn(),
   showToast: vi.fn(),
 }));
 
@@ -17,6 +20,19 @@ vi.mock('@/hooks/use-kanbans', () => ({
   useCancelKanbanCard: () => ({ mutateAsync: mocks.cancel, isPending: false }),
   useTransferKanbanCard: () => ({
     mutateAsync: mocks.transfer,
+    isPending: false,
+  }),
+  useKanbanCardComments: () => ({
+    data: mocks.comments,
+    isLoading: false,
+    error: null,
+  }),
+  useCreateKanbanCardComment: () => ({
+    mutateAsync: mocks.createComment,
+    isPending: false,
+  }),
+  useDeleteKanbanCardComment: () => ({
+    mutateAsync: mocks.deleteComment,
     isPending: false,
   }),
 }));

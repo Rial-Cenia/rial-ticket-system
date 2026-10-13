@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api/request';
+import { apiRequest, formDataRequest } from '@/lib/api/request';
 import type {
   CreateKanbanCardInput,
   CreateKanbanInput,
@@ -16,6 +16,7 @@ import type {
   DiscordRoleConnection,
   TeamPlatformConnection,
   Platform,
+  KanbanCardComment,
   GithubRepository,
 } from '@/lib/types';
 
@@ -80,6 +81,29 @@ export const updateCard = (
   apiRequest(`/api/kanbans/${kanbanId}/cards/${cardId}`, json('PATCH', input));
 export const cancelCard = (kanbanId: string, cardId: string) =>
   apiRequest(`/api/kanbans/${kanbanId}/cards/${cardId}`, json('DELETE'));
+export const fetchCardComments = (kanbanId: string, cardId: string) =>
+  apiRequest<KanbanCardComment[]>(
+    `/api/kanbans/${kanbanId}/cards/${cardId}/comments`,
+  );
+export const createCardComment = (
+  kanbanId: string,
+  cardId: string,
+  formData: FormData,
+) =>
+  formDataRequest<KanbanCardComment>(
+    `/api/kanbans/${kanbanId}/cards/${cardId}/comments`,
+    'POST',
+    formData,
+  );
+export const deleteCardComment = (
+  kanbanId: string,
+  cardId: string,
+  commentId: string,
+) =>
+  apiRequest(
+    `/api/kanbans/${kanbanId}/cards/${cardId}/comments/${commentId}`,
+    json('DELETE'),
+  );
 export const fetchConnections = (kanbanId: string) =>
   apiRequest<KanbanConnection[]>(`/api/kanbans/${kanbanId}/connections`);
 export const createConnection = (kanbanId: string, targetKanbanId: string) =>

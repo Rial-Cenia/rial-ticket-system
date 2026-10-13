@@ -87,6 +87,9 @@ export const updateKanbanCardSchema = createKanbanCardSchema
     (value) => Object.keys(value).length > 0,
     'Debes enviar al menos un cambio',
   );
+export const createKanbanCardCommentSchema = z.object({
+  content: z.string().trim().max(4000),
+});
 export const createTicketKanbanCardSchema = z.object({
   kanbanId: z.string().uuid(),
   title: z.string().trim().min(1).max(200),
@@ -102,6 +105,9 @@ export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 export type CreateKanbanInput = z.infer<typeof createKanbanSchema>;
 export type CreateKanbanCardInput = z.infer<typeof createKanbanCardSchema>;
 export type UpdateKanbanCardInput = z.infer<typeof updateKanbanCardSchema>;
+export type CreateKanbanCardCommentInput = z.infer<
+  typeof createKanbanCardCommentSchema
+>;
 export type CreateTicketKanbanCardInput = z.infer<
   typeof createTicketKanbanCardSchema
 >;

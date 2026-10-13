@@ -214,6 +214,25 @@ export interface KanbanCard {
   pullRequests: GithubPullRequest[];
 }
 
+export interface KanbanCardCommentAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
+
+export interface KanbanCardComment {
+  id: string;
+  kanbanCardId: string;
+  content: string;
+  createdBy: Pick<AppUser, 'userId' | 'name'>;
+  createdAt: string;
+  attachments: KanbanCardCommentAttachment[];
+  canDelete: boolean;
+}
+
 export interface GithubOrganization {
   id: string;
   login: string;
