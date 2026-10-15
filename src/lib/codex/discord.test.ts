@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   env: vi.fn(),
   ticket: vi.fn(),
   latest: vi.fn(),
+  latestAnalysis: vi.fn(),
   request: vi.fn(),
   cancel: vi.fn(),
 }));
@@ -25,6 +26,7 @@ vi.mock('@/lib/tickets/server', () => ({
 }));
 vi.mock('@/lib/codex/server', () => ({
   getLatestCodexRun: mocks.latest,
+  getLatestCodexAnalysis: mocks.latestAnalysis,
   requestCodexAnalysis: mocks.request,
   cancelCodexRun: mocks.cancel,
 }));
@@ -53,6 +55,18 @@ describe('Botuki Discord commands', () => {
       title: 'Small bug',
     });
     mocks.latest.mockResolvedValue(null);
+    mocks.latestAnalysis.mockResolvedValue(null);
+    mocks.request.mockResolvedValue({
+      run: { status: 'WAITING_FOR_USER' },
+      analysis: {
+        decision: 'ELIGIBLE',
+        complexity: 'LOW',
+        confidence: 0.9,
+        selectedRepository: 'Rial-Cenia/rial-frontend',
+        questions: [],
+        risks: [],
+      },
+    });
     mocks.acknowledge.mockResolvedValue(undefined);
     mocks.followup.mockResolvedValue(undefined);
   });
@@ -75,6 +89,13 @@ describe('Botuki Discord commands', () => {
       'user-1',
     );
     expect(mocks.acknowledge).toHaveBeenCalledOnce();
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app-1',
+      'token-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Análisis: **ELIGIBLE**'),
+      }),
+    );
   });
 
   it('keeps implementation behind the analysis gate', async () => {

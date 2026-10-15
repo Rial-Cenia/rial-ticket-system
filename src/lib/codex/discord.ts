@@ -7,6 +7,7 @@ import { interactionActor } from '@/lib/discord/interactions';
 import { canAnalyzeWithCodex } from '@/lib/codex/authorization';
 import {
   cancelCodexRun,
+  getLatestCodexAnalysis,
   getLatestCodexRun,
   requestCodexAnalysis,
 } from '@/lib/codex/server';
@@ -54,6 +55,24 @@ async function recordOnce(interaction: DiscordInteraction) {
 
 function statusText(status: string) {
   return `Estado actual de Botuki: **${status}**.`;
+}
+
+function analysisText(analysis: {
+  decision: string;
+  complexity: string;
+  confidence: number;
+  selectedRepository: string | null;
+  questions: string[];
+  risks: string[];
+}) {
+  const repository = analysis.selectedRepository ?? 'sin repositorio seleccionado';
+  const questions = analysis.questions.length
+    ? `\nPreguntas: ${analysis.questions.join(' ')}`
+    : '';
+  const risks = analysis.risks.length
+    ? `\nRiesgos: ${analysis.risks.join(' ')}`
+    : '';
+  return `Análisis: **${analysis.decision}** · Complejidad: **${analysis.complexity}** · Confianza: **${Math.round(analysis.confidence * 100)}%** · Repositorio: **${repository}**.${questions}${risks}`;
 }
 
 export async function handleCodexCommand(
@@ -105,10 +124,11 @@ export async function handleCodexCommand(
   try {
     const run = await getLatestCodexRun(ticket.publicId);
     if (subcommand === 'status') {
+      const analysis = run ? await getLatestCodexAnalysis(run.id) : null;
       await followup(
         interaction,
         run
-          ? statusText(run.status)
+          ? `${statusText(run.status)}${analysis ? `\n${analysisText(analysis)}` : ''}`
           : 'Botuki aún no tiene una ejecución para este ticket.',
       );
       return new Response(null, { status: 202 });
@@ -135,7 +155,7 @@ export async function handleCodexCommand(
       const requested = await requestCodexAnalysis(ticket, actor.id);
       await followup(
         interaction,
-        `Solicitud recibida para **${ticket.title}**. ${statusText(requested.status)} El analizador se conectará en la siguiente fase.`,
+        `Análisis completado para **${ticket.title}**. ${statusText(requested.run.status)}\n${analysisText(requested.analysis)}`,
       );
       return new Response(null, { status: 202 });
     }

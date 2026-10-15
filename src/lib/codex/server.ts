@@ -1,7 +1,12 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { analyzeTicket } from '@/lib/codex/analyzer';
 import { canTransitionCodexRun } from '@/lib/codex/policy';
-import type { CodexRunStatus } from '@/lib/codex/types';
+import type {
+  CodexAnalysisResult,
+  CodexRepositoryPolicy,
+  CodexRunStatus,
+} from '@/lib/codex/types';
 import type { Ticket } from '@/lib/types';
 
 export interface CodexRunRecord {
@@ -14,6 +19,15 @@ export interface CodexRunRecord {
   createdByDiscordId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CodexAnalysisRecord extends CodexAnalysisResult {
+  id: string;
+  runId: string;
+  ticketTitle: string;
+  ticketDescription: string;
+  ticketUpdatedAt: string;
+  createdAt: string;
 }
 
 const ACTIVE_STATUSES: readonly CodexRunStatus[] = [
@@ -43,6 +57,32 @@ async function recordEvent(
   if (error) throw new Error(error.message);
 }
 
+async function listRepositoryPolicies() {
+  const { data, error } = await createAdminClient()
+    .from('CodexRepositoryPolicy')
+    .select(
+      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+    )
+    .eq('analysisEnabled', true)
+    .order('fullName');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CodexRepositoryPolicy[];
+}
+
+export async function getLatestCodexAnalysis(runId: string) {
+  const { data, error } = await createAdminClient()
+    .from('CodexAnalysis')
+    .select(
+      'id, runId, decision, complexity, confidence, ticketTitle, ticketDescription, ticketUpdatedAt, repositoryCandidates, selectedRepository, scope, checks, risks, questions, forbiddenChangesDetected, approvedAt, createdAt',
+    )
+    .eq('runId', runId)
+    .order('createdAt', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as CodexAnalysisRecord | null) ?? null;
+}
+
 export async function getLatestCodexRun(ticketPublicId: string) {
   const { data, error } = await createAdminClient()
     .from('CodexRun')
@@ -62,7 +102,11 @@ export async function requestCodexAnalysis(
   actorDiscordId: string,
 ) {
   const existing = await getLatestCodexRun(ticket.publicId);
-  if (existing && isActiveStatus(existing.status)) return existing;
+  if (existing && isActiveStatus(existing.status)) {
+    const analysis = await getLatestCodexAnalysis(existing.id);
+    if (analysis) return { run: existing, analysis };
+    return await completeCodexAnalysis(existing, ticket, actorDiscordId);
+  }
 
   const { data, error } = await createAdminClient()
     .from('CodexRun')
@@ -80,7 +124,72 @@ export async function requestCodexAnalysis(
   await recordEvent(run.id, 'ANALYSIS_REQUESTED', actorDiscordId, {
     ticketTitle: ticket.title,
   });
-  return run;
+  return await completeCodexAnalysis(run, ticket, actorDiscordId);
+}
+
+async function completeCodexAnalysis(
+  run: CodexRunRecord,
+  ticket: Ticket,
+  actorDiscordId: string,
+) {
+  try {
+    const policies = await listRepositoryPolicies();
+    const result = analyzeTicket(ticket, policies);
+    const { data, error } = await createAdminClient()
+      .from('CodexAnalysis')
+      .insert({
+        runId: run.id,
+        decision: result.decision,
+        complexity: result.complexity,
+        confidence: result.confidence,
+        ticketTitle: ticket.title,
+        ticketDescription: ticket.description,
+        ticketUpdatedAt: ticket.updatedAt,
+        repositoryCandidates: result.repositoryCandidates,
+        selectedRepository: result.selectedRepository,
+        scope: result.scope,
+        checks: result.checks,
+        risks: result.risks,
+        questions: result.questions,
+        forbiddenChangesDetected: result.forbiddenChangesDetected,
+      })
+      .select(
+        'id, runId, decision, complexity, confidence, ticketTitle, ticketDescription, ticketUpdatedAt, repositoryCandidates, selectedRepository, scope, checks, risks, questions, forbiddenChangesDetected, approvedAt, createdAt',
+      )
+      .single();
+    if (error) throw new Error(error.message);
+    const { data: updatedRun, error: updateError } = await createAdminClient()
+      .from('CodexRun')
+      .update({ status: 'WAITING_FOR_USER' })
+      .eq('id', run.id)
+      .eq('status', 'ANALYZING')
+      .select(
+        'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
+      )
+      .single();
+    if (updateError) throw new Error(updateError.message);
+    await recordEvent(run.id, 'ANALYSIS_COMPLETED', actorDiscordId, {
+      decision: result.decision,
+      complexity: result.complexity,
+      confidence: result.confidence,
+      selectedRepository: result.selectedRepository,
+    });
+    return {
+      run: updatedRun as CodexRunRecord,
+      analysis: data as CodexAnalysisRecord,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Analysis failed';
+    await createAdminClient()
+      .from('CodexRun')
+      .update({ status: 'FAILED', lastError: message })
+      .eq('id', run.id)
+      .eq('status', 'ANALYZING');
+    await recordEvent(run.id, 'ANALYSIS_FAILED', actorDiscordId, {
+      error: message,
+    });
+    throw error;
+  }
 }
 
 export async function cancelCodexRun(
