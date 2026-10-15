@@ -1,5 +1,7 @@
 import 'server-only';
+import { createHmac } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getBotukiEnv } from '@/lib/env/server';
 import { analyzeTicket } from '@/lib/codex/analyzer';
 import {
   canImplementCodexAnalysis,
@@ -191,23 +193,32 @@ export async function approveCodexAnalysis(
     .eq('fullName', analysis.selectedRepository)
     .maybeSingle();
   if (policyError) throw new Error(policyError.message);
-  if (!policy || !canImplementCodexAnalysis(analysis, policy as CodexRepositoryPolicy))
-    throw new Error('El análisis no es elegible para implementación automática');
+  if (
+    !policy ||
+    !canImplementCodexAnalysis(analysis, policy as CodexRepositoryPolicy)
+  )
+    throw new Error(
+      'El análisis no es elegible para implementación automática',
+    );
 
   const now = new Date().toISOString();
-  const { data: approvedAnalysis, error: analysisError } = await createAdminClient()
-    .from('CodexAnalysis')
-    .update({ approvedAt: now })
-    .eq('id', analysis.id)
-    .is('approvedAt', null)
-    .select(
-      'id, runId, decision, complexity, confidence, ticketTitle, ticketDescription, ticketUpdatedAt, repositoryCandidates, selectedRepository, scope, checks, risks, questions, forbiddenChangesDetected, approvedAt, createdAt',
-    )
-    .single();
+  const { data: approvedAnalysis, error: analysisError } =
+    await createAdminClient()
+      .from('CodexAnalysis')
+      .update({ approvedAt: now })
+      .eq('id', analysis.id)
+      .is('approvedAt', null)
+      .select(
+        'id, runId, decision, complexity, confidence, ticketTitle, ticketDescription, ticketUpdatedAt, repositoryCandidates, selectedRepository, scope, checks, risks, questions, forbiddenChangesDetected, approvedAt, createdAt',
+      )
+      .single();
   if (analysisError) throw new Error(analysisError.message);
   const { data: approvedRun, error: runError } = await createAdminClient()
     .from('CodexRun')
-    .update({ status: 'ANALYSIS_APPROVED', repositoryFullName: analysis.selectedRepository })
+    .update({
+      status: 'ANALYSIS_APPROVED',
+      repositoryFullName: analysis.selectedRepository,
+    })
     .eq('id', run.id)
     .eq('status', 'WAITING_FOR_USER')
     .select(
@@ -222,6 +233,71 @@ export async function approveCodexAnalysis(
     run: approvedRun as CodexRunRecord,
     analysis: approvedAnalysis as CodexAnalysisRecord,
   };
+}
+
+export async function startCodexImplementation(
+  ticket: Ticket,
+  actorDiscordId: string,
+) {
+  const run = await getLatestCodexRun(ticket.publicId);
+  if (!run) throw new Error('No hay un análisis para implementar');
+  if (run.status !== 'ANALYSIS_APPROVED')
+    throw new Error(
+      `La implementación requiere un análisis aprobado (${run.status})`,
+    );
+
+  const analysis = await getLatestCodexAnalysis(run.id);
+  if (!analysis || !analysis.selectedRepository)
+    throw new Error('No existe un análisis elegible para implementar');
+
+  const { data: policy, error: policyError } = await createAdminClient()
+    .from('CodexRepositoryPolicy')
+    .select(
+      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+    )
+    .eq('fullName', analysis.selectedRepository)
+    .maybeSingle();
+  if (policyError) throw new Error(policyError.message);
+  if (
+    !policy ||
+    !canImplementCodexAnalysis(analysis, policy as CodexRepositoryPolicy)
+  )
+    throw new Error(
+      'El análisis ya no es elegible para implementación automática',
+    );
+
+  const { runnerUrl, runnerSharedSecret } = getBotukiEnv();
+  if (!runnerUrl || !runnerSharedSecret)
+    throw new Error('El runner de implementación no está configurado');
+
+  const signature = createHmac('sha256', runnerSharedSecret)
+    .update(run.id)
+    .digest('hex');
+  let response: Response;
+  try {
+    response = await fetch(runnerUrl, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-botuki-runner-signature': signature,
+      },
+      body: JSON.stringify({ runId: run.id }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    throw new Error('No fue posible conectar con el runner de implementación');
+  }
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 300);
+    throw new Error(
+      `El runner rechazó la ejecución (${response.status})${detail ? `: ${detail}` : ''}`,
+    );
+  }
+
+  await recordEvent(run.id, 'IMPLEMENTATION_REQUESTED', actorDiscordId, {
+    selectedRepository: analysis.selectedRepository,
+  });
+  return { run, analysis };
 }
 
 async function completeCodexAnalysis(

@@ -12,6 +12,7 @@ import {
   getLatestCodexRun,
   answerCodexQuestion,
   requestCodexAnalysis,
+  startCodexImplementation,
 } from '@/lib/codex/server';
 import { getBotukiEnv } from '@/lib/env/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -67,7 +68,8 @@ function analysisText(analysis: {
   questions: string[];
   risks: string[];
 }) {
-  const repository = analysis.selectedRepository ?? 'sin repositorio seleccionado';
+  const repository =
+    analysis.selectedRepository ?? 'sin repositorio seleccionado';
   const questions = analysis.questions.length
     ? `\nPreguntas: ${analysis.questions.join(' ')}`
     : '';
@@ -122,14 +124,25 @@ export async function handleCodexCommand(
     );
 
   if (subcommand === 'implement') {
-    const run = await getLatestCodexRun(ticket.publicId);
-    return Response.json(
-      ephemeral(
-        run?.status === 'ANALYSIS_APPROVED'
-          ? '✅ El análisis está aprobado. El runner de implementación todavía no está disponible.'
-          : '🛡️ La implementación está bloqueada hasta que exista un análisis LOW elegible y aprobado.',
-      ),
-    );
+    await acknowledge(interaction);
+    if (!(await recordOnce(interaction)))
+      return new Response(null, { status: 202 });
+    try {
+      const queued = await startCodexImplementation(ticket, actor.id);
+      await followup(
+        interaction,
+        `✅ Implementación encolada para **${ticket.title}**. Repositorio: **${queued.analysis.selectedRepository}**. Botuki actualizará este hilo cuando abra la PR.`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error inesperado';
+      await followup(
+        interaction,
+        `No fue posible iniciar la implementación: ${errorMessage}`,
+        true,
+      );
+    }
+    return new Response(null, { status: 202 });
   }
 
   if (subcommand === 'retry')

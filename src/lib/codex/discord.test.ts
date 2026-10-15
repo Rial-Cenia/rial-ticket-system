@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   answer: vi.fn(),
   approve: vi.fn(),
   cancel: vi.fn(),
+  startImplementation: vi.fn(),
 }));
 
 vi.mock('@/lib/discord/client', () => ({
@@ -33,6 +34,7 @@ vi.mock('@/lib/codex/server', () => ({
   answerCodexQuestion: mocks.answer,
   approveCodexAnalysis: mocks.approve,
   cancelCodexRun: mocks.cancel,
+  startCodexImplementation: mocks.startImplementation,
 }));
 
 import { handleCodexCommand } from '@/lib/codex/discord';
@@ -86,6 +88,10 @@ describe('Botuki Discord commands', () => {
       run: { status: 'ANALYSIS_APPROVED' },
       analysis: { selectedRepository: 'Rial-Cenia/rial-backend' },
     });
+    mocks.startImplementation.mockResolvedValue({
+      run: { status: 'ANALYSIS_APPROVED' },
+      analysis: { selectedRepository: 'Rial-Cenia/rial-frontend' },
+    });
     mocks.acknowledge.mockResolvedValue(undefined);
     mocks.followup.mockResolvedValue(undefined);
   });
@@ -117,16 +123,23 @@ describe('Botuki Discord commands', () => {
     );
   });
 
-  it('keeps implementation behind the analysis gate', async () => {
+  it('queues implementation after the analysis gate', async () => {
     const response = await handleCodexCommand(
       interaction as never,
       'implement',
     );
-    await expect(response.json()).resolves.toMatchObject({
-      data: { content: expect.stringContaining('LOW elegible') },
-    });
-    expect(mocks.acknowledge).not.toHaveBeenCalled();
-    expect(mocks.request).not.toHaveBeenCalled();
+    expect(response.status).toBe(202);
+    expect(mocks.startImplementation).toHaveBeenCalledWith(
+      expect.objectContaining({ publicId: 'ticket-1' }),
+      'user-1',
+    );
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app-1',
+      'token-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Implementación encolada'),
+      }),
+    );
   });
 
   it('records an answer and reruns the analysis', async () => {
@@ -139,7 +152,9 @@ describe('Botuki Discord commands', () => {
             {
               name: 'answer',
               type: 1,
-              options: [{ name: 'message', type: 3, value: 'Use rial-backend' }],
+              options: [
+                { name: 'message', type: 3, value: 'Use rial-backend' },
+              ],
             },
           ],
         },
