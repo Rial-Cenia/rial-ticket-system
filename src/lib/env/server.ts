@@ -29,6 +29,10 @@ const schema = z.object({
   GITHUB_APP_SLUG: optionalString,
   GITHUB_APP_PRIVATE_KEY: optionalString,
   GITHUB_WEBHOOK_SECRET: optionalString,
+  BOTUKI_GITHUB_APP_ID: optionalString,
+  BOTUKI_GITHUB_INSTALLATION_ID: optionalString,
+  BOTUKI_GITHUB_APP_PRIVATE_KEY: optionalString,
+  BOTUKI_OPERATOR_ROLE_ID: optionalString,
 });
 
 export function getServerEnv() {
@@ -95,6 +99,21 @@ export function getGithubEnv() {
 
   for (const [name, value] of Object.entries(required)) {
     if (!value) throw new Error(`Falta configuración GitHub: ${name}`);
+  }
+
+  return required as { [Key in keyof typeof required]: string };
+}
+
+export function getBotukiEnv() {
+  const env = getServerEnv();
+  const required = {
+    appId: env.BOTUKI_GITHUB_APP_ID,
+    installationId: env.BOTUKI_GITHUB_INSTALLATION_ID,
+    operatorRoleId: env.BOTUKI_OPERATOR_ROLE_ID,
+  };
+
+  for (const [name, value] of Object.entries(required)) {
+    if (!value) throw new Error(`Falta configuración Botuki: ${name}`);
   }
 
   return required as { [Key in keyof typeof required]: string };

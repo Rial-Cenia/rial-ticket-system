@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  parseApplicationCommand,
   parseStatusId,
   parseTicketAttachments,
   parseTicketModal,
@@ -91,5 +92,21 @@ describe('Discord interactions', () => {
       publicId,
     });
     expect(parseTriageId('triage_platform_drop table')).toBeNull();
+  });
+});
+
+describe('Discord application commands', () => {
+  it('parses a codex subcommand', () => {
+    expect(
+      parseApplicationCommand({
+        data: { name: 'codex', options: [{ name: 'analyze', type: 1 }] },
+      } as never),
+    ).toBe('analyze');
+  });
+
+  it('ignores commands outside the codex namespace', () => {
+    expect(
+      parseApplicationCommand({ data: { name: 'help', options: [] } } as never),
+    ).toBeNull();
   });
 });

@@ -25,6 +25,8 @@ import {
   parseTriageId,
   selectedPlatform,
 } from '@/lib/discord/interactions';
+import { parseApplicationCommand } from '@/lib/discord/interactions';
+import { handleCodexCommand } from '@/lib/codex/discord';
 import * as discordRoles from '@/lib/discord/roles';
 import { verifyDiscordRequest } from '@/lib/discord/signature';
 import { processOutboxJobs } from '@/lib/discord/jobs';
@@ -326,6 +328,13 @@ export async function POST(request: Request) {
 No está habilitado en este servidor (｡•́︿•̀｡)💔
 Toca activarlo antes de invocarlo, porque por ahora está en modo fantasma: cero presencia, cero servicio, cero aura administrativa 👻🎀`),
     );
+
+  if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+    return handleCodexCommand(
+      interaction,
+      parseApplicationCommand(interaction),
+    );
+  }
 
   if (
     interaction.type === InteractionType.MESSAGE_COMPONENT &&

@@ -32,6 +32,8 @@ export const discordInteractionSchema = z.object({
   user: discordUserSchema.optional(),
   data: z
     .object({
+      name: z.string().optional(),
+      options: z.array(z.unknown()).optional(),
       custom_id: z.string().optional(),
       component_type: z.number().int().optional(),
       values: z.array(z.string()).optional(),

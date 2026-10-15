@@ -238,6 +238,16 @@ export async function getTicket(publicId: string) {
   return data ? serializeTicket(data) : null;
 }
 
+export async function getTicketByDiscordThreadId(threadId: string) {
+  const { data, error } = await createAdminClient()
+    .from('Ticket')
+    .select('*, TicketImage(id, fileName, mimeType, size, createdAt)')
+    .eq('discordThreadId', threadId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? serializeTicket(data) : null;
+}
+
 export async function listTicketKanbans(publicId: string) {
   const { data, error } = await createAdminClient()
     .from('TicketKanban')

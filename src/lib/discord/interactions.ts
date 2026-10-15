@@ -112,3 +112,13 @@ export function parseStatusId(customId: string) {
 export function selectedPlatform(interaction: DiscordInteraction) {
   return platformSchema.parse(interaction.data?.values?.[0]);
 }
+
+export function parseApplicationCommand(interaction: DiscordInteraction) {
+  const commandName = interaction.data?.name;
+  if (commandName !== 'codex') return null;
+
+  const option = interaction.data?.options?.[0];
+  if (!option || typeof option !== 'object') return null;
+  const subcommand = (option as { name?: unknown }).name;
+  return typeof subcommand === 'string' ? subcommand : null;
+}

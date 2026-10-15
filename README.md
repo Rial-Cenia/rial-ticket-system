@@ -48,6 +48,10 @@ No existe registro público. Crea las cuentas de email/contraseña previamente d
 | `GITHUB_APP_SLUG`                                 | Slug de la GitHub App usado para iniciar la instalación                                    |
 | `GITHUB_APP_PRIVATE_KEY`                          | Clave privada de la GitHub App; usa `\\n` para saltos de línea en variables de entorno     |
 | `GITHUB_WEBHOOK_SECRET`                           | Secreto usado para validar `X-Hub-Signature-256`; solo servidor                            |
+| `BOTUKI_GITHUB_APP_ID`                            | App ID de la GitHub App de Botuki; solo servidor                                           |
+| `BOTUKI_GITHUB_INSTALLATION_ID`                   | Installation ID de Botuki en los repositorios habilitados; solo servidor                   |
+| `BOTUKI_GITHUB_APP_PRIVATE_KEY`                   | Clave privada de Botuki; usa `\\n` para saltos de línea y no la almacenes en Git           |
+| `BOTUKI_OPERATOR_ROLE_ID`                         | ID del rol Discord `Codex Operator`                                                        |
 
 Las claves servidor, el token del bot y `CRON_SECRET` nunca deben llevar el prefijo `NEXT_PUBLIC_` ni almacenarse en Git.
 
@@ -85,8 +89,11 @@ Desde **Configuración**, los administradores pueden cambiar roles y crear equip
 3. En **General Information → Interactions Endpoint URL**, configura `https://<dominio>/api/discord`. Discord enviará un PING firmado que el endpoint valida con `DISCORD_PUBLIC_KEY`.
 4. Configura en Vercel todas las variables Discord y Supabase antes de validar el endpoint.
 5. Publica el panel una sola vez con `yarn discord:setup`, guarda el ID que imprime en `DISCORD_PANEL_MESSAGE_ID` y configúralo también en Vercel. Así el cron actualiza siempre el mismo mensaje y no crea duplicados.
-6. En **OAuth2 → Redirects**, registra exactamente `<APP_URL>/api/discord/oauth/callback`.
-7. Otorga al bot `Manage Roles` y ubica su rol por encima de Barbilla Roja para poder administrar sus miembros desde la plataforma.
+6. Registra los comandos de Botuki en el guild con `yarn discord:setup-commands`. El script usa `DISCORD_CLIENT_ID`, `DISCORD_BOT_TOKEN` y `DISCORD_GUILD_ID`, y registra `/codex analyze`, `/codex status`, `/codex stop`, `/codex implement` y `/codex retry`.
+7. En **OAuth2 → Redirects**, registra exactamente `<APP_URL>/api/discord/oauth/callback`.
+8. Otorga al bot `Manage Roles` y ubica su rol por encima de Barbilla Roja para poder administrar sus miembros desde la plataforma.
+
+Los comandos de Botuki solo funcionan dentro de un thread vinculado a un ticket y requieren el rol `Codex Operator`. En esta fase `analyze`, `status` y `stop` persisten el estado de la ejecución; `implement` y `retry` permanecen bloqueados hasta que estén disponibles el análisis de complejidad y el runner aislado.
 
 Cada usuario interno puede abrir **Discord → Vincular mi Discord**. La autorización solicita únicamente `identify` y `guilds.members.read`, verifica que la cuenta pertenezca al servidor configurado y luego descarta el access token. La plataforma guarda solo la identidad pública enlazada. Desde esa misma pantalla, una cuenta autenticada puede asignar o quitar el rol Barbilla Roja a usuarios que ya vincularon Discord.
 
