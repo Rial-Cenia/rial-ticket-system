@@ -26,6 +26,11 @@ const commands = [
       { type: 1, name: 'stop', description: 'Cancel the current Botuki run' },
       {
         type: 1,
+        name: 'approve',
+        description: 'Approve an eligible Botuki analysis',
+      },
+      {
+        type: 1,
         name: 'implement',
         description: 'Start an approved implementation',
       },

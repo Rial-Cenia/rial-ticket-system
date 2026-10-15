@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   latestAnalysis: vi.fn(),
   request: vi.fn(),
   answer: vi.fn(),
+  approve: vi.fn(),
   cancel: vi.fn(),
 }));
 
@@ -30,6 +31,7 @@ vi.mock('@/lib/codex/server', () => ({
   getLatestCodexAnalysis: mocks.latestAnalysis,
   requestCodexAnalysis: mocks.request,
   answerCodexQuestion: mocks.answer,
+  approveCodexAnalysis: mocks.approve,
   cancelCodexRun: mocks.cancel,
 }));
 
@@ -79,6 +81,10 @@ describe('Botuki Discord commands', () => {
         questions: [],
         risks: [],
       },
+    });
+    mocks.approve.mockResolvedValue({
+      run: { status: 'ANALYSIS_APPROVED' },
+      analysis: { selectedRepository: 'Rial-Cenia/rial-backend' },
     });
     mocks.acknowledge.mockResolvedValue(undefined);
     mocks.followup.mockResolvedValue(undefined);
@@ -153,6 +159,23 @@ describe('Botuki Discord commands', () => {
       'token-1',
       expect.objectContaining({
         content: expect.stringContaining('Respuesta registrada'),
+      }),
+    );
+  });
+
+  it('approves an eligible analysis', async () => {
+    const response = await handleCodexCommand(interaction as never, 'approve');
+
+    expect(response.status).toBe(202);
+    expect(mocks.approve).toHaveBeenCalledWith(
+      expect.objectContaining({ publicId: 'ticket-1' }),
+      'user-1',
+    );
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app-1',
+      'token-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Análisis aprobado'),
       }),
     );
   });

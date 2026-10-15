@@ -7,6 +7,7 @@ import { interactionActor } from '@/lib/discord/interactions';
 import { canAnalyzeWithCodex } from '@/lib/codex/authorization';
 import {
   cancelCodexRun,
+  approveCodexAnalysis,
   getLatestCodexAnalysis,
   getLatestCodexRun,
   answerCodexQuestion,
@@ -98,7 +99,7 @@ export async function handleCodexCommand(
   if (!subcommand)
     return Response.json(
       ephemeral(
-        'Usa `/codex analyze`, `/codex answer`, `/codex status`, `/codex stop`, `/codex implement` o `/codex retry`.',
+        'Usa `/codex analyze`, `/codex answer`, `/codex approve`, `/codex status`, `/codex stop`, `/codex implement` o `/codex retry`.',
       ),
     );
 
@@ -120,12 +121,16 @@ export async function handleCodexCommand(
       ephemeral('Este hilo no está vinculado a un ticket de Rial.'),
     );
 
-  if (subcommand === 'implement')
+  if (subcommand === 'implement') {
+    const run = await getLatestCodexRun(ticket.publicId);
     return Response.json(
       ephemeral(
-        '🛡️ La implementación está bloqueada hasta que exista un análisis LOW elegible y aprobado.',
+        run?.status === 'ANALYSIS_APPROVED'
+          ? '✅ El análisis está aprobado. El runner de implementación todavía no está disponible.'
+          : '🛡️ La implementación está bloqueada hasta que exista un análisis LOW elegible y aprobado.',
       ),
     );
+  }
 
   if (subcommand === 'retry')
     return Response.json(
@@ -133,6 +138,28 @@ export async function handleCodexCommand(
         '♻️ El reintento se habilitará cuando el analizador de Botuki esté disponible.',
       ),
     );
+
+  if (subcommand === 'approve') {
+    await acknowledge(interaction);
+    if (!(await recordOnce(interaction)))
+      return new Response(null, { status: 202 });
+    try {
+      const approved = await approveCodexAnalysis(ticket, actor.id);
+      await followup(
+        interaction,
+        `Análisis aprobado para **${ticket.title}**. ${statusText(approved.run.status)}\nRepositorio autorizado: **${approved.analysis.selectedRepository}**. Ejecuta \`/codex implement\` cuando el runner esté disponible.`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error inesperado';
+      await followup(
+        interaction,
+        `No fue posible aprobar el análisis: ${errorMessage}`,
+        true,
+      );
+    }
+    return new Response(null, { status: 202 });
+  }
 
   if (subcommand === 'answer') {
     const message = answerText(interaction);

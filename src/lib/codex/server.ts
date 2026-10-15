@@ -1,7 +1,10 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { analyzeTicket } from '@/lib/codex/analyzer';
-import { canTransitionCodexRun } from '@/lib/codex/policy';
+import {
+  canImplementCodexAnalysis,
+  canTransitionCodexRun,
+} from '@/lib/codex/policy';
 import type {
   CodexAnalysisResult,
   CodexRepositoryPolicy,
@@ -167,6 +170,58 @@ export async function answerCodexQuestion(
     },
     actorDiscordId,
   );
+}
+
+export async function approveCodexAnalysis(
+  ticket: Ticket,
+  actorDiscordId: string,
+) {
+  const run = await getLatestCodexRun(ticket.publicId);
+  if (!run) throw new Error('No hay un análisis para aprobar');
+  if (run.status !== 'WAITING_FOR_USER')
+    throw new Error(`Botuki no está esperando aprobación (${run.status})`);
+  const analysis = await getLatestCodexAnalysis(run.id);
+  if (!analysis) throw new Error('No existe un análisis para aprobar');
+
+  const { data: policy, error: policyError } = await createAdminClient()
+    .from('CodexRepositoryPolicy')
+    .select(
+      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+    )
+    .eq('fullName', analysis.selectedRepository)
+    .maybeSingle();
+  if (policyError) throw new Error(policyError.message);
+  if (!policy || !canImplementCodexAnalysis(analysis, policy as CodexRepositoryPolicy))
+    throw new Error('El análisis no es elegible para implementación automática');
+
+  const now = new Date().toISOString();
+  const { data: approvedAnalysis, error: analysisError } = await createAdminClient()
+    .from('CodexAnalysis')
+    .update({ approvedAt: now })
+    .eq('id', analysis.id)
+    .is('approvedAt', null)
+    .select(
+      'id, runId, decision, complexity, confidence, ticketTitle, ticketDescription, ticketUpdatedAt, repositoryCandidates, selectedRepository, scope, checks, risks, questions, forbiddenChangesDetected, approvedAt, createdAt',
+    )
+    .single();
+  if (analysisError) throw new Error(analysisError.message);
+  const { data: approvedRun, error: runError } = await createAdminClient()
+    .from('CodexRun')
+    .update({ status: 'ANALYSIS_APPROVED', repositoryFullName: analysis.selectedRepository })
+    .eq('id', run.id)
+    .eq('status', 'WAITING_FOR_USER')
+    .select(
+      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
+    )
+    .single();
+  if (runError) throw new Error(runError.message);
+  await recordEvent(run.id, 'ANALYSIS_APPROVED', actorDiscordId, {
+    selectedRepository: analysis.selectedRepository,
+  });
+  return {
+    run: approvedRun as CodexRunRecord,
+    analysis: approvedAnalysis as CodexAnalysisRecord,
+  };
 }
 
 async function completeCodexAnalysis(
