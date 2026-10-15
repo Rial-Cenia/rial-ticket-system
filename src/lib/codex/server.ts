@@ -127,6 +127,48 @@ export async function requestCodexAnalysis(
   return await completeCodexAnalysis(run, ticket, actorDiscordId);
 }
 
+export async function answerCodexQuestion(
+  ticket: Ticket,
+  actorDiscordId: string,
+  discordMessageId: string,
+  message: string,
+) {
+  const trimmedMessage = message.trim();
+  if (!trimmedMessage) throw new Error('La respuesta no puede estar vacía');
+  if (trimmedMessage.length > 10000)
+    throw new Error('La respuesta supera el límite permitido');
+
+  const run = await getLatestCodexRun(ticket.publicId);
+  if (!run) throw new Error('No hay un análisis activo para este ticket');
+  if (run.status !== 'WAITING_FOR_USER')
+    throw new Error(`Botuki no está esperando una respuesta (${run.status})`);
+  const analysis = await getLatestCodexAnalysis(run.id);
+  if (!analysis) throw new Error('No existe un análisis para responder');
+
+  const { error } = await createAdminClient()
+    .from('CodexConversationMessage')
+    .insert({
+      runId: run.id,
+      discordMessageId,
+      discordAuthorId: actorDiscordId,
+      isBot: false,
+      content: trimmedMessage,
+    });
+  if (error) throw new Error(error.message);
+  await recordEvent(run.id, 'QUESTION_ANSWERED', actorDiscordId, {
+    contentLength: trimmedMessage.length,
+  });
+
+  return await completeCodexAnalysis(
+    run,
+    {
+      ...ticket,
+      description: `${ticket.description}\n\nOperator clarification: ${trimmedMessage}`,
+    },
+    actorDiscordId,
+  );
+}
+
 async function completeCodexAnalysis(
   run: CodexRunRecord,
   ticket: Ticket,
@@ -162,7 +204,7 @@ async function completeCodexAnalysis(
       .from('CodexRun')
       .update({ status: 'WAITING_FOR_USER' })
       .eq('id', run.id)
-      .eq('status', 'ANALYZING')
+      .in('status', ['ANALYZING', 'WAITING_FOR_USER'])
       .select(
         'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
       )
@@ -184,7 +226,7 @@ async function completeCodexAnalysis(
       .from('CodexRun')
       .update({ status: 'FAILED', lastError: message })
       .eq('id', run.id)
-      .eq('status', 'ANALYZING');
+      .in('status', ['ANALYZING', 'WAITING_FOR_USER']);
     await recordEvent(run.id, 'ANALYSIS_FAILED', actorDiscordId, {
       error: message,
     });

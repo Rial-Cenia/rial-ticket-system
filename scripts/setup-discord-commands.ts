@@ -30,6 +30,20 @@ const commands = [
         description: 'Start an approved implementation',
       },
       { type: 1, name: 'retry', description: 'Retry a finished Botuki run' },
+      {
+        type: 1,
+        name: 'answer',
+        description: 'Answer a Botuki analysis question',
+        options: [
+          {
+            type: 3,
+            name: 'message',
+            description: 'Your clarification for Botuki',
+            required: true,
+            max_length: 1000,
+          },
+        ],
+      },
     ],
   },
 ];

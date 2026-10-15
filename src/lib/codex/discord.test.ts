@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   latest: vi.fn(),
   latestAnalysis: vi.fn(),
   request: vi.fn(),
+  answer: vi.fn(),
   cancel: vi.fn(),
 }));
 
@@ -28,6 +29,7 @@ vi.mock('@/lib/codex/server', () => ({
   getLatestCodexRun: mocks.latest,
   getLatestCodexAnalysis: mocks.latestAnalysis,
   requestCodexAnalysis: mocks.request,
+  answerCodexQuestion: mocks.answer,
   cancelCodexRun: mocks.cancel,
 }));
 
@@ -63,6 +65,17 @@ describe('Botuki Discord commands', () => {
         complexity: 'LOW',
         confidence: 0.9,
         selectedRepository: 'Rial-Cenia/rial-frontend',
+        questions: [],
+        risks: [],
+      },
+    });
+    mocks.answer.mockResolvedValue({
+      run: { status: 'WAITING_FOR_USER' },
+      analysis: {
+        decision: 'ELIGIBLE',
+        complexity: 'LOW',
+        confidence: 0.9,
+        selectedRepository: 'Rial-Cenia/rial-backend',
         questions: [],
         risks: [],
       },
@@ -108,5 +121,39 @@ describe('Botuki Discord commands', () => {
     });
     expect(mocks.acknowledge).not.toHaveBeenCalled();
     expect(mocks.request).not.toHaveBeenCalled();
+  });
+
+  it('records an answer and reruns the analysis', async () => {
+    const response = await handleCodexCommand(
+      {
+        ...interaction,
+        data: {
+          name: 'codex',
+          options: [
+            {
+              name: 'answer',
+              type: 1,
+              options: [{ name: 'message', type: 3, value: 'Use rial-backend' }],
+            },
+          ],
+        },
+      } as never,
+      'answer',
+    );
+
+    expect(response.status).toBe(202);
+    expect(mocks.answer).toHaveBeenCalledWith(
+      expect.objectContaining({ publicId: 'ticket-1' }),
+      'user-1',
+      'interaction-1',
+      'Use rial-backend',
+    );
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app-1',
+      'token-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Respuesta registrada'),
+      }),
+    );
   });
 });

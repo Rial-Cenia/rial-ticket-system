@@ -9,6 +9,7 @@ import {
   cancelCodexRun,
   getLatestCodexAnalysis,
   getLatestCodexRun,
+  answerCodexQuestion,
   requestCodexAnalysis,
 } from '@/lib/codex/server';
 import { getBotukiEnv } from '@/lib/env/server';
@@ -75,6 +76,21 @@ function analysisText(analysis: {
   return `Análisis: **${analysis.decision}** · Complejidad: **${analysis.complexity}** · Confianza: **${Math.round(analysis.confidence * 100)}%** · Repositorio: **${repository}**.${questions}${risks}`;
 }
 
+function answerText(interaction: DiscordInteraction) {
+  const option = interaction.data?.options?.[0];
+  if (!option || typeof option !== 'object') return null;
+  const nested = (option as { options?: unknown }).options;
+  if (!Array.isArray(nested)) return null;
+  const message = nested.find(
+    (value): value is { name: string; value: string } =>
+      typeof value === 'object' &&
+      value !== null &&
+      (value as { name?: unknown }).name === 'message' &&
+      typeof (value as { value?: unknown }).value === 'string',
+  );
+  return message?.value.trim() || null;
+}
+
 export async function handleCodexCommand(
   interaction: DiscordInteraction,
   subcommand: string | null,
@@ -82,7 +98,7 @@ export async function handleCodexCommand(
   if (!subcommand)
     return Response.json(
       ephemeral(
-        'Usa `/codex analyze`, `/codex status`, `/codex stop`, `/codex implement` o `/codex retry`.',
+        'Usa `/codex analyze`, `/codex answer`, `/codex status`, `/codex stop`, `/codex implement` o `/codex retry`.',
       ),
     );
 
@@ -117,6 +133,38 @@ export async function handleCodexCommand(
         '♻️ El reintento se habilitará cuando el analizador de Botuki esté disponible.',
       ),
     );
+
+  if (subcommand === 'answer') {
+    const message = answerText(interaction);
+    if (!message)
+      return Response.json(
+        ephemeral('Debes incluir una respuesta para Botuki.'),
+      );
+    await acknowledge(interaction);
+    if (!(await recordOnce(interaction)))
+      return new Response(null, { status: 202 });
+    try {
+      const answered = await answerCodexQuestion(
+        ticket,
+        actor.id,
+        interaction.id,
+        message,
+      );
+      await followup(
+        interaction,
+        `Respuesta registrada para **${ticket.title}**. ${statusText(answered.run.status)}\n${analysisText(answered.analysis)}`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error inesperado';
+      await followup(
+        interaction,
+        `No fue posible registrar la respuesta: ${errorMessage}`,
+        true,
+      );
+    }
+    return new Response(null, { status: 202 });
+  }
 
   await acknowledge(interaction);
   if (!(await recordOnce(interaction)))
