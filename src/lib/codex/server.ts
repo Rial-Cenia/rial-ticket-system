@@ -337,7 +337,9 @@ export async function retryCodexImplementation(
 ) {
   const run = await getLatestCodexRun(ticket.publicId);
   if (!run) throw new Error('No hay una ejecución para reintentar');
-  if (run.status !== 'FAILED' || !run.retryable)
+  const isLegacyImplementationFailure =
+    run.failureStage === null && run.failureCode === null;
+  if (run.status !== 'FAILED' || (!run.retryable && !isLegacyImplementationFailure))
     throw new Error('La última ejecución no es reintentable');
   if (run.retryCount >= CODEX_MAX_IMPLEMENTATION_RETRIES)
     throw new Error(
@@ -362,7 +364,7 @@ export async function retryCodexImplementation(
   )
     throw new Error('El análisis aprobado ya no es elegible para implementación');
 
-  const { data: retriedRun, error: retryError } = await createAdminClient()
+  const updateQuery = createAdminClient()
     .from('CodexRun')
     .update({
       status: 'ANALYSIS_APPROVED',
@@ -377,12 +379,13 @@ export async function retryCodexImplementation(
     })
     .eq('id', run.id)
     .eq('status', 'FAILED')
-    .eq('retryable', true)
-    .lt('retryCount', CODEX_MAX_IMPLEMENTATION_RETRIES)
-    .select(
-      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
-    )
-    .single();
+    .lt('retryCount', CODEX_MAX_IMPLEMENTATION_RETRIES);
+  const { data: retriedRun, error: retryError } = await (isLegacyImplementationFailure
+    ? updateQuery.is('failureStage', null).is('failureCode', null)
+    : updateQuery.eq('retryable', true)
+  ).select(
+    'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
+  ).single();
   if (retryError) throw new Error(retryError.message);
   await recordEvent(run.id, 'IMPLEMENTATION_RETRY_REQUESTED', actorDiscordId, {
     attemptNumber: retriedRun.attemptNumber,
