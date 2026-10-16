@@ -341,9 +341,8 @@ export async function retryCodexImplementation(
     run.failureStage === null && run.failureCode === null;
   const isKnownVerificationConfigurationFailure =
     run.failureCode === 'VERIFICATION_FAILED' &&
-    run.lastError?.includes(
-      'Vitest cannot be imported in a CommonJS module',
-    );
+    (run.lastError?.includes('Vitest cannot be imported in a CommonJS module') ||
+      run.lastError?.includes("unknown option '--test-match=**/*.spec.ts'"));
   if (
     run.status !== 'FAILED' ||
     (!run.retryable &&
