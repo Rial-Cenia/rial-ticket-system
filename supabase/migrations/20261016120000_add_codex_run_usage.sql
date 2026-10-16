@@ -1,4 +1,4 @@
-create table public."CodexRunUsage" (
+create table if not exists public."CodexRunUsage" (
   id uuid primary key default gen_random_uuid(),
   "runId" uuid not null references public."CodexRun"(id) on delete cascade,
   phase text not null check (phase in ('PREFLIGHT', 'ANALYSIS', 'IMPLEMENTATION', 'RETRY')),
@@ -10,7 +10,7 @@ create table public."CodexRunUsage" (
   "createdAt" timestamptz not null default now()
 );
 
-create index "CodexRunUsage_run_createdAt_idx"
+create index if not exists "CodexRunUsage_run_createdAt_idx"
 on public."CodexRunUsage" ("runId", "createdAt");
 
 alter table public."CodexRunUsage" enable row level security;
