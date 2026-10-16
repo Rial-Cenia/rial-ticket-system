@@ -10,6 +10,10 @@ const eventSchema = z.object({
   runId: z.string().uuid(),
   event: z.enum(['PR_OPENED', 'IMPLEMENTATION_FAILED']),
   pullRequestUrl: z.string().url().optional(),
+  repositoryFullName: z.string().optional(),
+  pullRequestId: z.coerce.number().int().positive().optional(),
+  pullRequestNumber: z.coerce.number().int().positive().optional(),
+  pullRequestTitle: z.string().min(1).optional(),
   error: z.string().max(8000).optional(),
 });
 
@@ -23,6 +27,68 @@ function validSignature(
   const received = signature.replace(/^sha256=/, '');
   if (received.length !== expected.length) return false;
   return timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+}
+
+async function linkPullRequestToTicket(
+  ticketPublicId: string,
+  payload: z.infer<typeof eventSchema>,
+) {
+  if (
+    payload.event !== 'PR_OPENED' ||
+    !payload.repositoryFullName ||
+    !payload.pullRequestId ||
+    !payload.pullRequestNumber ||
+    !payload.pullRequestTitle ||
+    !payload.pullRequestUrl
+  )
+    return;
+
+  const admin = createAdminClient();
+  const { data: repository, error: repositoryError } = await admin
+    .from('GithubRepository')
+    .select('id')
+    .eq('fullName', payload.repositoryFullName)
+    .eq('status', 'ACTIVE')
+    .maybeSingle();
+  if (repositoryError) throw new Error(repositoryError.message);
+  if (!repository) return;
+
+  const { data: pullRequest, error: pullRequestError } = await admin
+    .from('GithubPullRequest')
+    .upsert(
+      {
+        repositoryId: repository.id,
+        githubId: payload.pullRequestId,
+        number: payload.pullRequestNumber,
+        title: payload.pullRequestTitle,
+        state: 'OPEN',
+        isDraft: false,
+        url: payload.pullRequestUrl,
+      },
+      { onConflict: 'githubId' },
+    )
+    .select('id')
+    .single();
+  if (pullRequestError) throw new Error(pullRequestError.message);
+
+  const { data: cards, error: cardsError } = await admin
+    .from('KanbanCard')
+    .select('id')
+    .eq('ticketPublicId', ticketPublicId)
+    .eq('status', 'ACTIVE');
+  if (cardsError) throw new Error(cardsError.message);
+  if (!cards?.length) return;
+
+  const { error: linksError } = await admin
+    .from('KanbanCardGithubPullRequest')
+    .upsert(
+      cards.map((card) => ({
+        cardId: card.id,
+        pullRequestId: pullRequest.id,
+      })),
+      { onConflict: 'cardId,pullRequestId' },
+    );
+  if (linksError) throw new Error(linksError.message);
 }
 
 export async function POST(request: Request) {
@@ -51,6 +117,7 @@ export async function POST(request: Request) {
       .eq('id', payload.runId)
       .single();
     if (runError) throw new Error(runError.message);
+    await linkPullRequestToTicket(run.ticketPublicId as string, payload);
     const ticket = await getTicket(run.ticketPublicId as string);
     if (!ticket?.discordThreadId)
       return Response.json({
