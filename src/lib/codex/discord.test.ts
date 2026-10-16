@@ -121,6 +121,7 @@ describe('Botuki Discord commands', () => {
     expect(mocks.request).toHaveBeenCalledWith(
       expect.objectContaining({ publicId: 'ticket-1' }),
       'user-1',
+      undefined,
     );
     expect(mocks.acknowledge).toHaveBeenCalledOnce();
     expect(mocks.followup).toHaveBeenCalledWith(
@@ -146,7 +147,7 @@ describe('Botuki Discord commands', () => {
       'app-1',
       'token-1',
       expect.objectContaining({
-        content: expect.stringContaining('Implementación encolada'),
+        content: expect.stringContaining('Botuki tomó la quest'),
       }),
     );
   });
@@ -156,7 +157,7 @@ describe('Botuki Discord commands', () => {
       {
         ...interaction,
         data: {
-          name: 'codex',
+          name: 'botuki',
           options: [
             {
               name: 'answer',
@@ -182,24 +183,7 @@ describe('Botuki Discord commands', () => {
       'app-1',
       'token-1',
       expect.objectContaining({
-        content: expect.stringContaining('Respuesta registrada'),
-      }),
-    );
-  });
-
-  it('approves an eligible analysis', async () => {
-    const response = await handleCodexCommand(interaction as never, 'approve');
-
-    expect(response.status).toBe(202);
-    expect(mocks.approve).toHaveBeenCalledWith(
-      expect.objectContaining({ publicId: 'ticket-1' }),
-      'user-1',
-    );
-    expect(mocks.followup).toHaveBeenCalledWith(
-      'app-1',
-      'token-1',
-      expect.objectContaining({
-        content: expect.stringContaining('Análisis aprobado'),
+        content: expect.stringContaining('Respuesta recibida'),
       }),
     );
   });
@@ -216,33 +200,7 @@ describe('Botuki Discord commands', () => {
       'app-1',
       'token-1',
       expect.objectContaining({
-        content: expect.stringContaining('Reintento encolado'),
-      }),
-    );
-  });
-
-  it('shows token usage for the current run', async () => {
-    mocks.latest.mockResolvedValue({ id: 'run-1', status: 'PR_OPENED' });
-    mocks.usage.mockResolvedValue([
-      {
-        phase: 'IMPLEMENTATION',
-        inputTokens: 100,
-        cachedInputTokens: 40,
-        outputTokens: 20,
-        reasoningOutputTokens: 10,
-        totalTokens: 120,
-      },
-    ]);
-
-    const response = await handleCodexCommand(interaction as never, 'usage');
-
-    expect(response.status).toBe(202);
-    expect(mocks.usage).toHaveBeenCalledWith('run-1');
-    expect(mocks.followup).toHaveBeenCalledWith(
-      'app-1',
-      'token-1',
-      expect.objectContaining({
-        content: expect.stringContaining('120 tokens'),
+        content: expect.stringContaining('volvió al ring'),
       }),
     );
   });

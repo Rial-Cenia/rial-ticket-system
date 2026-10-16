@@ -11,6 +11,7 @@ export const ticketKeys = {
   list: (filters: TicketFilters) => ['tickets', 'list', filters] as const,
   discordConversation: (publicId: string) =>
     ['tickets', publicId, 'discord-conversation'] as const,
+  codex: (publicId: string) => ['tickets', publicId, 'codex'] as const,
   kanbans: (publicId: string) => ['tickets', publicId, 'kanbans'] as const,
 };
 
@@ -96,6 +97,15 @@ export function useDiscordConversation(ticket: Ticket | null) {
     queryFn: () => api.fetchDiscordConversation(ticket!.publicId),
     enabled: Boolean(ticket?.discordThreadId),
     staleTime: 30_000,
+  });
+}
+
+export function useTicketCodex(ticket: Ticket | null) {
+  return useQuery({
+    queryKey: ticketKeys.codex(ticket?.publicId ?? ''),
+    queryFn: () => api.fetchTicketCodex(ticket!.publicId),
+    enabled: Boolean(ticket?.publicId),
+    refetchInterval: 30_000,
   });
 }
 

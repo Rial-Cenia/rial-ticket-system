@@ -5,6 +5,7 @@ import type {
   Ticket,
   TicketFilters,
   TicketKanban,
+  TicketCodexRun,
 } from '@/lib/types';
 import type { CreateTicketKanbanCardInput } from '@/lib/schemas';
 
@@ -58,6 +59,10 @@ export function fetchDiscordConversation(publicId: string) {
   return request<DiscordConversation>(
     `/api/tickets/${publicId}/discord-conversation`,
   );
+}
+
+export function fetchTicketCodex(publicId: string) {
+  return request<TicketCodexRun | null>(`/api/tickets/${publicId}/codex`);
 }
 
 export function fetchTicketKanbans(publicId: string) {

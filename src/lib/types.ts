@@ -49,6 +49,24 @@ export interface Ticket {
   updatedAt: string;
 }
 
+export interface TicketCodexRun {
+  id: string;
+  status: string;
+  repositoryFullName: string | null;
+  branchName: string | null;
+  pullRequestUrl: string | null;
+  attemptNumber: number;
+  retryCount: number;
+  lastError: string | null;
+  updatedAt: string;
+  analysis: {
+    decision: string;
+    complexity: string;
+    confidence: number;
+    selectedRepository: string | null;
+  } | null;
+}
+
 export interface TicketImage {
   id: string;
   fileName: string;

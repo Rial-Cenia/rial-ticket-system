@@ -24,7 +24,8 @@ describe('analyzeTicket', () => {
     const result = analyzeTicket(
       {
         title: 'Agregar campo al schema de Prisma',
-        description: 'Crear una migración y actualizar la dependencia del cliente.',
+        description:
+          'Crear una migración y actualizar la dependencia del cliente.',
       },
       NESTOR_CODEX_REPOSITORY_POLICIES,
     );
@@ -49,5 +50,19 @@ describe('analyzeTicket', () => {
     expect(result.decision).toBe('NEEDS_CLARIFICATION');
     expect(result.selectedRepository).toBeNull();
     expect(result.questions).toContain('¿Qué repositorio debe modificarse?');
+  });
+
+  it('honors an explicit repository override for ambiguous tickets', () => {
+    const result = analyzeTicket(
+      {
+        title: 'Notificación falsa en Nestor',
+        description: 'La notificación aparece antes de completar la operación.',
+      },
+      NESTOR_CODEX_REPOSITORY_POLICIES,
+      'frontend',
+    );
+
+    expect(result.selectedRepository).toBe('Rial-Cenia/rial-frontend');
+    expect(result.decision).toBe('ELIGIBLE');
   });
 });

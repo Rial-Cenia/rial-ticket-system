@@ -14,32 +14,35 @@ const API = 'https://discord.com/api/v10';
 
 const commands = [
   {
-    name: 'codex',
+    name: 'botuki',
     description: 'Control Botuki from a Rial ticket thread',
     options: [
-      { type: 1, name: 'analyze', description: 'Request a ticket analysis' },
       {
         type: 1,
-        name: 'status',
-        description: 'Show the current Botuki status',
-      },
-      {
-        type: 1,
-        name: 'usage',
-        description: 'Show Botuki token usage for the current run',
-      },
-      { type: 1, name: 'stop', description: 'Cancel the current Botuki run' },
-      {
-        type: 1,
-        name: 'approve',
-        description: 'Approve an eligible Botuki analysis',
+        name: 'analyze',
+        description: 'Analyze the ticket and select its repository',
+        options: [
+          {
+            type: 3,
+            name: 'repository',
+            description: 'Optional repository override',
+            required: false,
+            choices: [
+              { name: 'frontend', value: 'frontend' },
+              { name: 'backend', value: 'backend' },
+              { name: 'workers', value: 'workers' },
+              { name: 'platform-docker', value: 'platform-docker' },
+            ],
+          },
+        ],
       },
       {
         type: 1,
         name: 'implement',
-        description: 'Start an approved implementation',
+        description: 'Start an eligible implementation',
       },
       { type: 1, name: 'retry', description: 'Retry a finished Botuki run' },
+      { type: 1, name: 'cancel', description: 'Cancel the current Botuki run' },
       {
         type: 1,
         name: 'answer',

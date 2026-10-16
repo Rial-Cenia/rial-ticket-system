@@ -115,10 +115,21 @@ export function selectedPlatform(interaction: DiscordInteraction) {
 
 export function parseApplicationCommand(interaction: DiscordInteraction) {
   const commandName = interaction.data?.name;
-  if (commandName !== 'codex') return null;
+  if (commandName !== 'botuki') return null;
 
   const option = interaction.data?.options?.[0];
   if (!option || typeof option !== 'object') return null;
   const subcommand = (option as { name?: unknown }).name;
-  return typeof subcommand === 'string' ? subcommand : null;
+  if (typeof subcommand !== 'string') return null;
+  const nested = (option as { options?: unknown }).options;
+  const repository = Array.isArray(nested)
+    ? nested.find(
+        (value): value is { name: string; value: string } =>
+          typeof value === 'object' &&
+          value !== null &&
+          (value as { name?: unknown }).name === 'repository' &&
+          typeof (value as { value?: unknown }).value === 'string',
+      )?.value
+    : undefined;
+  return { subcommand, repository };
 }

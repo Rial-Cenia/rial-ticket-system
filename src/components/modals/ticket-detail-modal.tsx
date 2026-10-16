@@ -38,6 +38,7 @@ import {
   ticketKeys,
   useDeleteTicket,
   useDiscordConversation,
+  useTicketCodex,
   useTicketKanbans,
   useUpdateTicket,
 } from '@/hooks/use-tickets';
@@ -84,6 +85,7 @@ function TicketDetailModalContent({
   const update = useUpdateTicket();
   const remove = useDeleteTicket();
   const conversation = useDiscordConversation(ticket);
+  const codex = useTicketCodex(ticket);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(ticket);
   if (!form) return null;
@@ -157,6 +159,7 @@ function TicketDetailModalContent({
             conversation={conversation.data}
             conversationLoading={conversation.isLoading}
             conversationError={conversation.error}
+            codexRun={codex.data}
           />
         )}
       </DialogContent>
@@ -169,11 +172,13 @@ function TicketOverview({
   conversation,
   conversationLoading,
   conversationError,
+  codexRun,
 }: {
   ticket: Ticket;
   conversation?: DiscordConversation;
   conversationLoading: boolean;
   conversationError: Error | null;
+  codexRun: ReturnType<typeof useTicketCodex>['data'];
 }) {
   return (
     <div className="space-y-6">
@@ -200,6 +205,36 @@ function TicketOverview({
       </dl>
 
       <TicketImages ticket={ticket} />
+
+      {codexRun?.pullRequestUrl && (
+        <section className="space-y-3 rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/5 p-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-fuchsia-300">
+              Botuki · Pull Request
+            </p>
+            <h3 className="mt-1 text-sm font-semibold text-white">
+              Implementación vinculada
+            </h3>
+          </div>
+          <div className="grid gap-2 text-sm text-zinc-300 sm:grid-cols-2">
+            <Metadata
+              label="Repositorio"
+              value={codexRun.repositoryFullName ?? '—'}
+            />
+            <Metadata label="Estado" value={codexRun.status} />
+            <Metadata label="Rama" value={codexRun.branchName ?? '—'} />
+            <Metadata label="Intento" value={String(codexRun.attemptNumber)} />
+          </div>
+          <a
+            className="inline-flex items-center gap-2 text-sm font-medium text-fuchsia-300 hover:text-fuchsia-200"
+            href={codexRun.pullRequestUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Abrir Pull Request <ExternalLink className="size-3.5" />
+          </a>
+        </section>
+      )}
 
       <TicketKanbanSection ticket={ticket} />
 

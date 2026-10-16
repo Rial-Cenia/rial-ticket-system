@@ -35,6 +35,7 @@ const schema = z.object({
   BOTUKI_OPERATOR_ROLE_ID: optionalString,
   BOTUKI_RUNNER_URL: optionalString,
   BOTUKI_RUNNER_SHARED_SECRET: optionalString,
+  BOTUKI_TICKETERA_URL: optionalString,
 });
 
 export function getServerEnv() {
@@ -122,5 +123,6 @@ export function getBotukiEnv() {
     ...(required as { [Key in keyof typeof required]: string }),
     runnerUrl: env.BOTUKI_RUNNER_URL,
     runnerSharedSecret: env.BOTUKI_RUNNER_SHARED_SECRET,
+    ticketeraUrl: env.BOTUKI_TICKETERA_URL,
   };
 }

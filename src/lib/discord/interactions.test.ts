@@ -96,15 +96,15 @@ describe('Discord interactions', () => {
 });
 
 describe('Discord application commands', () => {
-  it('parses a codex subcommand', () => {
+  it('parses a Botuki subcommand', () => {
     expect(
       parseApplicationCommand({
-        data: { name: 'codex', options: [{ name: 'analyze', type: 1 }] },
+        data: { name: 'botuki', options: [{ name: 'analyze', type: 1 }] },
       } as never),
-    ).toBe('analyze');
+    ).toEqual({ subcommand: 'analyze', repository: undefined });
   });
 
-  it('ignores commands outside the codex namespace', () => {
+  it('ignores commands outside the Botuki namespace', () => {
     expect(
       parseApplicationCommand({ data: { name: 'help', options: [] } } as never),
     ).toBeNull();

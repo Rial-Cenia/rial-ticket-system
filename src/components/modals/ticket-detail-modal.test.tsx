@@ -38,6 +38,7 @@ vi.mock('@/hooks/use-tickets', () => ({
     error: null,
     isLoading: false,
   }),
+  useTicketCodex: () => ({ data: null, error: null, isLoading: false }),
   useTicketKanbans: () => ({ data: [], error: null }),
 }));
 
