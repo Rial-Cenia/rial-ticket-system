@@ -55,6 +55,38 @@ describe('analyzeTicket', () => {
     expect(result.decision).toBe('NEEDS_CLARIFICATION');
     expect(result.selectedRepository).toBeNull();
     expect(result.questions).toContain('¿Qué repositorio debe modificarse?');
+    expect(result.questions).toHaveLength(1);
+  });
+
+  it('keeps initial clarification focused and short', () => {
+    const result = validateSemanticAnalysis(
+      {
+        decision: 'NEEDS_CLARIFICATION',
+        complexity: 'MEDIUM',
+        confidence: 0.68,
+        repositoryCandidates: [],
+        selectedRepository: null,
+        scope: [],
+        checks: [],
+        risks: ['Risk one', 'Risk two', 'Risk three'],
+        questions: [
+          '¿Qué es Nestor?',
+          '¿Dónde aparece?',
+          '¿Qué timestamp tiene?',
+          '¿Qué metadata cambia?',
+        ],
+        forbiddenChangesDetected: [],
+      },
+      {
+        title: 'Notificación falsa en Nestor',
+        description: 'La notificación aparece antes de completar la operación.',
+      },
+      NESTOR_CODEX_REPOSITORY_POLICIES,
+    );
+
+    expect(result.questions).toHaveLength(3);
+    expect(result.questions).not.toContain('¿Qué es Nestor?');
+    expect(result.risks).toHaveLength(2);
   });
 
   it('honors an explicit repository override for ambiguous tickets', () => {

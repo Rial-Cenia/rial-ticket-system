@@ -92,6 +92,33 @@ function explicitRepository(
   );
 }
 
+const repositoryQuestion = '¿Qué repositorio debe modificarse?';
+
+function conciseQuestions(
+  questions: readonly string[],
+  selectedRepository: string | null,
+  repositoryCandidates: readonly string[],
+) {
+  const normalized = Array.from(
+    new Set(
+      questions
+        .map((question) => question.trim())
+        .filter(Boolean)
+        .filter((question) => !/qué es(?: exactamente)? nestor/i.test(question)),
+    ),
+  );
+  if (!selectedRepository && repositoryCandidates.length === 0) {
+    normalized.unshift(repositoryQuestion);
+  }
+  return Array.from(new Set(normalized)).slice(0, 3);
+}
+
+function conciseRisks(risks: readonly string[]) {
+  return Array.from(
+    new Set(risks.map((risk) => risk.trim()).filter(Boolean)),
+  ).slice(0, 2);
+}
+
 export function analyzeTicket(
   ticket: Pick<Ticket, 'title' | 'description'>,
   policies: readonly CodexRepositoryPolicy[],
@@ -123,7 +150,7 @@ export function analyzeTicket(
       ? 'LOW'
       : 'MEDIUM';
   const questions: string[] = [];
-  if (!selectedRepository) questions.push('¿Qué repositorio debe modificarse?');
+  if (!selectedRepository) questions.push(repositoryQuestion);
   if (!ticket.description.trim())
     questions.push('¿Qué comportamiento se espera y cuál ocurre actualmente?');
   if (repositoryCandidates.length > 1)
@@ -164,8 +191,12 @@ export function analyzeTicket(
     selectedRepository,
     scope,
     checks,
-    risks,
-    questions,
+    risks: conciseRisks(risks),
+    questions: conciseQuestions(
+      questions,
+      selectedRepository,
+      repositoryCandidates,
+    ),
     forbiddenChangesDetected,
   };
 }
@@ -193,11 +224,15 @@ export function createAnalysisFallback(
     ...deterministic,
     decision: 'NEEDS_CLARIFICATION',
     confidence: Math.min(deterministic.confidence, 0.5),
-    questions: [
-      ...deterministic.questions,
-      'Botuki no pudo completar el análisis semántico. Intenta nuevamente o agrega más contexto técnico.',
-    ],
-    risks: [...deterministic.risks, reason],
+    questions: conciseQuestions(
+      [
+        ...deterministic.questions,
+        '¿Puedes compartir el mensaje exacto del error o una captura?',
+      ],
+      deterministic.selectedRepository,
+      deterministic.repositoryCandidates,
+    ),
+    risks: conciseRisks([...deterministic.risks, reason]),
   };
 }
 
@@ -252,13 +287,17 @@ export function validateSemanticAnalysis(
       'El repositorio indicado no coincide con el análisis. Confirma el repositorio a modificar.',
     );
   if (!normalizedSelectedRepository)
-    questions.push('¿Qué repositorio debe modificarse?');
+    questions.push(repositoryQuestion);
   if (selectedPolicy?.implementationEnabled === false)
     risks.push(
       'El repositorio seleccionado no permite implementación automática.',
     );
 
-  const uniqueQuestions = Array.from(new Set(questions));
+  const uniqueQuestions = conciseQuestions(
+    questions,
+    normalizedSelectedRepository,
+    repositoryCandidates,
+  );
   const decision =
     parsed.decision === 'OUT_OF_SCOPE' ||
     selectedPolicy?.implementationEnabled === false
@@ -273,7 +312,7 @@ export function validateSemanticAnalysis(
     repositoryCandidates,
     selectedRepository: normalizedSelectedRepository,
     questions: uniqueQuestions,
-    risks: Array.from(new Set(risks)),
+    risks: conciseRisks(risks),
     forbiddenChangesDetected: [],
   };
 }
