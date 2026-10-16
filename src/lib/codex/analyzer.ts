@@ -3,6 +3,7 @@ import type {
   CodexAnalysisResult,
   CodexRepositoryPolicy,
 } from '@/lib/codex/types';
+import { codexAnalysisResultSchema } from '@/lib/codex/schemas';
 
 const FRONTEND_TERMS =
   /\b(ui|ux|frontend|front-end|front end|página|pagina|componente|botón|boton|formulario|tabla|filtro|estilo|css|react|next\.js|navegador|pantalla|vista|modal|visual|interfaz|cliente)\b/i;
@@ -33,6 +34,15 @@ const forbiddenPatterns = [
   {
     pattern: /\b(secret|secreto|token|credencial|credentials|\.env)\b/i,
     label: 'secret or credential changes',
+  },
+  {
+    pattern:
+      /\b(auth|oauth|autenticación|autenticacion|autorización|autorizacion|permiso|permisos|rol|roles)\b/i,
+    label: 'authentication or permission changes',
+  },
+  {
+    pattern: /\b(integración|integracion|webhook|third[- ]party|tercero)\b/i,
+    label: 'external integration changes',
   },
 ];
 
@@ -157,5 +167,113 @@ export function analyzeTicket(
     risks,
     questions,
     forbiddenChangesDetected,
+  };
+}
+
+export function analyzeDeterministicGuardrail(
+  ticket: Pick<Ticket, 'title' | 'description'>,
+  policies: readonly CodexRepositoryPolicy[],
+  requestedRepository?: string | null,
+): CodexAnalysisResult | null {
+  const deterministic = analyzeTicket(ticket, policies, requestedRepository);
+  if (!deterministic.forbiddenChangesDetected.length) return null;
+  return deterministic;
+}
+
+export function createAnalysisFallback(
+  ticket: Pick<Ticket, 'title' | 'description'>,
+  policies: readonly CodexRepositoryPolicy[],
+  reason: string,
+  requestedRepository?: string | null,
+): CodexAnalysisResult {
+  const deterministic = analyzeTicket(ticket, policies, requestedRepository);
+  if (deterministic.decision === 'OUT_OF_SCOPE') return deterministic;
+
+  return {
+    ...deterministic,
+    decision: 'NEEDS_CLARIFICATION',
+    confidence: Math.min(deterministic.confidence, 0.5),
+    questions: [
+      ...deterministic.questions,
+      'Botuki no pudo completar el análisis semántico. Intenta nuevamente o agrega más contexto técnico.',
+    ],
+    risks: [...deterministic.risks, reason],
+  };
+}
+
+export function validateSemanticAnalysis(
+  value: unknown,
+  ticket: Pick<Ticket, 'title' | 'description'>,
+  policies: readonly CodexRepositoryPolicy[],
+  requestedRepository?: string | null,
+): CodexAnalysisResult {
+  const parsed = codexAnalysisResultSchema.parse(value);
+  const allowedPolicies = policies.filter((policy) => policy.analysisEnabled);
+  const allowedRepositories = new Set(
+    allowedPolicies.map((policy) => policy.fullName),
+  );
+  const forcedRepository = requestedRepository
+    ? explicitRepository(requestedRepository, allowedPolicies)
+    : null;
+  const candidates = Array.from(
+    new Set(
+      parsed.repositoryCandidates.filter((repository) =>
+        allowedRepositories.has(repository),
+      ),
+    ),
+  );
+  const selectedRepository =
+    parsed.selectedRepository &&
+    allowedRepositories.has(parsed.selectedRepository)
+      ? parsed.selectedRepository
+      : null;
+  const deterministicGuardrail = analyzeDeterministicGuardrail(
+    ticket,
+    policies,
+    requestedRepository,
+  );
+  if (deterministicGuardrail) return deterministicGuardrail;
+
+  const repositoryMismatch =
+    Boolean(forcedRepository) && selectedRepository !== forcedRepository;
+  const repositoryCandidates = forcedRepository
+    ? [forcedRepository]
+    : candidates;
+  const normalizedSelectedRepository = repositoryMismatch
+    ? null
+    : (forcedRepository ?? selectedRepository);
+  const selectedPolicy = allowedPolicies.find(
+    (policy) => policy.fullName === normalizedSelectedRepository,
+  );
+  const questions = [...parsed.questions];
+  const risks = [...parsed.risks];
+  if (repositoryMismatch)
+    questions.push(
+      'El repositorio indicado no coincide con el análisis. Confirma el repositorio a modificar.',
+    );
+  if (!normalizedSelectedRepository)
+    questions.push('¿Qué repositorio debe modificarse?');
+  if (selectedPolicy?.implementationEnabled === false)
+    risks.push(
+      'El repositorio seleccionado no permite implementación automática.',
+    );
+
+  const uniqueQuestions = Array.from(new Set(questions));
+  const decision =
+    parsed.decision === 'OUT_OF_SCOPE' ||
+    selectedPolicy?.implementationEnabled === false
+      ? 'OUT_OF_SCOPE'
+      : uniqueQuestions.length
+        ? 'NEEDS_CLARIFICATION'
+        : parsed.decision;
+
+  return {
+    ...parsed,
+    decision,
+    repositoryCandidates,
+    selectedRepository: normalizedSelectedRepository,
+    questions: uniqueQuestions,
+    risks: Array.from(new Set(risks)),
+    forbiddenChangesDetected: [],
   };
 }

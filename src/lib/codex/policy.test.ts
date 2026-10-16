@@ -38,7 +38,7 @@ const frontendPolicy: CodexRepositoryPolicy = {
 describe('Codex policy', () => {
   it('requires a low-complexity analysis with no open questions', () => {
     expect(isEligibleCodexAnalysis(analysis)).toBe(true);
-    expect(isEligibleCodexAnalysis({ ...analysis, confidence: 0.79 })).toBe(
+    expect(isEligibleCodexAnalysis({ ...analysis, confidence: 0.84 })).toBe(
       false,
     );
     expect(

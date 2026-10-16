@@ -2,7 +2,11 @@ import 'server-only';
 import { createHmac } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getBotukiEnv } from '@/lib/env/server';
-import { analyzeTicket } from '@/lib/codex/analyzer';
+import {
+  analyzeDeterministicGuardrail,
+  createAnalysisFallback,
+  validateSemanticAnalysis,
+} from '@/lib/codex/analyzer';
 import {
   canImplementCodexAnalysis,
   canTransitionCodexRun,
@@ -55,6 +59,23 @@ export interface CodexRunUsageRecord {
   totalTokens: number;
   createdAt: string;
 }
+
+interface SemanticAnalysisResponse {
+  analysis: unknown;
+  model: string;
+  promptVersion: string;
+  latencyMs: number;
+  usage: {
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    reasoningOutputTokens: number;
+    totalTokens: number;
+  };
+}
+
+type AnalysisSource =
+  'AI' | 'DETERMINISTIC_GUARDRAIL' | 'DETERMINISTIC_FALLBACK';
 
 const ACTIVE_STATUSES: readonly CodexRunStatus[] = [
   'ANALYZING',
@@ -431,7 +452,45 @@ async function completeCodexAnalysis(
 ) {
   try {
     const policies = await listRepositoryPolicies();
-    const result = analyzeTicket(ticket, policies, requestedRepository);
+    const guardrail = analyzeDeterministicGuardrail(
+      ticket,
+      policies,
+      requestedRepository,
+    );
+    let result: CodexAnalysisResult;
+    let source: AnalysisSource;
+    let semanticResponse: SemanticAnalysisResponse | null = null;
+    let fallbackReason: string | null = null;
+    if (guardrail) {
+      result = guardrail;
+      source = 'DETERMINISTIC_GUARDRAIL';
+    } else {
+      try {
+        semanticResponse = await requestSemanticAnalysis(
+          run.id,
+          requestedRepository,
+        );
+        result = validateSemanticAnalysis(
+          semanticResponse.analysis,
+          ticket,
+          policies,
+          requestedRepository,
+        );
+        source = 'AI';
+      } catch (error) {
+        fallbackReason =
+          error instanceof Error
+            ? error.message
+            : 'Error desconocido del analizador';
+        result = createAnalysisFallback(
+          ticket,
+          policies,
+          'El análisis semántico no estuvo disponible; no se habilitó implementación automática.',
+          requestedRepository,
+        );
+        source = 'DETERMINISTIC_FALLBACK';
+      }
+    }
     const { data, error } = await createAdminClient()
       .from('CodexAnalysis')
       .insert({
@@ -455,6 +514,32 @@ async function completeCodexAnalysis(
       )
       .single();
     if (error) throw new Error(error.message);
+    const invocation = {
+      analysisId: data.id,
+      source,
+      model: semanticResponse?.model ?? null,
+      promptVersion: semanticResponse?.promptVersion ?? null,
+      latencyMs: semanticResponse?.latencyMs ?? null,
+      fallbackReason,
+      response: semanticResponse
+        ? {
+            analysis: semanticResponse.analysis,
+            usage: semanticResponse.usage,
+          }
+        : {},
+    };
+    await createAdminClient()
+      .from('CodexAnalysisInvocation')
+      .insert(invocation);
+    if (semanticResponse) {
+      await createAdminClient()
+        .from('CodexRunUsage')
+        .insert({
+          runId: run.id,
+          phase: 'ANALYSIS',
+          ...semanticResponse.usage,
+        });
+    }
     const selectedPolicy = policies.find(
       (policy) => policy.fullName === result.selectedRepository,
     );
@@ -491,6 +576,8 @@ async function completeCodexAnalysis(
       confidence: result.confidence,
       selectedRepository: result.selectedRepository,
       automaticallyApproved: automaticallyEligible,
+      source,
+      ...(fallbackReason ? { fallbackReason } : {}),
     });
     if (automaticallyEligible)
       await recordEvent(run.id, 'ANALYSIS_APPROVED', actorDiscordId, {
@@ -513,6 +600,56 @@ async function completeCodexAnalysis(
     });
     throw error;
   }
+}
+
+async function requestSemanticAnalysis(
+  runId: string,
+  requestedRepository: string | null,
+): Promise<SemanticAnalysisResponse> {
+  const { analysisRunnerUrl, runnerSharedSecret } = getBotukiEnv();
+  if (!analysisRunnerUrl || !runnerSharedSecret)
+    throw new Error('El runner de análisis semántico no está configurado');
+  const payload = JSON.stringify({ runId, requestedRepository });
+  const signature = createHmac('sha256', runnerSharedSecret)
+    .update(payload)
+    .digest('hex');
+  let response: Response;
+  try {
+    response = await fetch(analysisRunnerUrl, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-botuki-analysis-signature': signature,
+      },
+      body: payload,
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch {
+    throw new Error(
+      'No fue posible conectar con el runner de análisis semántico',
+    );
+  }
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 300);
+    throw new Error(
+      `El runner de análisis semántico respondió ${response.status}${detail ? `: ${detail}` : ''}`,
+    );
+  }
+  const value = (await response.json()) as Partial<SemanticAnalysisResponse>;
+  if (
+    !value ||
+    typeof value.model !== 'string' ||
+    typeof value.promptVersion !== 'string' ||
+    typeof value.latencyMs !== 'number' ||
+    !value.usage ||
+    !Object.values(value.usage).every(
+      (token) => typeof token === 'number' && token >= 0,
+    )
+  )
+    throw new Error(
+      'El runner de análisis semántico devolvió una respuesta inválida',
+    );
+  return value as SemanticAnalysisResponse;
 }
 
 export async function cancelCodexRun(

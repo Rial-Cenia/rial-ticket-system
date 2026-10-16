@@ -4,7 +4,7 @@ import type {
   CodexRunStatus,
 } from '@/lib/codex/types';
 
-export const CODEX_MIN_ANALYSIS_CONFIDENCE = 0.8;
+export const CODEX_MIN_ANALYSIS_CONFIDENCE = 0.85;
 
 function normalizeRepositoryName(repositoryName: string) {
   return repositoryName.trim().toLowerCase();

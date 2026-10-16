@@ -34,6 +34,7 @@ const schema = z.object({
   BOTUKI_GITHUB_APP_PRIVATE_KEY: optionalString,
   BOTUKI_OPERATOR_ROLE_ID: optionalString,
   BOTUKI_RUNNER_URL: optionalString,
+  BOTUKI_ANALYSIS_RUNNER_URL: optionalString,
   BOTUKI_RUNNER_SHARED_SECRET: optionalString,
   BOTUKI_TICKETERA_URL: optionalString,
 });
@@ -122,6 +123,7 @@ export function getBotukiEnv() {
   return {
     ...(required as { [Key in keyof typeof required]: string }),
     runnerUrl: env.BOTUKI_RUNNER_URL,
+    analysisRunnerUrl: env.BOTUKI_ANALYSIS_RUNNER_URL,
     runnerSharedSecret: env.BOTUKI_RUNNER_SHARED_SECRET,
     ticketeraUrl: env.BOTUKI_TICKETERA_URL,
   };
