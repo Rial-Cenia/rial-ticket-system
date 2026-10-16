@@ -13,6 +13,7 @@ import {
   getCodexRunUsage,
   answerCodexQuestion,
   requestCodexAnalysis,
+  retryCodexImplementation,
   startCodexImplementation,
 } from '@/lib/codex/server';
 import { getBotukiEnv } from '@/lib/env/server';
@@ -185,12 +186,27 @@ export async function handleCodexCommand(
     return new Response(null, { status: 202 });
   }
 
-  if (subcommand === 'retry')
-    return Response.json(
-      ephemeral(
-        '♻️ El reintento se habilitará cuando el analizador de Botuki esté disponible.',
-      ),
-    );
+  if (subcommand === 'retry') {
+    await acknowledge(interaction);
+    if (!(await recordOnce(interaction)))
+      return new Response(null, { status: 202 });
+    try {
+      const retried = await retryCodexImplementation(ticket, actor.id);
+      await followup(
+        interaction,
+        `♻️ Reintento encolado para **${ticket.title}** usando el análisis aprobado. Intento: **${retried.run.attemptNumber}**. Repositorio: **${retried.analysis.selectedRepository}**.`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error inesperado';
+      await followup(
+        interaction,
+        `No fue posible reintentar la implementación: ${errorMessage}`,
+        true,
+      );
+    }
+    return new Response(null, { status: 202 });
+  }
 
   if (subcommand === 'approve') {
     await acknowledge(interaction);

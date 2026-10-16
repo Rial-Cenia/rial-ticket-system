@@ -23,6 +23,8 @@ export type CodexRunStatus = (typeof CODEX_RUN_STATUSES)[number];
 export type CodexAnalysisDecision = (typeof CODEX_ANALYSIS_DECISIONS)[number];
 export type CodexComplexity = (typeof CODEX_COMPLEXITIES)[number];
 
+export const CODEX_MAX_IMPLEMENTATION_RETRIES = 3;
+
 export interface CodexRepositoryPolicy {
   fullName: string;
   baseBranch: string;

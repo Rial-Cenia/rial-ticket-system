@@ -12,6 +12,7 @@ import type {
   CodexRepositoryPolicy,
   CodexRunStatus,
 } from '@/lib/codex/types';
+import { CODEX_MAX_IMPLEMENTATION_RETRIES } from '@/lib/codex/types';
 import type { Ticket } from '@/lib/types';
 
 export interface CodexRunRecord {
@@ -21,6 +22,11 @@ export interface CodexRunRecord {
   repositoryFullName: string | null;
   pullRequestUrl: string | null;
   lastError: string | null;
+  retryCount: number;
+  attemptNumber: number;
+  failureStage: string | null;
+  failureCode: string | null;
+  retryable: boolean;
   createdByDiscordId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +38,7 @@ export interface CodexAnalysisRecord extends CodexAnalysisResult {
   ticketTitle: string;
   ticketDescription: string;
   ticketUpdatedAt: string;
+  approvedAt: string | null;
   createdAt: string;
 }
 
@@ -104,7 +111,7 @@ export async function getLatestCodexRun(ticketPublicId: string) {
   const { data, error } = await createAdminClient()
     .from('CodexRun')
     .select(
-      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
+      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
     )
     .eq('ticketPublicId', ticketPublicId)
     .order('createdAt', { ascending: false })
@@ -145,7 +152,7 @@ export async function requestCodexAnalysis(
       createdByDiscordId: actorDiscordId,
     })
     .select(
-      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
+      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
     )
     .single();
   if (error) throw new Error(error.message);
@@ -246,7 +253,7 @@ export async function approveCodexAnalysis(
     .eq('id', run.id)
     .eq('status', 'WAITING_FOR_USER')
     .select(
-      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
+      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
     )
     .single();
   if (runError) throw new Error(runError.message);
@@ -324,6 +331,66 @@ export async function startCodexImplementation(
   return { run, analysis };
 }
 
+export async function retryCodexImplementation(
+  ticket: Ticket,
+  actorDiscordId: string,
+) {
+  const run = await getLatestCodexRun(ticket.publicId);
+  if (!run) throw new Error('No hay una ejecución para reintentar');
+  if (run.status !== 'FAILED' || !run.retryable)
+    throw new Error('La última ejecución no es reintentable');
+  if (run.retryCount >= CODEX_MAX_IMPLEMENTATION_RETRIES)
+    throw new Error(
+      `Se alcanzó el máximo de ${CODEX_MAX_IMPLEMENTATION_RETRIES} reintentos`,
+    );
+
+  const analysis = await getLatestCodexAnalysis(run.id);
+  if (!analysis || !analysis.approvedAt)
+    throw new Error('El análisis aprobado no está disponible para reintentar');
+
+  const { data: policy, error: policyError } = await createAdminClient()
+    .from('CodexRepositoryPolicy')
+    .select(
+      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+    )
+    .eq('fullName', analysis.selectedRepository)
+    .maybeSingle();
+  if (policyError) throw new Error(policyError.message);
+  if (
+    !policy ||
+    !canImplementCodexAnalysis(analysis, policy as CodexRepositoryPolicy)
+  )
+    throw new Error('El análisis aprobado ya no es elegible para implementación');
+
+  const { data: retriedRun, error: retryError } = await createAdminClient()
+    .from('CodexRun')
+    .update({
+      status: 'ANALYSIS_APPROVED',
+      retryCount: run.retryCount + 1,
+      attemptNumber: run.attemptNumber + 1,
+      failureStage: null,
+      failureCode: null,
+      retryable: false,
+      lastError: null,
+      pullRequestUrl: null,
+      branchName: null,
+    })
+    .eq('id', run.id)
+    .eq('status', 'FAILED')
+    .eq('retryable', true)
+    .lt('retryCount', CODEX_MAX_IMPLEMENTATION_RETRIES)
+    .select(
+      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
+    )
+    .single();
+  if (retryError) throw new Error(retryError.message);
+  await recordEvent(run.id, 'IMPLEMENTATION_RETRY_REQUESTED', actorDiscordId, {
+    attemptNumber: retriedRun.attemptNumber,
+    retryCount: retriedRun.retryCount,
+  });
+  return await startCodexImplementation(ticket, actorDiscordId);
+}
+
 async function completeCodexAnalysis(
   run: CodexRunRecord,
   ticket: Ticket,
@@ -361,7 +428,7 @@ async function completeCodexAnalysis(
       .eq('id', run.id)
       .in('status', ['ANALYZING', 'WAITING_FOR_USER'])
       .select(
-        'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
+        'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
       )
       .single();
     if (updateError) throw new Error(updateError.message);
@@ -404,7 +471,7 @@ export async function cancelCodexRun(
     .eq('id', run.id)
     .eq('status', run.status)
     .select(
-      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, createdByDiscordId, createdAt, updatedAt',
+      'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
     )
     .single();
   if (error) throw new Error(error.message);

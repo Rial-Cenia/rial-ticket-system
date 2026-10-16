@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   approve: vi.fn(),
   cancel: vi.fn(),
   startImplementation: vi.fn(),
+  retryImplementation: vi.fn(),
 }));
 
 vi.mock('@/lib/discord/client', () => ({
@@ -37,6 +38,7 @@ vi.mock('@/lib/codex/server', () => ({
   approveCodexAnalysis: mocks.approve,
   cancelCodexRun: mocks.cancel,
   startCodexImplementation: mocks.startImplementation,
+  retryCodexImplementation: mocks.retryImplementation,
 }));
 
 import { handleCodexCommand } from '@/lib/codex/discord';
@@ -93,6 +95,10 @@ describe('Botuki Discord commands', () => {
     });
     mocks.startImplementation.mockResolvedValue({
       run: { status: 'ANALYSIS_APPROVED' },
+      analysis: { selectedRepository: 'Rial-Cenia/rial-frontend' },
+    });
+    mocks.retryImplementation.mockResolvedValue({
+      run: { status: 'ANALYSIS_APPROVED', attemptNumber: 2 },
       analysis: { selectedRepository: 'Rial-Cenia/rial-frontend' },
     });
     mocks.acknowledge.mockResolvedValue(undefined);
@@ -194,6 +200,23 @@ describe('Botuki Discord commands', () => {
       'token-1',
       expect.objectContaining({
         content: expect.stringContaining('Análisis aprobado'),
+      }),
+    );
+  });
+
+  it('retries a failed implementation using the approved analysis', async () => {
+    const response = await handleCodexCommand(interaction as never, 'retry');
+
+    expect(response.status).toBe(202);
+    expect(mocks.retryImplementation).toHaveBeenCalledWith(
+      expect.objectContaining({ publicId: 'ticket-1' }),
+      'user-1',
+    );
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app-1',
+      'token-1',
+      expect.objectContaining({
+        content: expect.stringContaining('Reintento encolado'),
       }),
     );
   });
