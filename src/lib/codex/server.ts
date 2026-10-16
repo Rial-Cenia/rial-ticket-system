@@ -339,7 +339,17 @@ export async function retryCodexImplementation(
   if (!run) throw new Error('No hay una ejecución para reintentar');
   const isLegacyImplementationFailure =
     run.failureStage === null && run.failureCode === null;
-  if (run.status !== 'FAILED' || (!run.retryable && !isLegacyImplementationFailure))
+  const isKnownVerificationConfigurationFailure =
+    run.failureCode === 'VERIFICATION_FAILED' &&
+    run.lastError?.includes(
+      'Vitest cannot be imported in a CommonJS module',
+    );
+  if (
+    run.status !== 'FAILED' ||
+    (!run.retryable &&
+      !isLegacyImplementationFailure &&
+      !isKnownVerificationConfigurationFailure)
+  )
     throw new Error('La última ejecución no es reintentable');
   if (run.retryCount >= CODEX_MAX_IMPLEMENTATION_RETRIES)
     throw new Error(
@@ -382,7 +392,11 @@ export async function retryCodexImplementation(
     .lt('retryCount', CODEX_MAX_IMPLEMENTATION_RETRIES);
   const { data: retriedRun, error: retryError } = await (isLegacyImplementationFailure
     ? updateQuery.is('failureStage', null).is('failureCode', null)
-    : updateQuery.eq('retryable', true)
+    : isKnownVerificationConfigurationFailure
+      ? updateQuery
+          .eq('failureCode', 'VERIFICATION_FAILED')
+          .eq('retryable', false)
+      : updateQuery.eq('retryable', true)
   ).select(
     'id, ticketPublicId, status, repositoryFullName, pullRequestUrl, lastError, retryCount, attemptNumber, failureStage, failureCode, retryable, createdByDiscordId, createdAt, updatedAt',
   ).single();
