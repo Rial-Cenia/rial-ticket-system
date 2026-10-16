@@ -35,6 +35,18 @@ export interface CodexAnalysisRecord extends CodexAnalysisResult {
   createdAt: string;
 }
 
+export interface CodexRunUsageRecord {
+  id: string;
+  runId: string;
+  phase: string;
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningOutputTokens: number;
+  totalTokens: number;
+  createdAt: string;
+}
+
 const ACTIVE_STATUSES: readonly CodexRunStatus[] = [
   'ANALYZING',
   'WAITING_FOR_USER',
@@ -100,6 +112,18 @@ export async function getLatestCodexRun(ticketPublicId: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   return (data as CodexRunRecord | null) ?? null;
+}
+
+export async function getCodexRunUsage(runId: string) {
+  const { data, error } = await createAdminClient()
+    .from('CodexRunUsage')
+    .select(
+      'id, runId, phase, inputTokens, cachedInputTokens, outputTokens, reasoningOutputTokens, totalTokens, createdAt',
+    )
+    .eq('runId', runId)
+    .order('createdAt');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CodexRunUsageRecord[];
 }
 
 export async function requestCodexAnalysis(

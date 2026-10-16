@@ -10,6 +10,7 @@ import {
   approveCodexAnalysis,
   getLatestCodexAnalysis,
   getLatestCodexRun,
+  getCodexRunUsage,
   answerCodexQuestion,
   requestCodexAnalysis,
   startCodexImplementation,
@@ -94,6 +95,45 @@ function answerText(interaction: DiscordInteraction) {
   return message?.value.trim() || null;
 }
 
+function usageText(
+  usage: Array<{
+    phase: string;
+    inputTokens: number;
+    cachedInputTokens: number;
+    outputTokens: number;
+    reasoningOutputTokens: number;
+    totalTokens: number;
+  }>,
+) {
+  if (!usage.length)
+    return 'Botuki todavía no tiene consumo registrado para esta ejecución.';
+  const total = usage.reduce(
+    (sum, item) => ({
+      inputTokens: sum.inputTokens + item.inputTokens,
+      cachedInputTokens: sum.cachedInputTokens + item.cachedInputTokens,
+      outputTokens: sum.outputTokens + item.outputTokens,
+      reasoningOutputTokens:
+        sum.reasoningOutputTokens + item.reasoningOutputTokens,
+      totalTokens: sum.totalTokens + item.totalTokens,
+    }),
+    {
+      inputTokens: 0,
+      cachedInputTokens: 0,
+      outputTokens: 0,
+      reasoningOutputTokens: 0,
+      totalTokens: 0,
+    },
+  );
+  const phases = usage
+    .map((item) => `${item.phase}: ${item.totalTokens.toLocaleString('en-US')}`)
+    .join(' · ');
+  return [
+    `Consumo de Botuki: **${total.totalTokens.toLocaleString('en-US')} tokens**.`,
+    `Input: ${total.inputTokens.toLocaleString('en-US')} · Cached input: ${total.cachedInputTokens.toLocaleString('en-US')} · Output: ${total.outputTokens.toLocaleString('en-US')} · Reasoning: ${total.reasoningOutputTokens.toLocaleString('en-US')}.`,
+    `Por fase: ${phases}.`,
+  ].join('\n');
+}
+
 export async function handleCodexCommand(
   interaction: DiscordInteraction,
   subcommand: string | null,
@@ -101,7 +141,7 @@ export async function handleCodexCommand(
   if (!subcommand)
     return Response.json(
       ephemeral(
-        'Usa `/codex analyze`, `/codex answer`, `/codex approve`, `/codex status`, `/codex stop`, `/codex implement` o `/codex retry`.',
+        'Usa `/codex analyze`, `/codex answer`, `/codex approve`, `/codex status`, `/codex usage`, `/codex stop`, `/codex implement` o `/codex retry`.',
       ),
     );
 
@@ -211,6 +251,16 @@ export async function handleCodexCommand(
     return new Response(null, { status: 202 });
   try {
     const run = await getLatestCodexRun(ticket.publicId);
+    if (subcommand === 'usage') {
+      await followup(
+        interaction,
+        run
+          ? usageText(await getCodexRunUsage(run.id))
+          : 'Botuki aún no tiene una ejecución para este ticket.',
+      );
+      return new Response(null, { status: 202 });
+    }
+
     if (subcommand === 'status') {
       const analysis = run ? await getLatestCodexAnalysis(run.id) : null;
       await followup(

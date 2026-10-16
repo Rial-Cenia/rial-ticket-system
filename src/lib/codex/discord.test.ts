@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   ticket: vi.fn(),
   latest: vi.fn(),
   latestAnalysis: vi.fn(),
+  usage: vi.fn(),
   request: vi.fn(),
   answer: vi.fn(),
   approve: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock('@/lib/tickets/server', () => ({
 vi.mock('@/lib/codex/server', () => ({
   getLatestCodexRun: mocks.latest,
   getLatestCodexAnalysis: mocks.latestAnalysis,
+  getCodexRunUsage: mocks.usage,
   requestCodexAnalysis: mocks.request,
   answerCodexQuestion: mocks.answer,
   approveCodexAnalysis: mocks.approve,
@@ -62,6 +64,7 @@ describe('Botuki Discord commands', () => {
     });
     mocks.latest.mockResolvedValue(null);
     mocks.latestAnalysis.mockResolvedValue(null);
+    mocks.usage.mockResolvedValue([]);
     mocks.request.mockResolvedValue({
       run: { status: 'WAITING_FOR_USER' },
       analysis: {
@@ -191,6 +194,32 @@ describe('Botuki Discord commands', () => {
       'token-1',
       expect.objectContaining({
         content: expect.stringContaining('Análisis aprobado'),
+      }),
+    );
+  });
+
+  it('shows token usage for the current run', async () => {
+    mocks.latest.mockResolvedValue({ id: 'run-1', status: 'PR_OPENED' });
+    mocks.usage.mockResolvedValue([
+      {
+        phase: 'IMPLEMENTATION',
+        inputTokens: 100,
+        cachedInputTokens: 40,
+        outputTokens: 20,
+        reasoningOutputTokens: 10,
+        totalTokens: 120,
+      },
+    ]);
+
+    const response = await handleCodexCommand(interaction as never, 'usage');
+
+    expect(response.status).toBe(202);
+    expect(mocks.usage).toHaveBeenCalledWith('run-1');
+    expect(mocks.followup).toHaveBeenCalledWith(
+      'app-1',
+      'token-1',
+      expect.objectContaining({
+        content: expect.stringContaining('120 tokens'),
       }),
     );
   });

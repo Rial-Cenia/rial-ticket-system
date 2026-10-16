@@ -23,6 +23,11 @@ const commands = [
         name: 'status',
         description: 'Show the current Botuki status',
       },
+      {
+        type: 1,
+        name: 'usage',
+        description: 'Show Botuki token usage for the current run',
+      },
       { type: 1, name: 'stop', description: 'Cancel the current Botuki run' },
       {
         type: 1,
