@@ -268,6 +268,7 @@ export function validateSemanticAnalysis(
     requestedRepository,
   );
   if (deterministicGuardrail) return deterministicGuardrail;
+  const deterministicHint = analyzeTicket(ticket, policies, requestedRepository);
 
   const repositoryMismatch =
     Boolean(forcedRepository) && selectedRepository !== forcedRepository;
@@ -280,6 +281,12 @@ export function validateSemanticAnalysis(
   const selectedPolicy = allowedPolicies.find(
     (policy) => policy.fullName === normalizedSelectedRepository,
   );
+  const hasSafeLowComplexityEvidence =
+    normalizedSelectedRepository !== null &&
+    normalizedSelectedRepository === deterministicHint.selectedRepository &&
+    deterministicHint.complexity === 'LOW' &&
+    deterministicHint.forbiddenChangesDetected.length === 0 &&
+    parsed.complexity === 'LOW';
   const questions = [...parsed.questions];
   const risks = [...parsed.risks];
   if (repositoryMismatch)
@@ -298,21 +305,29 @@ export function validateSemanticAnalysis(
     normalizedSelectedRepository,
     repositoryCandidates,
   );
+  const blockingQuestions = hasSafeLowComplexityEvidence
+    ? []
+    : uniqueQuestions;
   const decision =
     parsed.decision === 'OUT_OF_SCOPE' ||
     selectedPolicy?.implementationEnabled === false
       ? 'OUT_OF_SCOPE'
-      : uniqueQuestions.length
+      : blockingQuestions.length
         ? 'NEEDS_CLARIFICATION'
-        : parsed.decision;
+        : hasSafeLowComplexityEvidence
+          ? 'ELIGIBLE'
+          : parsed.decision;
 
   return {
     ...parsed,
     decision,
+    confidence: hasSafeLowComplexityEvidence
+      ? Math.max(parsed.confidence, deterministicHint.confidence)
+      : parsed.confidence,
     repositoryCandidates,
     selectedRepository: normalizedSelectedRepository,
-    questions: uniqueQuestions,
-    risks: conciseRisks(risks),
+    questions: blockingQuestions,
+    risks: hasSafeLowComplexityEvidence ? [] : conciseRisks(risks),
     forbiddenChangesDetected: [],
   };
 }

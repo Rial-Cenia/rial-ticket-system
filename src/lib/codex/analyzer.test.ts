@@ -165,4 +165,40 @@ describe('analyzeTicket', () => {
       selectedRepository: null,
     });
   });
+
+  it('does not block a clearly scoped low-complexity ticket with optional AI questions', () => {
+    const result = validateSemanticAnalysis(
+      {
+        decision: 'NEEDS_CLARIFICATION',
+        complexity: 'LOW',
+        confidence: 0.68,
+        repositoryCandidates: ['Rial-Cenia/rial-frontend'],
+        selectedRepository: 'Rial-Cenia/rial-frontend',
+        scope: ['src/'],
+        checks: ['Run frontend tests'],
+        risks: ['Potential validation regression'],
+        questions: [
+          '¿Dónde aparece la alerta?',
+          '¿Existe un código HTTP?',
+          '¿Puedes compartir un archivo de ejemplo?',
+        ],
+        forbiddenChangesDetected: [],
+      },
+      {
+        title: 'Notificación falsa en Nestor',
+        description:
+          'En frontend, la notificación aparece antes de completar el upload.',
+      },
+      NESTOR_CODEX_REPOSITORY_POLICIES,
+    );
+
+    expect(result).toMatchObject({
+      decision: 'ELIGIBLE',
+      complexity: 'LOW',
+      confidence: 0.9,
+      selectedRepository: 'Rial-Cenia/rial-frontend',
+      questions: [],
+      risks: [],
+    });
+  });
 });
