@@ -103,6 +103,73 @@ describe('analyzeTicket', () => {
     expect(result.decision).toBe('ELIGIBLE');
   });
 
+  it.each([
+    ['playground', 'RIAL-AI/Playground'],
+    ['pg', 'RIAL-AI/Playground'],
+    ['pipelines', 'Rial-Cenia/pipelines'],
+    ['pipeline-tester', 'Rial-Cenia/pipeline-tester'],
+    ['modal-workers', 'Rial-Cenia/modal-workers'],
+    ['workers', 'Rial-Cenia/rial-workers'],
+  ])(
+    'maps the %s repository override to %s',
+    (requestedRepository, selectedRepository) => {
+      const result = analyzeTicket(
+        {
+          title: 'Corregir texto del botón',
+          description: 'El texto del botón está incorrecto.',
+        },
+        NESTOR_CODEX_REPOSITORY_POLICIES,
+        requestedRepository,
+      );
+
+      expect(result.selectedRepository).toBe(selectedRepository);
+      expect(result.decision).toBe('ELIGIBLE');
+    },
+  );
+
+  it('selects the Playground space when the ticket names it', () => {
+    const result = analyzeTicket(
+      {
+        title: 'Texto incorrecto en el playground',
+        description:
+          'El botón de try-on del playground muestra un label viejo.',
+      },
+      NESTOR_CODEX_REPOSITORY_POLICIES,
+    );
+
+    expect(result).toMatchObject({
+      decision: 'ELIGIBLE',
+      complexity: 'LOW',
+      selectedRepository: 'RIAL-AI/Playground',
+      scope: expect.arrayContaining(['interfaces/', 'pipelines/']),
+    });
+  });
+
+  it('routes pipeline bugs to the shared pipelines repository', () => {
+    const result = analyzeTicket(
+      {
+        title: 'Corregir error en el pipeline de tryon',
+        description: 'El pipeline de tryon falla al recortar la imagen.',
+      },
+      NESTOR_CODEX_REPOSITORY_POLICIES,
+    );
+
+    expect(result.repositoryCandidates).toEqual(['Rial-Cenia/pipelines']);
+    expect(result.selectedRepository).toBe('Rial-Cenia/pipelines');
+  });
+
+  it('does not confuse modal-workers with the Cloud Functions workers', () => {
+    const result = analyzeTicket(
+      {
+        title: 'Corregir error en modal-workers',
+        description: 'El worker de sapiens devuelve la máscara invertida.',
+      },
+      NESTOR_CODEX_REPOSITORY_POLICIES,
+    );
+
+    expect(result.selectedRepository).toBe('Rial-Cenia/modal-workers');
+  });
+
   it('keeps database changes out of the semantic analysis path', () => {
     const result = analyzeDeterministicGuardrail(
       {

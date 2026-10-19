@@ -10,7 +10,14 @@ const FRONTEND_TERMS =
 const BACKEND_TERMS =
   /\b(api|backend|back-end|back end|endpoint|nestjs|nest|controller|service|prisma|base de datos|database|http|rest|servidor|autenticación|autorización|query|ruta|route)\b/i;
 const WORKER_TERMS =
-  /\b(worker|workers|cola|queue|cloud task|cloud function|scheduler|job|background|procesamiento|asíncrono|asincrono|cron|tarea programada|pipeline)\b/i;
+  /\b(worker|workers|cola|queue|cloud task|cloud function|scheduler|job|background|procesamiento|asíncrono|asincrono|cron|tarea programada)\b/i;
+const PLAYGROUND_TERMS = /\b(playground|gradio|hugging ?face|hf space)\b/i;
+const PIPELINE_TERMS =
+  /\b(pipeline|pipelines|tryon|try-on|try on|upscale|upscaling|inpaint|inpainting|prompt engine|generacion de imagenes|generacion de video)\b/i;
+const PIPELINE_TESTER_TERMS =
+  /\b(pipelinejsons|pipeline_json_generator|pipeline_abc|pipeline tester)\b/i;
+const MODAL_WORKER_TERMS =
+  /\b(modal app|gpu|h100|sapiens|birefnet|lama|cold start)\b/i;
 const HIGH_COMPLEXITY_TERMS =
   /\b(arquitectura|migración|migracion|infraestructura|terraform|docker|deploy|despliegue|seguridad|autenticación|autenticacion|autorización|autorizacion|database|base de datos|prisma|schema|esquema|dependencia|dependencias|refactor(?:ización|izacion)?|rebuild|reescribir)\b/i;
 const LOW_COMPLEXITY_TERMS =
@@ -58,10 +65,20 @@ function repositoryMatches(text: string, policy: CodexRepositoryPolicy) {
   if (name.endsWith('/rial-frontend')) return FRONTEND_TERMS.test(text);
   if (name.endsWith('/rial-backend')) return BACKEND_TERMS.test(text);
   if (name.endsWith('/rial-workers')) return WORKER_TERMS.test(text);
+  if (name.endsWith('/playground')) return PLAYGROUND_TERMS.test(text);
+  if (name.endsWith('/pipelines')) return PIPELINE_TERMS.test(text);
+  if (name.endsWith('/pipeline-tester'))
+    return PIPELINE_TESTER_TERMS.test(text);
+  if (name.endsWith('/modal-workers')) return MODAL_WORKER_TERMS.test(text);
   return false;
 }
 
 const repositoryAliases: Record<string, string> = {
+  'pipeline-tester': 'pipeline-tester',
+  'modal-workers': 'modal-workers',
+  playground: 'playground',
+  pg: 'playground',
+  pipelines: 'pipelines',
   frontend: 'rial-frontend',
   'front-end': 'rial-frontend',
   'front end': 'rial-frontend',
@@ -293,8 +310,7 @@ export function validateSemanticAnalysis(
     questions.push(
       'El repositorio indicado no coincide con el análisis. Confirma el repositorio a modificar.',
     );
-  if (!normalizedSelectedRepository)
-    questions.push(repositoryQuestion);
+  if (!normalizedSelectedRepository) questions.push(repositoryQuestion);
   if (selectedPolicy?.implementationEnabled === false)
     risks.push(
       'El repositorio seleccionado no permite implementación automática.',
@@ -305,9 +321,7 @@ export function validateSemanticAnalysis(
     normalizedSelectedRepository,
     repositoryCandidates,
   );
-  const blockingQuestions = hasSafeLowComplexityEvidence
-    ? []
-    : uniqueQuestions;
+  const blockingQuestions = hasSafeLowComplexityEvidence ? [] : uniqueQuestions;
   const decision =
     parsed.decision === 'OUT_OF_SCOPE' ||
     selectedPolicy?.implementationEnabled === false
