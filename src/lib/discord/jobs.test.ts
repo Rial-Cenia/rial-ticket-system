@@ -149,6 +149,27 @@ describe('Discord outbox jobs', () => {
     });
   });
 
+  it('menciona a la plataforma, no al creador, al notificar una PR de Botuki', async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: [
+          job('SEND_THREAD_MESSAGE', {
+            threadId: 'thread-1',
+            content: 'La PR está lista.',
+            notifyPlatform: true,
+          }),
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(processOutboxJobs()).resolves.toMatchObject({ delivered: 1 });
+    expect(mocks.sendThreadMessage).toHaveBeenCalledWith('thread-1', {
+      content: '<@&platform-role> La PR está lista.',
+      allowed_mentions: { parse: [], roles: ['platform-role'] },
+    });
+  });
+
   it('recupera y renombra un thread con el formato legacy', async () => {
     mocks.getTicket.mockResolvedValue({ ...ticket, discordThreadId: null });
     mocks.findTicketThread.mockResolvedValueOnce(null).mockResolvedValueOnce({

@@ -143,7 +143,11 @@ export async function POST(request: Request) {
       .insert({
         ticketPublicId: ticket.publicId,
         type: 'SEND_THREAD_MESSAGE',
-        payload: { threadId: ticket.discordThreadId, content },
+        payload: {
+          threadId: ticket.discordThreadId,
+          content,
+          ...(payload.event === 'PR_OPENED' ? { notifyPlatform: true } : {}),
+        },
       });
     if (outboxError) throw new Error(outboxError.message);
     const { error: eventInsertError } = await createAdminClient()

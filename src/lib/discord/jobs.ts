@@ -23,6 +23,7 @@ const messageJobSchema = z.object({
   threadId: z.string(),
   content: z.string().min(1).max(2000),
   notifyTicketeraAdmins: z.boolean().optional(),
+  notifyPlatform: z.boolean().optional(),
 });
 
 async function getPlatformRoleId(
@@ -138,13 +139,20 @@ async function processJob(job: OutboxJob) {
 
     const payload = messageJobSchema.parse(job.payload);
     if (ticket) await renameThread(payload.threadId, ticketThreadName(ticket));
-    const creatorId = ticket?.createdByDiscordId ?? null;
+    const creatorId = payload.notifyPlatform
+      ? null
+      : (ticket?.createdByDiscordId ?? null);
+    const platformRoleId =
+      payload.notifyPlatform && ticket?.platform
+        ? await getPlatformRoleId(ticket.platform)
+        : null;
     const ticketeraAdminRoleId =
       payload.notifyTicketeraAdmins && ticket?.platform === 'TICKETERA'
         ? getDiscordEnv().ticketeraAdminRoleId
         : null;
     await sendThreadMessage(payload.threadId, {
       content: [
+        platformRoleId ? `<@&${platformRoleId}>` : null,
         ticketeraAdminRoleId ? `<@&${ticketeraAdminRoleId}>` : null,
         creatorId ? `<@${creatorId}>` : null,
         payload.content,
@@ -154,7 +162,13 @@ async function processJob(job: OutboxJob) {
       allowed_mentions: {
         parse: [],
         ...(creatorId ? { users: [creatorId] } : {}),
-        ...(ticketeraAdminRoleId ? { roles: [ticketeraAdminRoleId] } : {}),
+        ...(platformRoleId || ticketeraAdminRoleId
+          ? {
+              roles: [platformRoleId, ticketeraAdminRoleId].filter(
+                (roleId): roleId is string => Boolean(roleId),
+              ),
+            }
+          : {}),
       },
     });
     return complete(job.id);
