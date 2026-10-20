@@ -121,7 +121,9 @@ function conciseQuestions(
       questions
         .map((question) => question.trim())
         .filter(Boolean)
-        .filter((question) => !/qué es(?: exactamente)? nestor/i.test(question)),
+        .filter(
+          (question) => !/qué es(?: exactamente)? nestor/i.test(question),
+        ),
     ),
   );
   if (!selectedRepository && repositoryCandidates.length === 0) {
@@ -285,7 +287,11 @@ export function validateSemanticAnalysis(
     requestedRepository,
   );
   if (deterministicGuardrail) return deterministicGuardrail;
-  const deterministicHint = analyzeTicket(ticket, policies, requestedRepository);
+  const deterministicHint = analyzeTicket(
+    ticket,
+    policies,
+    requestedRepository,
+  );
 
   const repositoryMismatch =
     Boolean(forcedRepository) && selectedRepository !== forcedRepository;
