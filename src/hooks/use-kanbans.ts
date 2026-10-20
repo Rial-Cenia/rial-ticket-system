@@ -7,6 +7,7 @@ import type {
   CreateKanbanInput,
   UpdateKanbanCardInput,
 } from '@/lib/schemas';
+import type { Kanban } from '@/lib/types';
 
 export const kanbanKeys = {
   all: ['team-kanbans'] as const,
@@ -41,9 +42,49 @@ export function useCreateKanbanCard(kanbanId: string) {
 }
 
 export function useUpdateKanbanCard(kanbanId: string) {
-  return useRefreshMutation<{ cardId: string; input: UpdateKanbanCardInput }>(
-    ({ cardId, input }) => api.updateCard(kanbanId, cardId, input),
-  );
+  const client = useQueryClient();
+  return useMutation({
+    mutationKey: ['team-kanban-card-update', kanbanId],
+    mutationFn: ({
+      cardId,
+      input,
+    }: {
+      cardId: string;
+      input: UpdateKanbanCardInput;
+    }) => api.updateCard(kanbanId, cardId, input),
+    onMutate: async ({ cardId, input }) => {
+      await client.cancelQueries({ queryKey: kanbanKeys.all });
+      const previous = client.getQueryData<Kanban[]>(kanbanKeys.all);
+      if (previous) {
+        client.setQueryData<Kanban[]>(
+          kanbanKeys.all,
+          previous.map((kanban) =>
+            kanban.id !== kanbanId
+              ? kanban
+              : {
+                  ...kanban,
+                  cards: kanban.cards.map((card) =>
+                    card.id === cardId ? { ...card, ...input } : card,
+                  ),
+                },
+          ),
+        );
+      }
+      return { previous };
+    },
+    onError: (_, __, context) => {
+      if (context?.previous)
+        client.setQueryData(kanbanKeys.all, context.previous);
+    },
+    onSettled: () => {
+      if (
+        client.isMutating({
+          mutationKey: ['team-kanban-card-update', kanbanId],
+        }) === 1
+      )
+        void client.invalidateQueries({ queryKey: kanbanKeys.all });
+    },
+  });
 }
 
 export function useCancelKanbanCard(kanbanId: string) {

@@ -5,6 +5,10 @@ import { getBotukiEnv } from '@/lib/env/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTicket } from '@/lib/tickets/server';
 import { ticketCode } from '@/lib/tickets/format';
+import {
+  calculateCodexUsageCost,
+  formatCodexUsageCost,
+} from '@/lib/codex/cost';
 
 const eventSchema = z.object({
   runId: z.string().uuid(),
@@ -124,6 +128,16 @@ export async function POST(request: Request) {
         delivered: false,
         reason: 'ticket_thread_missing',
       });
+    let executionCost: string | null = null;
+    if (payload.event === 'PR_OPENED') {
+      const { data: usage, error: usageError } = await createAdminClient()
+        .from('CodexRunUsage')
+        .select('phase, inputTokens, cachedInputTokens, outputTokens')
+        .eq('runId', payload.runId);
+      if (!usageError && usage?.length) {
+        executionCost = formatCodexUsageCost(calculateCodexUsageCost(usage));
+      }
+    }
     const notificationEvent = `DISCORD_${payload.event}`;
     const { data: existing, error: eventError } = await createAdminClient()
       .from('CodexRunEvent')
@@ -143,14 +157,18 @@ export async function POST(request: Request) {
     const baseBranch = policy?.baseBranch ?? 'develop';
     const content =
       payload.event === 'PR_OPENED'
-        ? `🎉💅 **Botuki terminó la quest, bestie**\n\nLa PR del ticket **${ticketCode(ticket)}** ya está lista.\n\nRepositorio: **${run.repositoryFullName ?? 'seleccionado por Botuki'}**\nPull Request: ${payload.pullRequestUrl ?? run.pullRequestUrl}\n\nLa PR apunta a \`${baseBranch}\`. Revisa CI y cambios antes del merge. ✨`
+        ? `🎉💅 **Botuki terminó la quest, bestie**\n\nLa PR del ticket **${ticketCode(ticket)}** ya está lista.\n\nRepositorio: **${run.repositoryFullName ?? 'seleccionado por Botuki'}**\nPull Request: ${payload.pullRequestUrl ?? run.pullRequestUrl}${executionCost ? `\n\nCosto estimado de ejecución: **${executionCost}**` : ''}\n\nLa PR apunta a \`develop\`. Revisa CI y cambios antes del merge. ✨`
         : `💥 **Botuki encontró un plot twist en la quest**\n\nLa implementación del ticket **${ticketCode(ticket)}** falló.\n\n${payload.error ?? 'Revisa los detalles de la ejecución.'}\n\nSi la ejecución es reintentable, usa \`/botuki retry\`. 🧯`;
     const { error: outboxError } = await createAdminClient()
       .from('TicketSyncOutbox')
       .insert({
         ticketPublicId: ticket.publicId,
         type: 'SEND_THREAD_MESSAGE',
-        payload: { threadId: ticket.discordThreadId, content },
+        payload: {
+          threadId: ticket.discordThreadId,
+          content,
+          ...(payload.event === 'PR_OPENED' ? { notifyPlatform: true } : {}),
+        },
       });
     if (outboxError) throw new Error(outboxError.message);
     const { error: eventInsertError } = await createAdminClient()
