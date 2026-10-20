@@ -25,6 +25,7 @@ const analysis: CodexAnalysisResult = {
 
 const frontendPolicy: CodexRepositoryPolicy = {
   fullName: 'Rial-Cenia/rial-frontend',
+  provider: 'GITHUB',
   baseBranch: 'develop',
   analysisEnabled: true,
   implementationEnabled: true,

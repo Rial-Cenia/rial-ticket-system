@@ -148,6 +148,13 @@ export async function POST(request: Request) {
     if (eventError) throw new Error(eventError.message);
     if (existing?.length)
       return Response.json({ delivered: true, duplicate: true });
+    const { data: policy, error: policyError } = await createAdminClient()
+      .from('CodexRepositoryPolicy')
+      .select('baseBranch')
+      .eq('fullName', run.repositoryFullName ?? '')
+      .maybeSingle();
+    if (policyError) throw new Error(policyError.message);
+    const baseBranch = policy?.baseBranch ?? 'develop';
     const content =
       payload.event === 'PR_OPENED'
         ? `🎉💅 **Botuki terminó la quest, bestie**\n\nLa PR del ticket **${ticketCode(ticket)}** ya está lista.\n\nRepositorio: **${run.repositoryFullName ?? 'seleccionado por Botuki'}**\nPull Request: ${payload.pullRequestUrl ?? run.pullRequestUrl}${executionCost ? `\n\nCosto estimado de ejecución: **${executionCost}**` : ''}\n\nLa PR apunta a \`develop\`. Revisa CI y cambios antes del merge. ✨`

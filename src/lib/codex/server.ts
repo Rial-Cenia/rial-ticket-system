@@ -108,7 +108,7 @@ async function listRepositoryPolicies() {
   const { data, error } = await createAdminClient()
     .from('CodexRepositoryPolicy')
     .select(
-      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+      'fullName, provider, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
     )
     .eq('analysisEnabled', true)
     .order('fullName');
@@ -249,7 +249,7 @@ export async function approveCodexAnalysis(
   const { data: policy, error: policyError } = await createAdminClient()
     .from('CodexRepositoryPolicy')
     .select(
-      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+      'fullName, provider, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
     )
     .eq('fullName', analysis.selectedRepository)
     .maybeSingle();
@@ -314,7 +314,7 @@ export async function startCodexImplementation(
   const { data: policy, error: policyError } = await createAdminClient()
     .from('CodexRepositoryPolicy')
     .select(
-      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+      'fullName, provider, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
     )
     .eq('fullName', analysis.selectedRepository)
     .maybeSingle();
@@ -394,7 +394,7 @@ export async function retryCodexImplementation(
   const { data: policy, error: policyError } = await createAdminClient()
     .from('CodexRepositoryPolicy')
     .select(
-      'fullName, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
+      'fullName, provider, baseBranch, analysisEnabled, implementationEnabled, allowedPaths, forbiddenPaths, allowDependencyChanges, allowDatabaseChanges, maxChangedFiles',
     )
     .eq('fullName', analysis.selectedRepository)
     .maybeSingle();
