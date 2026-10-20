@@ -78,6 +78,29 @@ describe('POST /api/internal/botuki/events', () => {
           }),
           insert: mocks.insertEvent,
         };
+      if (table === 'CodexRunUsage')
+        return {
+          select: () => ({
+            eq: () =>
+              Promise.resolve({
+                data: [
+                  {
+                    phase: 'ANALYSIS',
+                    inputTokens: 2205,
+                    cachedInputTokens: 0,
+                    outputTokens: 1360,
+                  },
+                  {
+                    phase: 'IMPLEMENTATION',
+                    inputTokens: 507463,
+                    cachedInputTokens: 467456,
+                    outputTokens: 5797,
+                  },
+                ],
+                error: null,
+              }),
+          }),
+        };
       if (table === 'TicketSyncOutbox') return { insert: mocks.insertOutbox };
       throw new Error(`Unexpected table: ${table}`);
     });
@@ -93,6 +116,9 @@ describe('POST /api/internal/botuki/events', () => {
       payload: expect.objectContaining({
         threadId: 'thread-1',
         notifyPlatform: true,
+        content: expect.stringContaining(
+          'Costo estimado de ejecución: **US$0.24**',
+        ),
       }),
     });
   });
