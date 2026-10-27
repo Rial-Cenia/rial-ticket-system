@@ -20,6 +20,7 @@ import {
 } from '@/hooks/use-kanbans';
 import { PRIORITY_LABELS, type Kanban, type KanbanCard } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { isFirstDeliveryDueSoon } from '@/lib/tasks/deadline';
 
 export function TaskBoard({
   kanban,
@@ -188,6 +189,8 @@ function DraggableTaskCard({
       style={{ transform: CSS.Translate.toString(transform) }}
       className={cn(
         'block w-full rounded-xl border border-white/8 bg-zinc-900 p-3 text-left shadow-sm transition hover:border-white/20',
+        isFirstDeliveryDueSoon(card.firstDeliveryDueDate) &&
+          'border-red-400/60 bg-red-950/30 hover:border-red-300',
         isDragging && 'z-50 opacity-60',
       )}
       onClick={() => onOpen(card)}
@@ -209,6 +212,17 @@ function DraggableTaskCard({
         ))}
       </div>
       <h3 className="font-medium text-zinc-100">{card.title}</h3>
+      {card.firstDeliveryDueDate && (
+        <p
+          className={cn(
+            'mt-2 text-xs text-zinc-400',
+            isFirstDeliveryDueSoon(card.firstDeliveryDueDate) &&
+              'font-medium text-red-300',
+          )}
+        >
+          Primera entrega: {card.firstDeliveryDueDate}
+        </p>
+      )}
       {card.pullRequests.length > 0 && (
         <p className="mt-2 text-xs text-purple-300">
           {card.pullRequests.length} PR

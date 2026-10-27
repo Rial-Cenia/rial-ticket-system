@@ -97,7 +97,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
     admin
       .from('KanbanCard')
       .select(
-        'id, kanbanId, number, title, description, stateId, priority, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId, createdAt, updatedAt',
+        'id, kanbanId, number, title, description, stateId, priority, firstDeliveryDueDate, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId, createdAt, updatedAt',
       )
       .in('kanbanId', kanbanIds)
       .eq('status', 'ACTIVE')
@@ -191,6 +191,7 @@ export async function listKanbans(actor: AuthenticatedUser): Promise<Kanban[]> {
           description: card.description as string,
           stateId: card.stateId as string,
           priority: card.priority as KanbanPriority,
+          firstDeliveryDueDate: card.firstDeliveryDueDate as string | null,
           assignee: serializeAssignedUser(card.assigneeUserId),
           reviewer: serializeAssignedUser(card.reviewerUserId),
           tags: (tagsByCardId.get(card.id as string) ?? []) as Kanban['tags'],
@@ -829,7 +830,7 @@ export async function transferKanbanCard(
   const { data: sourceCard, error: sourceCardError } = await admin
     .from('KanbanCard')
     .select(
-      'title, description, priority, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId',
+      'title, description, priority, firstDeliveryDueDate, assigneeUserId, reviewerUserId, createdByUserId, ticketPublicId',
     )
     .eq('id', cardId)
     .eq('kanbanId', sourceKanbanId)

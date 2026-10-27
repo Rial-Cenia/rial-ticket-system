@@ -33,6 +33,7 @@ import {
 import { useTicket } from '@/hooks/use-tickets';
 import { TicketDetailModal } from '@/components/modals/ticket-detail-modal';
 import { KanbanCardComments } from '@/components/tasks/kanban-card-comments';
+import { isFirstDeliveryDueSoon } from '@/lib/tasks/deadline';
 import {
   KANBAN_PRIORITIES,
   PRIORITY_LABELS,
@@ -208,6 +209,18 @@ export function TaskCardModal({ kanban, card, open, onOpenChange }: Props) {
                     }
                     kanban={kanban}
                     staleUser={card?.reviewer ?? null}
+                  />
+                </Field>
+                <Field label="Plazo máximo primera entrega">
+                  <Input
+                    type="date"
+                    value={form.firstDeliveryDueDate ?? ''}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        firstDeliveryDueDate: event.target.value || null,
+                      })
+                    }
                   />
                 </Field>
               </div>
@@ -467,6 +480,22 @@ function TaskCardPreview({
             </Badge>
           ))}
         </div>
+        {card.firstDeliveryDueDate && (
+          <section
+            className={
+              isFirstDeliveryDueSoon(card.firstDeliveryDueDate)
+                ? 'rounded-xl border border-red-400/40 bg-red-500/10 p-4 text-red-200'
+                : 'rounded-xl border border-white/8 bg-black/20 p-4'
+            }
+          >
+            <p className="text-xs text-zinc-500">
+              Plazo máximo primera entrega
+            </p>
+            <p className="mt-1 font-medium">
+              {formatDateOnly(card.firstDeliveryDueDate)}
+            </p>
+          </section>
+        )}
         <section className="rounded-xl border border-white/8 bg-black/20 p-5">
           {card.description ? (
             <MarkdownContent>{card.description}</MarkdownContent>
@@ -547,12 +576,20 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatDateOnly(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Intl.DateTimeFormat('es-CL', {
+    dateStyle: 'medium',
+  }).format(new Date(year, month - 1, day));
+}
+
 function initialForm(kanban: Kanban, card: KanbanCard | null) {
   return {
     title: card?.title ?? '',
     description: card?.description ?? '',
     stateId: card?.stateId ?? kanban.states[0]?.id ?? '',
     priority: card?.priority ?? ('MEDIA' as const),
+    firstDeliveryDueDate: card?.firstDeliveryDueDate ?? null,
     assigneeUserId: card?.assignee?.userId ?? '',
     reviewerUserId: card?.reviewer?.userId ?? '',
     tagIds: card?.tags.map((tag) => tag.id) ?? [],

@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { PRIORITY_LABELS, type Kanban, type KanbanCard } from '@/lib/types';
+import { isFirstDeliveryDueSoon } from '@/lib/tasks/deadline';
 
 export function TaskTable({
   kanban,
@@ -20,6 +21,7 @@ export function TaskTable({
             <th className="px-4 py-3">Título</th>
             <th className="px-4 py-3">Estado</th>
             <th className="px-4 py-3">Prioridad</th>
+            <th className="px-4 py-3">Primera entrega</th>
             <th className="px-4 py-3">Encargado</th>
             <th className="px-4 py-3">Revisor</th>
             <th className="px-4 py-3">Etiquetas</th>
@@ -38,6 +40,15 @@ export function TaskTable({
               <td className="px-4 py-3 font-medium">{card.title}</td>
               <td className="px-4 py-3">{states.get(card.stateId)}</td>
               <td className="px-4 py-3">{PRIORITY_LABELS[card.priority]}</td>
+              <td
+                className={
+                  isFirstDeliveryDueSoon(card.firstDeliveryDueDate)
+                    ? 'px-4 py-3 font-medium text-red-300'
+                    : 'px-4 py-3'
+                }
+              >
+                {card.firstDeliveryDueDate ?? '—'}
+              </td>
               <UserCell user={card.assignee} />
               <UserCell user={card.reviewer} />
               <td className="px-4 py-3">

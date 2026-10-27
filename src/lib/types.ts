@@ -228,6 +228,7 @@ export interface KanbanCard {
   createdByUserId: string;
   createdAt: string;
   updatedAt: string;
+  firstDeliveryDueDate?: string | null;
   ticketPublicId?: string | null;
   pullRequests: GithubPullRequest[];
 }
