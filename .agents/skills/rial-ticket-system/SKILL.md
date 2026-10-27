@@ -14,6 +14,13 @@ Use this skill for work inside `/Users/beatrizerrazuriz/Code/rial/rial-ticket-sy
 - The app is a Next.js app backed by Supabase. Keep UI changes consistent with existing components and do not add a UI library unless explicitly approved.
 - Do not modify ticket creation, assignment, or Discord notification flows unless the user explicitly asks; metrics/reporting work should be read-only over existing ticket data.
 
+## UI And Theme Quality
+
+- Every UI change must be checked in both light and dark mode before delivery.
+- Use semantic component classes or theme-aware tokens for colored states; do not assume dark-mode utility colors will remain readable on light backgrounds.
+- Verify contrast for text, borders, badges, alerts, hover states, inputs, and disabled states in both themes.
+- When a visual defect is reported in one theme, inspect the shared theme overrides and related components instead of patching only the screenshot's isolated element.
+
 ## Supabase Project
 
 The correct production Supabase project for this repo is:

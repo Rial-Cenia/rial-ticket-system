@@ -43,7 +43,7 @@ export function TaskTable({
               <td
                 className={
                   isFirstDeliveryDueSoon(card.firstDeliveryDueDate)
-                    ? 'px-4 py-3 font-medium text-red-300'
+                    ? 'deadline-warning-text px-4 py-3 font-medium'
                     : 'px-4 py-3'
                 }
               >

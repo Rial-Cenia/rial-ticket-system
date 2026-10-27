@@ -190,7 +190,7 @@ function DraggableTaskCard({
       className={cn(
         'block w-full rounded-xl border border-white/8 bg-zinc-900 p-3 text-left shadow-sm transition hover:border-white/20',
         isFirstDeliveryDueSoon(card.firstDeliveryDueDate) &&
-          'border-red-400/60 bg-red-950/30 hover:border-red-300',
+          'deadline-warning hover:border-red-400',
         isDragging && 'z-50 opacity-60',
       )}
       onClick={() => onOpen(card)}
@@ -217,7 +217,7 @@ function DraggableTaskCard({
           className={cn(
             'mt-2 text-xs text-zinc-400',
             isFirstDeliveryDueSoon(card.firstDeliveryDueDate) &&
-              'font-medium text-red-300',
+              'deadline-warning-text font-medium',
           )}
         >
           Primera entrega: {card.firstDeliveryDueDate}

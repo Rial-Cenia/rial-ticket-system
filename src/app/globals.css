@@ -155,6 +155,13 @@ html.light .markdown-content blockquote {
 html.light .markdown-content hr {
   border-color: #cbd5e1;
 }
+html.light .deadline-warning {
+  border-color: #fda4af;
+  background-color: #fff1f2;
+}
+html.light .deadline-warning-text {
+  color: #b91c1c;
+}
 button,
 input,
 textarea {
@@ -175,4 +182,11 @@ textarea {
 }
 .animate-pulse-soft {
   animation: pulse-soft 1.6s ease-in-out infinite;
+}
+.deadline-warning {
+  border-color: rgb(248 113 113 / 0.65);
+  background-color: rgb(127 29 29 / 0.32);
+}
+.deadline-warning-text {
+  color: #fca5a5;
 }

@@ -484,14 +484,20 @@ function TaskCardPreview({
           <section
             className={
               isFirstDeliveryDueSoon(card.firstDeliveryDueDate)
-                ? 'rounded-xl border border-red-400/40 bg-red-500/10 p-4 text-red-200'
+                ? 'deadline-warning rounded-xl border p-4'
                 : 'rounded-xl border border-white/8 bg-black/20 p-4'
             }
           >
             <p className="text-xs text-zinc-500">
               Plazo máximo primera entrega
             </p>
-            <p className="mt-1 font-medium">
+            <p
+              className={
+                isFirstDeliveryDueSoon(card.firstDeliveryDueDate)
+                  ? 'deadline-warning-text mt-1 font-medium'
+                  : 'mt-1 font-medium'
+              }
+            >
               {formatDateOnly(card.firstDeliveryDueDate)}
             </p>
           </section>
