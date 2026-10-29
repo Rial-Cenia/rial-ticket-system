@@ -8,6 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   BarChart3,
+  BriefcaseBusiness,
   ListTodo,
   LogOut,
   Settings,
@@ -75,6 +76,11 @@ export function DashboardShell({
         { href: '/tasks/kanban', label: 'Kanban', icon: Columns3 },
         { href: '/tasks/table', label: 'Tabla', icon: Table2 },
       ],
+    },
+    {
+      label: 'Proyectos',
+      icon: BriefcaseBusiness,
+      links: [{ href: '/projects', label: 'Tablero', icon: Columns3 }],
     },
   ];
   return (

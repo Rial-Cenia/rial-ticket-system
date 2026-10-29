@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   createKanbanCardSchema,
   createKanbanSchema,
+  createProjectSchema,
   createTicketSchema,
   discordRoleUpdateSchema,
   ticketFiltersSchema,
+  updateProjectSchema,
   updateTicketSchema,
 } from '@/lib/schemas';
 
@@ -99,5 +101,50 @@ describe('kanban schemas', () => {
       priority: 'MEDIA',
       tagIds: [],
     });
+  });
+});
+
+describe('project schemas', () => {
+  it('aplica los defaults y conserva urgencia e importancia por separado', () => {
+    expect(
+      createProjectSchema.parse({
+        name: 'Automatizar onboarding',
+        platforms: ['NESTOR', 'DYLAN'],
+        urgency: 'CRITICA',
+        importance: 'ALTA',
+      }),
+    ).toEqual({
+      name: 'Automatizar onboarding',
+      status: 'BACKLOG',
+      platforms: ['NESTOR', 'DYLAN'],
+      urgency: 'CRITICA',
+      importance: 'ALTA',
+    });
+  });
+
+  it('exige plataformas válidas y rechaza duplicados', () => {
+    expect(() =>
+      createProjectSchema.parse({ name: 'Proyecto', platforms: [] }),
+    ).toThrow();
+    expect(() =>
+      createProjectSchema.parse({
+        name: 'Proyecto',
+        platforms: ['ATOM', 'ATOM'],
+      }),
+    ).toThrow();
+    expect(() =>
+      createProjectSchema.parse({
+        name: 'Proyecto',
+        platforms: ['PLATAFORMA_DESCONOCIDA'],
+      }),
+    ).toThrow();
+  });
+
+  it('permite mover el estado y rechaza estados inválidos o parches vacíos', () => {
+    expect(updateProjectSchema.parse({ status: 'IN_PROGRESS' })).toEqual({
+      status: 'IN_PROGRESS',
+    });
+    expect(() => updateProjectSchema.parse({ status: 'DONE' })).toThrow();
+    expect(() => updateProjectSchema.parse({})).toThrow();
   });
 });

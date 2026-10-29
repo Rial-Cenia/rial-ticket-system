@@ -190,3 +190,9 @@ textarea {
 .deadline-warning-text {
   color: #fca5a5;
 }
+.project-error {
+  color: #fca5a5;
+}
+html.light .project-error {
+  color: #b91c1c;
+}

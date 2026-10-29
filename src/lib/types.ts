@@ -30,6 +30,15 @@ export const KANBAN_PRIORITIES = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 export type TeamMembershipRole = (typeof TEAM_MEMBERSHIP_ROLES)[number];
 export type KanbanPriority = (typeof KANBAN_PRIORITIES)[number];
+export const PROJECT_STATUSES = [
+  'BACKLOG',
+  'PLANNED',
+  'IN_PROGRESS',
+  'ON_HOLD',
+  'COMPLETED',
+  'CANCELLED',
+] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 export type RecordStatus = 'ACTIVE' | 'CANCELLED';
 
 export interface Ticket {
@@ -45,6 +54,18 @@ export interface Ticket {
   createdByDiscordId: string | null;
   discordThreadId: string | null;
   images: TicketImage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  status: ProjectStatus;
+  platforms: Platform[];
+  urgency: KanbanPriority;
+  importance: KanbanPriority;
+  createdByUserId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -344,4 +365,20 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   KAYS: '🎀 Kays',
   TICKETERA: '🎟️ Ticketera',
   EXTERNO: '🌍 Externo',
+};
+
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  BACKLOG: 'Por priorizar',
+  PLANNED: 'Planificado',
+  IN_PROGRESS: 'En curso',
+  ON_HOLD: 'En espera',
+  COMPLETED: 'Completado',
+  CANCELLED: 'Cancelado',
+};
+
+export const PROJECT_LEVEL_LABELS: Record<KanbanPriority, string> = {
+  BAJA: 'Baja',
+  MEDIA: 'Media',
+  ALTA: 'Alta',
+  CRITICA: 'Crítica',
 };

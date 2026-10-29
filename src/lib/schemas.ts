@@ -3,6 +3,7 @@ import {
   APP_ROLES,
   KANBAN_PRIORITIES,
   PLATFORMS,
+  PROJECT_STATUSES,
   TEAM_MEMBERSHIP_ROLES,
   TICKET_PRIORITIES,
   TICKET_STATUSES,
@@ -16,6 +17,30 @@ export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES);
 export const appRoleSchema = z.enum(APP_ROLES);
 export const teamMembershipRoleSchema = z.enum(TEAM_MEMBERSHIP_ROLES);
 export const kanbanPrioritySchema = z.enum(KANBAN_PRIORITIES);
+export const projectStatusSchema = z.enum(PROJECT_STATUSES);
+const projectPlatformsSchema = z
+  .array(platformSchema)
+  .min(1, 'Selecciona al menos una plataforma')
+  .max(6)
+  .refine((platforms) => new Set(platforms).size === platforms.length);
+export const createProjectSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  status: projectStatusSchema.default('BACKLOG'),
+  platforms: projectPlatformsSchema,
+  urgency: kanbanPrioritySchema.default('MEDIA'),
+  importance: kanbanPrioritySchema.default('MEDIA'),
+});
+export const updateProjectSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    status: projectStatusSchema.optional(),
+    platforms: projectPlatformsSchema.optional(),
+    urgency: kanbanPrioritySchema.optional(),
+    importance: kanbanPrioritySchema.optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, 'Debes enviar un cambio');
+export type CreateProjectInput = z.input<typeof createProjectSchema>;
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
 export const createTeamSchema = z.object({
   name: z.string().trim().min(1).max(100),
