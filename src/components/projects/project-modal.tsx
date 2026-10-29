@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Input, Textarea } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -40,6 +40,7 @@ interface Props {
 
 interface ProjectForm {
   name: string;
+  description: string;
   status: ProjectStatus;
   platforms: Platform[];
   urgency: KanbanPriority;
@@ -105,6 +106,16 @@ export function ProjectModal({ project, open, onOpenChange }: Props) {
               value={form.name}
               onChange={(event) =>
                 setForm({ ...form, name: event.target.value })
+              }
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>Descripción</span>
+            <Textarea
+              maxLength={4000}
+              value={form.description}
+              onChange={(event) =>
+                setForm({ ...form, description: event.target.value })
               }
             />
           </label>
@@ -224,6 +235,7 @@ function Field({
 function initialForm(project: Project | null): ProjectForm {
   return {
     name: project?.name ?? '',
+    description: project?.description ?? '',
     status: project?.status ?? 'BACKLOG',
     platforms: project?.platforms ?? [],
     urgency: project?.urgency ?? 'MEDIA',

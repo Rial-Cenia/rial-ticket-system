@@ -183,6 +183,11 @@ function DraggableProjectCard({
       {...attributes}
     >
       <h3 className="font-medium text-zinc-100">{project.name}</h3>
+      {project.description && (
+        <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs text-zinc-500">
+          {project.description}
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap gap-1">
         {project.platforms.map((platform) => (
           <Badge key={platform}>{PLATFORM_LABELS[platform]}</Badge>

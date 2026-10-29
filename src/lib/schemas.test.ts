@@ -109,12 +109,14 @@ describe('project schemas', () => {
     expect(
       createProjectSchema.parse({
         name: 'Automatizar onboarding',
+        description: 'Unificar el flujo para las plataformas internas.',
         platforms: ['NESTOR', 'DYLAN'],
         urgency: 'CRITICA',
         importance: 'ALTA',
       }),
     ).toEqual({
       name: 'Automatizar onboarding',
+      description: 'Unificar el flujo para las plataformas internas.',
       status: 'BACKLOG',
       platforms: ['NESTOR', 'DYLAN'],
       urgency: 'CRITICA',
@@ -144,6 +146,9 @@ describe('project schemas', () => {
     expect(updateProjectSchema.parse({ status: 'IN_PROGRESS' })).toEqual({
       status: 'IN_PROGRESS',
     });
+    expect(updateProjectSchema.parse({ description: 'Nuevo alcance' })).toEqual(
+      { description: 'Nuevo alcance' },
+    );
     expect(() => updateProjectSchema.parse({ status: 'DONE' })).toThrow();
     expect(() => updateProjectSchema.parse({})).toThrow();
   });

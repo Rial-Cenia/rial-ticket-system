@@ -61,6 +61,7 @@ export interface Ticket {
 export interface Project {
   id: string;
   name: string;
+  description: string;
   status: ProjectStatus;
   platforms: Platform[];
   urgency: KanbanPriority;

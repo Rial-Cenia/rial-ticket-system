@@ -25,6 +25,7 @@ const projectPlatformsSchema = z
   .refine((platforms) => new Set(platforms).size === platforms.length);
 export const createProjectSchema = z.object({
   name: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(4000).default(''),
   status: projectStatusSchema.default('BACKLOG'),
   platforms: projectPlatformsSchema,
   urgency: kanbanPrioritySchema.default('MEDIA'),
@@ -33,6 +34,7 @@ export const createProjectSchema = z.object({
 export const updateProjectSchema = z
   .object({
     name: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(4000).optional(),
     status: projectStatusSchema.optional(),
     platforms: projectPlatformsSchema.optional(),
     urgency: kanbanPrioritySchema.optional(),

@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { Project } from '@/lib/types';
 
 const projectFields =
-  'id, name, status, platforms, urgency, importance, createdByUserId, createdAt, updatedAt';
+  'id, name, description, status, platforms, urgency, importance, createdByUserId, createdAt, updatedAt';
 
 export async function listProjects(): Promise<Project[]> {
   const { data, error } = await createAdminClient()
