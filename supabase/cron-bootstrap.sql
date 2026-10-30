@@ -46,3 +46,22 @@ select cron.schedule(
   );
   $$
 );
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'notify-weekly-triager-rotation';
+
+select cron.schedule(
+  'notify-weekly-triager-rotation',
+  '30 12,13 * * 1',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'ticket_app_url') || '/api/discord/triager-rotation',
+    headers := jsonb_build_object(
+      'content-type', 'application/json',
+      'authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'ticket_cron_secret')
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);

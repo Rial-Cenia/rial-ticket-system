@@ -99,6 +99,8 @@ Cada usuario interno puede abrir **Discord → Vincular mi Discord**. La autoriz
 
 En **Configuración → Alcance de tickets y roles de Discord**, un administrador puede conectar cada plataforma con uno o más equipos y conectar los roles de Discord del servidor con una plataforma o equipo. Los usuarios reciben al abrir Tickets un filtro inicial basado en sus equipos, roles y plataformas conectadas. Si tienen Barbilla Roja, primero se muestran tickets sin plataforma; cuando no hay pendientes de triage, se aplica su alcance de equipo/plataforma. Las variables `DISCORD_*_ROLE_ID` siguen funcionando como fallback mientras se completa la configuración editable.
 
+En **Configuración → Rotación de Barbilla Roja**, un administrador puede ordenar las personas con Discord vinculado, elegir el lunes de inicio y activar el aviso semanal. La Ticketera calcula quién está de turno y quién sigue; el cron publica ambas menciones en el canal de triage los lunes a las 09:30 de `America/Santiago`. El bootstrap programa 12:30 y 13:30 UTC para cubrir los cambios de horario de Chile; el endpoint valida la hora local y registra cada semana para evitar duplicados. La nueva migración debe aplicarse junto al bootstrap de Cron en el flujo aprobado del equipo.
+
 ### GitHub y tarjetas Kanban
 
 Crea una GitHub App para la organización con permisos `Metadata: Read-only` y `Pull requests: Read-only`. Activa los eventos **Pull request** e **Installation targets** (`installation_repositories`), configura el webhook en `<APP_URL>/api/github/webhook` y la URL de instalación en `<APP_URL>/api/github/setup`. Completa las variables `GITHUB_*` y conecta la organización desde **Configuración → Integración con GitHub**.

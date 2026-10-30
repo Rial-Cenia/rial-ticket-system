@@ -184,6 +184,36 @@ export const fetchTicketScope = () =>
   }>('/api/ticket-scope');
 export const fetchDiscordRoles = () =>
   apiRequest<DiscordRole[]>('/api/discord/roles');
+export interface TriagerRotation {
+  enabled: boolean;
+  startsOn: string;
+  weekStartsOn: string;
+  members: Array<{
+    userId: string;
+    name: string;
+    discordUserId: string;
+    discordName: string;
+  }>;
+  availableUsers: Array<{
+    userId: string;
+    name: string;
+    discordUserId: string;
+    discordName: string;
+  }>;
+  currentUserId: string | null;
+  nextUserId: string | null;
+}
+export const fetchTriagerRotation = () =>
+  apiRequest<TriagerRotation>('/api/discord/triager-rotation');
+export const saveTriagerRotation = (input: {
+  enabled: boolean;
+  startsOn: string;
+  memberUserIds: string[];
+}) =>
+  apiRequest<TriagerRotation>(
+    '/api/discord/triager-rotation',
+    json('PATCH', input),
+  );
 export const saveTeamPlatform = (teamId: string, platform: Platform) =>
   apiRequest(
     '/api/ticket-scope',

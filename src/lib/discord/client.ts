@@ -267,6 +267,16 @@ export function createOrUpdatePanel(
   });
 }
 
+export function sendChannelMessage(
+  channelId: string,
+  payload: DiscordMessagePayload,
+) {
+  return request<{ id: string }>(`/channels/${channelId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getGuildMember(discordUserId: string) {
   const { guildId } = getDiscordEnv();
   try {
