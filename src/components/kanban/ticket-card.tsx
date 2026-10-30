@@ -26,7 +26,7 @@ export function TicketCard({
     <article
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
-      className={`group relative rounded-xl border border-white/8 bg-zinc-900 p-4 shadow-lg transition hover:border-white/15 ${isDragging ? 'z-50 opacity-60' : ''}`}
+      className={`group relative rounded-xl border border-white/8 bg-zinc-900 p-4 shadow-lg transition-colors hover:border-white/15 ${isDragging ? 'z-50 opacity-60 will-change-transform' : ''}`}
     >
       <button
         className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"

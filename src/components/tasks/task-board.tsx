@@ -188,10 +188,10 @@ function DraggableTaskCard({
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
       className={cn(
-        'block w-full rounded-xl border border-white/8 bg-zinc-900 p-3 text-left shadow-sm transition hover:border-white/20',
+        'block w-full rounded-xl border border-white/8 bg-zinc-900 p-3 text-left shadow-sm transition-colors hover:border-white/20',
         isFirstDeliveryDueSoon(card.firstDeliveryDueDate) &&
           'deadline-warning hover:border-red-400',
-        isDragging && 'z-50 opacity-60',
+        isDragging && 'z-50 opacity-60 will-change-transform',
       )}
       onClick={() => onOpen(card)}
       {...listeners}

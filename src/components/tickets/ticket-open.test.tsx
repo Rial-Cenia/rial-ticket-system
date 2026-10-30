@@ -25,7 +25,7 @@ const ticket: Ticket = {
 describe('ticket detail triggers', () => {
   it('abre el detalle desde toda la tarjeta Kanban', () => {
     const onOpen = vi.fn();
-    render(
+    const view = render(
       <DndContext>
         <TicketCard ticket={ticket} onOpen={onOpen} />
       </DndContext>,
@@ -38,6 +38,10 @@ describe('ticket detail triggers', () => {
     );
 
     expect(onOpen).toHaveBeenCalledWith(ticket);
+
+    const card = view.container.querySelector('article');
+    expect(card?.className.split(' ')).toContain('transition-colors');
+    expect(card?.className.split(' ')).not.toContain('transition');
   });
 
   it('abre el detalle al hacer click o presionar Enter en la fila', () => {

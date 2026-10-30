@@ -81,4 +81,17 @@ describe('TaskBoard', () => {
       }),
     );
   });
+
+  it('no interpola la posición de la tarjeta durante el arrastre', () => {
+    const view = render(<TaskBoard kanban={kanban} onOpen={vi.fn()} />);
+
+    const card = view.container.querySelector(
+      '[aria-roledescription="draggable"]',
+    );
+    const classes = card?.className.split(' ');
+
+    expect(card).not.toBeNull();
+    expect(classes).toContain('transition-colors');
+    expect(classes).not.toContain('transition');
+  });
 });
