@@ -175,8 +175,8 @@ function DraggableProjectCard({
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
       className={cn(
-        'block w-full rounded-xl border border-white/8 bg-zinc-900 p-3 text-left shadow-sm transition hover:border-white/20',
-        isDragging && 'z-50 opacity-60',
+        'block w-full rounded-xl border border-white/8 bg-zinc-900 p-3 text-left shadow-sm transition-colors hover:border-white/20',
+        isDragging && 'z-50 opacity-60 will-change-transform',
       )}
       onClick={() => onOpen(project)}
       {...listeners}
