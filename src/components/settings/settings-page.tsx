@@ -52,6 +52,7 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
         client.invalidateQueries({ queryKey: ['teams'] }),
         client.invalidateQueries({ queryKey: kanbanKeys.all }),
         client.invalidateQueries({ queryKey: ['ticket-scope'] }),
+        client.invalidateQueries({ queryKey: ['triager-rotation'] }),
         client.invalidateQueries({ queryKey: ['discord-roles'] }),
         client.invalidateQueries({ queryKey: ['github'] }),
         client.invalidateQueries({ queryKey: ['tickets', 'default-filters'] }),
@@ -98,6 +99,7 @@ export function SettingsPage({ currentRole }: { currentRole: AppRole }) {
         <>
           <UsersSection users={users.data ?? []} run={run} />
           <TicketScopeSection teams={teams.data ?? []} run={run} />
+          <TriagerRotationSection run={run} />
         </>
       )}
       <TeamsSection
@@ -299,6 +301,215 @@ function TicketScopeSection({ teams, run }: { teams: Team[]; run: Runner }) {
             ))}
           </div>
         </div>
+      </div>
+    </Section>
+  );
+}
+
+function TriagerRotationSection({ run }: { run: Runner }) {
+  const rotation = useQuery({
+    queryKey: ['triager-rotation'],
+    queryFn: api.fetchTriagerRotation,
+  });
+  if (rotation.isLoading)
+    return (
+      <div className="h-36 animate-pulse rounded-xl border border-white/8 bg-white/4" />
+    );
+  if (rotation.error)
+    return (
+      <p className="rounded-xl bg-red-500/10 p-4 text-red-300">
+        {rotation.error.message}
+      </p>
+    );
+
+  const data = rotation.data!;
+  return (
+    <TriagerRotationEditor
+      key={`${data.enabled}-${data.startsOn}-${data.members.map((member) => member.userId).join(',')}`}
+      data={data}
+      run={run}
+    />
+  );
+}
+
+function TriagerRotationEditor({
+  data,
+  run,
+}: {
+  data: api.TriagerRotation;
+  run: Runner;
+}) {
+  const [memberUserIds, setMemberUserIds] = useState(() =>
+    data.members.map((member) => member.userId),
+  );
+  const [startsOn, setStartsOn] = useState(data.startsOn);
+  const [enabled, setEnabled] = useState(data.enabled);
+  const [addUserId, setAddUserId] = useState('');
+
+  const membersById = new Map(
+    data.members.map((member) => [member.userId, member]),
+  );
+  const availableUsers = data.availableUsers;
+  const current = data.members.find(
+    (member) => member.userId === data.currentUserId,
+  );
+  const next = data.members.find((member) => member.userId === data.nextUserId);
+  const members = memberUserIds.flatMap((userId) => {
+    const member =
+      membersById.get(userId) ??
+      availableUsers.find((user) => user.userId === userId);
+    return member ? [member] : [];
+  });
+
+  function save() {
+    run('Rotación guardada.', () =>
+      api.saveTriagerRotation({ enabled, startsOn, memberUserIds }),
+    );
+  }
+
+  function moveMember(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= memberUserIds.length) return;
+    const reordered = [...memberUserIds];
+    [reordered[index], reordered[target]] = [
+      reordered[target],
+      reordered[index],
+    ];
+    setMemberUserIds(reordered);
+  }
+
+  return (
+    <Section
+      title="Rotación de Barbilla Roja"
+      description="Ordena a las personas que cubren triage. El lunes a las 9:30 a. m. de Santiago, Discord avisará quién está de turno y quién sigue."
+    >
+      <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-white/8 bg-white/4 p-4">
+            <p className="text-xs text-zinc-500">Esta semana</p>
+            <p className="mt-1 font-medium">
+              {current?.name ?? 'Sin turno activo'}
+            </p>
+            {current && (
+              <p className="text-sm text-zinc-500">
+                Discord: {current.discordName}
+              </p>
+            )}
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/4 p-4">
+            <p className="text-xs text-zinc-500">Próxima semana</p>
+            <p className="mt-1 font-medium">
+              {next?.name ??
+                (members.length === 1
+                  ? 'Se repite el turno actual'
+                  : 'Sin turno siguiente')}
+            </p>
+            {next && (
+              <p className="text-sm text-zinc-500">
+                Discord: {next.discordName}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="flex-1 space-y-1 text-sm">
+            <span>Primer lunes de la rotación</span>
+            <Input
+              type="date"
+              value={startsOn}
+              onChange={(event) => setStartsOn(event.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) => setEnabled(event.target.checked)}
+            />
+            Activar avisos semanales
+          </label>
+        </div>
+
+        <div className="space-y-2">
+          {members.map((member, index) => (
+            <div
+              key={member.userId}
+              className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2"
+            >
+              <span className="min-w-0 flex-1 truncate">
+                {index + 1}. {member.name}{' '}
+                <span className="text-zinc-500">· {member.discordName}</span>
+              </span>
+              <IconButton
+                label="Subir"
+                icon={ArrowUp}
+                disabled={index === 0}
+                onClick={() => moveMember(index, -1)}
+              />
+              <IconButton
+                label="Bajar"
+                icon={ArrowDown}
+                disabled={index === members.length - 1}
+                onClick={() => moveMember(index, 1)}
+              />
+              <IconButton
+                label="Quitar de la rotación"
+                icon={Trash2}
+                danger
+                onClick={() =>
+                  setMemberUserIds((ids) =>
+                    ids.filter((id) => id !== member.userId),
+                  )
+                }
+              />
+            </div>
+          ))}
+          {!members.length && (
+            <p className="text-sm text-zinc-500">
+              Agrega personas con Discord vinculado para comenzar.
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <select
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-zinc-950 px-3 text-sm"
+            value={addUserId}
+            onChange={(event) => setAddUserId(event.target.value)}
+          >
+            <option value="">
+              Selecciona una persona con Discord vinculado
+            </option>
+            {availableUsers
+              .filter((user) => !memberUserIds.includes(user.userId))
+              .map((user) => (
+                <option key={user.userId} value={user.userId}>
+                  {user.name} · {user.discordName}
+                </option>
+              ))}
+          </select>
+          <Button
+            variant="secondary"
+            disabled={!addUserId}
+            onClick={() => {
+              setMemberUserIds((ids) => [...ids, addUserId]);
+              setAddUserId('');
+            }}
+          >
+            Agregar
+          </Button>
+          <Button
+            disabled={!startsOn || (enabled && !memberUserIds.length)}
+            onClick={save}
+          >
+            Guardar rotación
+          </Button>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Cambiar el orden o la fecha de inicio ajusta el turno calculado; los
+          avisos se publican en el canal de triage.
+        </p>
       </div>
     </Section>
   );

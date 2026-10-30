@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   fetchTeamGithubRepositories: vi.fn(),
   fetchKanbanGithubRepositories: vi.fn(),
   getGithubInstallUrl: vi.fn(),
+  fetchTriagerRotation: vi.fn(),
+  saveTriagerRotation: vi.fn(),
   showToast: vi.fn(),
 }));
 
@@ -27,6 +29,8 @@ vi.mock('@/lib/api/kanbans', () => ({
   fetchTeamGithubRepositories: mocks.fetchTeamGithubRepositories,
   fetchKanbanGithubRepositories: mocks.fetchKanbanGithubRepositories,
   getGithubInstallUrl: mocks.getGithubInstallUrl,
+  fetchTriagerRotation: mocks.fetchTriagerRotation,
+  saveTriagerRotation: mocks.saveTriagerRotation,
 }));
 
 vi.mock('@/components/ui/toast', () => ({
@@ -96,6 +100,42 @@ describe('SettingsPage', () => {
     mocks.fetchKanbanGithubRepositories.mockResolvedValue([]);
     mocks.updateUserRole.mockResolvedValue({});
     mocks.updateTeamMember.mockResolvedValue({});
+    mocks.fetchTriagerRotation.mockResolvedValue({
+      enabled: true,
+      startsOn: '2026-10-26',
+      weekStartsOn: '2026-10-26',
+      members: [
+        {
+          userId: 'user-1',
+          name: 'Ana',
+          discordUserId: 'discord-1',
+          discordName: 'ana',
+        },
+        {
+          userId: 'user-2',
+          name: 'Bea',
+          discordUserId: 'discord-2',
+          discordName: 'bea',
+        },
+      ],
+      availableUsers: [
+        {
+          userId: 'user-1',
+          name: 'Ana',
+          discordUserId: 'discord-1',
+          discordName: 'ana',
+        },
+        {
+          userId: 'user-2',
+          name: 'Bea',
+          discordUserId: 'discord-2',
+          discordName: 'bea',
+        },
+      ],
+      currentUserId: 'user-1',
+      nextUserId: 'user-2',
+    });
+    mocks.saveTriagerRotation.mockResolvedValue({});
   });
 
   it('guarda cambios de rol global solo al confirmar', async () => {
@@ -146,5 +186,24 @@ describe('SettingsPage', () => {
       variant: 'success',
       message: 'Rol del equipo actualizado correctamente.',
     });
+  });
+
+  it('muestra los turnos y guarda el orden configurado', async () => {
+    renderSettings();
+
+    expect(await screen.findByText('Esta semana')).toBeVisible();
+    expect(screen.getByText('Próxima semana')).toBeVisible();
+    await userEvent.click(screen.getAllByRole('button', { name: 'Bajar' })[0]);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Guardar rotación' }),
+    );
+
+    await waitFor(() =>
+      expect(mocks.saveTriagerRotation).toHaveBeenCalledWith({
+        enabled: true,
+        startsOn: '2026-10-26',
+        memberUserIds: ['user-2', 'user-1'],
+      }),
+    );
   });
 });
