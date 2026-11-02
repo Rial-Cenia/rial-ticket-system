@@ -64,7 +64,31 @@ describe('kanban card comments route', () => {
       '2f0672cb-cf85-4b9b-8794-111111111111',
       'Necesito confirmar este punto',
       [],
+      null,
+      null,
     );
     expect(response.status).toBe(201);
+  });
+
+  it('entrega el ancla de una selección al servicio', async () => {
+    mocks.create.mockResolvedValue({ id: 'comment-1' });
+    const formData = new FormData();
+    formData.set('content', 'Necesito confirmar este punto');
+    formData.set('anchorText', 'Esta fila necesita una definición.');
+
+    await POST(
+      new Request('http://localhost', { method: 'POST', body: formData }),
+      context,
+    );
+
+    expect(mocks.create).toHaveBeenCalledWith(
+      mocks.actor,
+      '0572a4c0-0a72-4b40-9b51-111111111111',
+      '2f0672cb-cf85-4b9b-8794-111111111111',
+      'Necesito confirmar este punto',
+      [],
+      null,
+      'Esta fila necesita una definición.',
+    );
   });
 });
