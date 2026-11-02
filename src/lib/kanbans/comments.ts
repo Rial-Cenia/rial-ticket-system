@@ -82,6 +82,7 @@ interface CommentRow {
   createdByUserId: string;
   createdAt: string;
   parentCommentId: string | null;
+  anchorText: string | null;
   KanbanCardCommentAttachment?: CommentAttachmentRow[];
 }
 
@@ -153,6 +154,7 @@ function serializeComment(
     id: comment.id,
     kanbanCardId: comment.kanbanCardId,
     parentCommentId: comment.parentCommentId,
+    anchorText: comment.anchorText,
     content: comment.content,
     createdBy: author ?? {
       userId: comment.createdByUserId,
@@ -182,7 +184,7 @@ export async function listKanbanCardComments(
     createAdminClient()
       .from('KanbanCardComment')
       .select(
-        'id, kanbanCardId, content, createdByUserId, createdAt, parentCommentId, KanbanCardCommentAttachment(id, fileName, mimeType, size, createdAt)',
+        'id, kanbanCardId, content, createdByUserId, createdAt, parentCommentId, anchorText, KanbanCardCommentAttachment(id, fileName, mimeType, size, createdAt)',
       )
       .eq('kanbanCardId', cardId)
       .order('createdAt'),
@@ -202,6 +204,7 @@ export async function createKanbanCardComment(
   content: string,
   attachments: File[],
   parentCommentId: string | null = null,
+  anchorText: string | null = null,
 ) {
   await requireKanbanMember(actor, kanbanId);
   await requireActiveCard(kanbanId, cardId);
@@ -233,9 +236,10 @@ export async function createKanbanCardComment(
       content,
       createdByUserId: actor.id,
       parentCommentId,
+      anchorText: parentCommentId ? null : anchorText,
     })
     .select(
-      'id, kanbanCardId, content, createdByUserId, createdAt, parentCommentId',
+      'id, kanbanCardId, content, createdByUserId, createdAt, parentCommentId, anchorText',
     )
     .single();
   if (commentError) throw new Error(commentError.message);

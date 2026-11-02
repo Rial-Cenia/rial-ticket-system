@@ -30,6 +30,7 @@ export async function POST(request: Request, context: Context) {
     const input = createKanbanCardCommentSchema.parse({
       content: formData.get('content') ?? '',
       parentCommentId: formData.get('parentCommentId') || null,
+      anchorText: formData.get('anchorText') || null,
     });
     const attachments = formData
       .getAll('attachments')
@@ -42,6 +43,7 @@ export async function POST(request: Request, context: Context) {
           input.content,
           attachments,
           input.parentCommentId,
+          input.anchorText,
         )
       : await createKanbanCardComment(
           actor,
@@ -49,6 +51,8 @@ export async function POST(request: Request, context: Context) {
           cardId,
           input.content,
           attachments,
+          null,
+          input.anchorText,
         );
     return Response.json({ data }, { status: 201 });
   } catch (error) {

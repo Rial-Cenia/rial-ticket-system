@@ -268,6 +268,7 @@ export interface KanbanCardComment {
   id: string;
   kanbanCardId: string;
   parentCommentId: string | null;
+  anchorText: string | null;
   content: string;
   createdBy: Pick<AppUser, 'userId' | 'name'>;
   createdAt: string;

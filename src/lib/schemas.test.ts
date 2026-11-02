@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createKanbanCardSchema,
+  createKanbanCardCommentSchema,
   createKanbanSchema,
   createProjectSchema,
   createTicketSchema,
@@ -67,6 +68,24 @@ describe('ticket schemas', () => {
 });
 
 describe('kanban schemas', () => {
+  it('acepta una selección anclada y limita su tamaño', () => {
+    expect(
+      createKanbanCardCommentSchema.parse({
+        content: 'Revisar esta definición',
+        anchorText: 'Fila de alcance pendiente',
+      }),
+    ).toEqual({
+      content: 'Revisar esta definición',
+      anchorText: 'Fila de alcance pendiente',
+    });
+    expect(() =>
+      createKanbanCardCommentSchema.parse({
+        content: 'Revisar esta definición',
+        anchorText: 'x'.repeat(1001),
+      }),
+    ).toThrow();
+  });
+
   it('exige al menos un equipo al crear un kanban', () => {
     expect(() =>
       createKanbanSchema.parse({ name: 'Producto', code: 'ABC', teamIds: [] }),
