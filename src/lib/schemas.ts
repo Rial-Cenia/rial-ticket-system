@@ -118,6 +118,7 @@ export const updateKanbanCardSchema = createKanbanCardSchema
 export const createKanbanCardCommentSchema = z.object({
   content: z.string().trim().max(4000),
   parentCommentId: z.string().uuid().nullable().optional(),
+  anchorText: z.string().trim().min(1).max(1000).nullable().optional(),
 });
 export const createTicketKanbanCardSchema = z.object({
   kanbanId: z.string().uuid(),

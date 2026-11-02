@@ -12,10 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  MarkdownContent,
-  MarkdownEditor,
-} from '@/components/ui/markdown-editor';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { useToast } from '@/components/ui/toast';
 import {
   Select,
@@ -502,14 +499,11 @@ function TaskCardPreview({
             </p>
           </section>
         )}
-        <section className="rounded-xl border border-white/8 bg-black/20 p-5">
-          {card.description ? (
-            <MarkdownContent>{card.description}</MarkdownContent>
-          ) : (
-            <p className="text-sm text-zinc-500">Sin descripción.</p>
-          )}
-        </section>
-        <KanbanCardComments kanbanId={kanban.id} cardId={card.id} />
+        <KanbanCardComments
+          kanbanId={kanban.id}
+          cardId={card.id}
+          description={card.description}
+        />
         {card.pullRequests.length > 0 && (
           <section className="space-y-2 rounded-xl border border-purple-400/20 bg-purple-500/5 p-4">
             <h3 className="text-sm font-medium">Pull requests vinculadas</h3>

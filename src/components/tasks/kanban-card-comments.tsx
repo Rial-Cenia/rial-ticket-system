@@ -32,9 +32,10 @@ const ACCEPTED_FILES = [
 interface Props {
   kanbanId: string;
   cardId: string;
+  description: string;
 }
 
-export function KanbanCardComments({ kanbanId, cardId }: Props) {
+export function KanbanCardComments({ kanbanId, cardId, description }: Props) {
   const comments = useKanbanCardComments(kanbanId, cardId);
   const create = useCreateKanbanCardComment(kanbanId, cardId);
   const remove = useDeleteKanbanCardComment(kanbanId, cardId);
@@ -44,6 +45,21 @@ export function KanbanCardComments({ kanbanId, cardId }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [anchorText, setAnchorText] = useState<string | null>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
+
+  function selectAnchor() {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+    if (
+      !selectedText ||
+      !selection?.anchorNode ||
+      !descriptionRef.current?.contains(selection.anchorNode)
+    )
+      return;
+    setReplyingTo(null);
+    setAnchorText(selectedText.slice(0, 1000));
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -51,12 +67,14 @@ export function KanbanCardComments({ kanbanId, cardId }: Props) {
     const formData = new FormData();
     formData.set('content', content);
     if (replyingTo) formData.set('parentCommentId', replyingTo);
+    if (anchorText && !replyingTo) formData.set('anchorText', anchorText);
     files.forEach((file) => formData.append('attachments', file));
     try {
       await create.mutateAsync(formData);
       setContent('');
       setFiles([]);
       setReplyingTo(null);
+      setAnchorText(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (mutationError) {
       const message =
@@ -82,142 +100,178 @@ export function KanbanCardComments({ kanbanId, cardId }: Props) {
   }
 
   return (
-    <section className="space-y-4 border-t border-white/8 pt-6">
-      <div>
-        <h3 className="text-sm font-medium">Comentarios</h3>
-        <p className="mt-1 text-xs text-zinc-500">
-          Usa Markdown para compartir links y contexto.
+    <section className="space-y-6">
+      <div className="rounded-xl border border-white/8 bg-black/20 p-5">
+        <h3 className="mb-3 text-sm font-medium">Descripción</h3>
+        <div ref={descriptionRef} onMouseUp={selectAnchor}>
+          {description ? (
+            <MarkdownContent>{description}</MarkdownContent>
+          ) : (
+            <p className="text-sm text-zinc-500">Sin descripción.</p>
+          )}
+        </div>
+        <p className="mt-3 text-xs text-zinc-500">
+          Selecciona una o más líneas para comentarlas directamente.
         </p>
       </div>
-      <form className="space-y-3" onSubmit={submit}>
-        {replyingTo && (
-          <div className="flex items-center justify-between rounded-lg bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
-            Respondiendo a un comentario
+      <div className="space-y-4 border-t border-white/8 pt-6">
+        <div>
+          <h3 className="text-sm font-medium">Comentarios</h3>
+          <p className="mt-1 text-xs text-zinc-500">
+            Usa Markdown para compartir links y contexto.
+          </p>
+        </div>
+        <form className="space-y-3" onSubmit={submit}>
+          {replyingTo && (
+            <div className="flex items-center justify-between rounded-lg bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
+              Respondiendo a un comentario
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplyingTo(null)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          )}
+          {anchorText && !replyingTo && (
+            <div className="flex items-start justify-between gap-3 rounded-lg border border-indigo-400/25 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
+              <span className="line-clamp-3">
+                Comentario sobre: “{anchorText}”
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setAnchorText(null)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          )}
+          <Textarea
+            value={content}
+            maxLength={4000}
+            placeholder="Escribe un comentario…"
+            onChange={(event) => setContent(event.target.value)}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-300 hover:text-white">
+              <Paperclip className="size-4" /> Adjuntar archivos
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ACCEPTED_FILES}
+                className="sr-only"
+                onChange={(event) =>
+                  setFiles(Array.from(event.target.files ?? []))
+                }
+              />
+            </label>
             <Button
-              type="button"
-              variant="ghost"
+              type="submit"
               size="sm"
-              onClick={() => setReplyingTo(null)}
+              disabled={
+                create.isPending || (!content.trim() && files.length === 0)
+              }
             >
-              Cancelar
+              <Send className="size-3.5" /> Publicar
             </Button>
           </div>
+          {files.length > 0 && (
+            <ul className="space-y-1 text-xs text-zinc-400">
+              {files.map((file) => (
+                <li key={`${file.name}-${file.lastModified}`}>
+                  {file.name} · {formatFileSize(file.size)}
+                </li>
+              ))}
+            </ul>
+          )}
+          {error && <p className="text-sm text-red-300">{error}</p>}
+        </form>
+        {comments.isLoading && (
+          <p className="text-sm text-zinc-500">Cargando comentarios…</p>
         )}
-        <Textarea
-          value={content}
-          maxLength={4000}
-          placeholder="Escribe un comentario…"
-          onChange={(event) => setContent(event.target.value)}
-        />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-300 hover:text-white">
-            <Paperclip className="size-4" /> Adjuntar archivos
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={ACCEPTED_FILES}
-              className="sr-only"
-              onChange={(event) =>
-                setFiles(Array.from(event.target.files ?? []))
-              }
-            />
-          </label>
-          <Button
-            type="submit"
-            size="sm"
-            disabled={
-              create.isPending || (!content.trim() && files.length === 0)
-            }
-          >
-            <Send className="size-3.5" /> Publicar
-          </Button>
-        </div>
-        {files.length > 0 && (
-          <ul className="space-y-1 text-xs text-zinc-400">
-            {files.map((file) => (
-              <li key={`${file.name}-${file.lastModified}`}>
-                {file.name} · {formatFileSize(file.size)}
-              </li>
-            ))}
-          </ul>
+        {comments.error && (
+          <p className="text-sm text-red-300">{comments.error.message}</p>
         )}
-        {error && <p className="text-sm text-red-300">{error}</p>}
-      </form>
-      {comments.isLoading && (
-        <p className="text-sm text-zinc-500">Cargando comentarios…</p>
-      )}
-      {comments.error && (
-        <p className="text-sm text-red-300">{comments.error.message}</p>
-      )}
-      {comments.data?.length === 0 && (
-        <p className="text-sm text-zinc-500">Aún no hay comentarios.</p>
-      )}
-      <div className="space-y-3">
-        {comments.data?.map((comment) => (
-          <article
-            key={comment.id}
-            className={`rounded-xl border border-white/8 bg-black/20 p-4 ${comment.parentCommentId ? 'ml-6 border-indigo-400/20' : ''}`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-zinc-100">
-                  {comment.createdBy.name}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {formatDate(comment.createdAt)}
-                </p>
-              </div>
-              {comment.canDelete && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Eliminar comentario"
-                  title="Eliminar comentario"
-                  disabled={remove.isPending}
-                  onClick={() => deleteComment(comment.id)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              )}
-            </div>
-            {comment.content && (
-              <div className="mt-3">
-                <MarkdownContent>{comment.content}</MarkdownContent>
-              </div>
-            )}
-            {comment.attachments.length > 0 && (
-              <ul className="mt-3 space-y-2">
-                {comment.attachments.map((attachment) => (
-                  <li key={attachment.id}>
-                    <a
-                      href={attachment.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 text-sm text-indigo-300 hover:text-indigo-200"
-                    >
-                      <FileIcon className="size-4" />
-                      <span>{attachment.fileName}</span>
-                      <span className="text-xs text-zinc-500">
-                        {formatFileSize(attachment.size)}
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="mt-3"
-              onClick={() => setReplyingTo(comment.id)}
+        {comments.data?.length === 0 && (
+          <p className="text-sm text-zinc-500">Aún no hay comentarios.</p>
+        )}
+        <div className="space-y-3">
+          {comments.data?.map((comment) => (
+            <article
+              key={comment.id}
+              className={`rounded-xl border border-white/8 bg-black/20 p-4 ${comment.parentCommentId ? 'ml-6 border-indigo-400/20' : ''}`}
             >
-              <Reply className="size-3.5" /> Responder
-            </Button>
-          </article>
-        ))}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-zinc-100">
+                    {comment.createdBy.name}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {formatDate(comment.createdAt)}
+                  </p>
+                </div>
+                {comment.canDelete && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Eliminar comentario"
+                    title="Eliminar comentario"
+                    disabled={remove.isPending}
+                    onClick={() => deleteComment(comment.id)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                )}
+              </div>
+              {comment.content && (
+                <div className="mt-3">
+                  <MarkdownContent>{comment.content}</MarkdownContent>
+                </div>
+              )}
+              {comment.anchorText && (
+                <blockquote className="mt-3 border-l-2 border-indigo-400/70 pl-3 text-sm text-zinc-400">
+                  {comment.anchorText}
+                </blockquote>
+              )}
+              {comment.attachments.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {comment.attachments.map((attachment) => (
+                    <li key={attachment.id}>
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 text-sm text-indigo-300 hover:text-indigo-200"
+                      >
+                        <FileIcon className="size-4" />
+                        <span>{attachment.fileName}</span>
+                        <span className="text-xs text-zinc-500">
+                          {formatFileSize(attachment.size)}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mt-3"
+                onClick={() => setReplyingTo(comment.id)}
+              >
+                <Reply className="size-3.5" /> Responder
+              </Button>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
