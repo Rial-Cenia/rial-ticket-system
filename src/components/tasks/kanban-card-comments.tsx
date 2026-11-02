@@ -10,6 +10,7 @@ import {
   useDeleteKanbanCardComment,
   useKanbanCardComments,
 } from '@/hooks/use-kanbans';
+import type { KanbanCardComment } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
 
 const ACCEPTED_FILES = [
@@ -47,6 +48,10 @@ export function KanbanCardComments({ kanbanId, cardId, description }: Props) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [anchorText, setAnchorText] = useState<string | null>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const replyTarget = comments.data?.find(
+    (comment) => comment.id === replyingTo,
+  );
+  const threads = createCommentThreads(comments.data ?? []);
 
   function selectAnchor() {
     const selection = window.getSelection();
@@ -124,7 +129,7 @@ export function KanbanCardComments({ kanbanId, cardId, description }: Props) {
         <form className="space-y-3" onSubmit={submit}>
           {replyingTo && (
             <div className="flex items-center justify-between rounded-lg bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
-              Respondiendo a un comentario
+              Respondiendo a {replyTarget?.createdBy.name ?? 'un comentario'}
               <Button
                 type="button"
                 variant="ghost"
@@ -202,78 +207,139 @@ export function KanbanCardComments({ kanbanId, cardId, description }: Props) {
           <p className="text-sm text-zinc-500">Aún no hay comentarios.</p>
         )}
         <div className="space-y-3">
-          {comments.data?.map((comment) => (
-            <article
-              key={comment.id}
-              className={`rounded-xl border border-white/8 bg-black/20 p-4 ${comment.parentCommentId ? 'ml-6 border-indigo-400/20' : ''}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-zinc-100">
-                    {comment.createdBy.name}
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    {formatDate(comment.createdAt)}
-                  </p>
-                </div>
-                {comment.canDelete && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Eliminar comentario"
-                    title="Eliminar comentario"
-                    disabled={remove.isPending}
-                    onClick={() => deleteComment(comment.id)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                )}
-              </div>
-              {comment.content && (
-                <div className="mt-3">
-                  <MarkdownContent>{comment.content}</MarkdownContent>
-                </div>
-              )}
-              {comment.anchorText && (
-                <blockquote className="mt-3 border-l-2 border-indigo-400/70 pl-3 text-sm text-zinc-400">
-                  {comment.anchorText}
-                </blockquote>
-              )}
-              {comment.attachments.length > 0 && (
-                <ul className="mt-3 space-y-2">
-                  {comment.attachments.map((attachment) => (
-                    <li key={attachment.id}>
-                      <a
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 text-sm text-indigo-300 hover:text-indigo-200"
-                      >
-                        <FileIcon className="size-4" />
-                        <span>{attachment.fileName}</span>
-                        <span className="text-xs text-zinc-500">
-                          {formatFileSize(attachment.size)}
-                        </span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="mt-3"
-                onClick={() => setReplyingTo(comment.id)}
-              >
-                <Reply className="size-3.5" /> Responder
-              </Button>
-            </article>
+          {threads.map((thread) => (
+            <CommentThread
+              key={thread.comment.id}
+              thread={thread}
+              deletingComment={remove.isPending}
+              onDelete={deleteComment}
+              onReply={setReplyingTo}
+            />
           ))}
         </div>
       </div>
     </section>
+  );
+}
+
+interface CommentThreadNode {
+  comment: KanbanCardComment;
+  replies: CommentThreadNode[];
+}
+
+function createCommentThreads(comments: KanbanCardComment[]) {
+  const nodes = new Map<string, CommentThreadNode>(
+    comments.map<[string, CommentThreadNode]>((comment) => [
+      comment.id,
+      { comment, replies: [] } satisfies CommentThreadNode,
+    ]),
+  );
+  const roots: CommentThreadNode[] = [];
+
+  for (const node of nodes.values()) {
+    const parent = node.comment.parentCommentId
+      ? nodes.get(node.comment.parentCommentId)
+      : null;
+    if (parent) parent.replies.push(node);
+    else roots.push(node);
+  }
+
+  return roots;
+}
+
+function CommentThread({
+  thread,
+  deletingComment,
+  onDelete,
+  onReply,
+}: {
+  thread: CommentThreadNode;
+  deletingComment: boolean;
+  onDelete: (commentId: string) => void;
+  onReply: (commentId: string) => void;
+}) {
+  const { comment, replies } = thread;
+  return (
+    <article
+      data-testid={`comment-${comment.id}`}
+      className="rounded-xl border border-white/8 bg-black/20 p-4"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-zinc-100">
+            {comment.createdBy.name}
+          </p>
+          <p className="text-xs text-zinc-500">
+            {formatDate(comment.createdAt)}
+          </p>
+        </div>
+        {comment.canDelete && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Eliminar comentario"
+            title="Eliminar comentario"
+            disabled={deletingComment}
+            onClick={() => onDelete(comment.id)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        )}
+      </div>
+      {comment.content && (
+        <div className="mt-3">
+          <MarkdownContent>{comment.content}</MarkdownContent>
+        </div>
+      )}
+      {comment.anchorText && (
+        <blockquote className="mt-3 border-l-2 border-indigo-400/70 pl-3 text-sm text-zinc-400">
+          {comment.anchorText}
+        </blockquote>
+      )}
+      {comment.attachments.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {comment.attachments.map((attachment) => (
+            <li key={attachment.id}>
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 text-sm text-indigo-300 hover:text-indigo-200"
+              >
+                <FileIcon className="size-4" />
+                <span>{attachment.fileName}</span>
+                <span className="text-xs text-zinc-500">
+                  {formatFileSize(attachment.size)}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="mt-3"
+        onClick={() => onReply(comment.id)}
+      >
+        <Reply className="size-3.5" /> Responder
+      </Button>
+      {replies.length > 0 && (
+        <div className="mt-3 space-y-3 border-l border-indigo-400/30 pl-4">
+          {replies.map((reply) => (
+            <CommentThread
+              key={reply.comment.id}
+              thread={reply}
+              deletingComment={deletingComment}
+              onDelete={onDelete}
+              onReply={onReply}
+            />
+          ))}
+        </div>
+      )}
+    </article>
   );
 }
 
