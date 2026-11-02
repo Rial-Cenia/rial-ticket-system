@@ -48,9 +48,6 @@ export function KanbanCardComments({ kanbanId, cardId, description }: Props) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [anchorText, setAnchorText] = useState<string | null>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
-  const replyTarget = comments.data?.find(
-    (comment) => comment.id === replyingTo,
-  );
   const threads = createCommentThreads(comments.data ?? []);
 
   function selectAnchor() {
@@ -126,77 +123,20 @@ export function KanbanCardComments({ kanbanId, cardId, description }: Props) {
             Usa Markdown para compartir links y contexto.
           </p>
         </div>
-        <form className="space-y-3" onSubmit={submit}>
-          {replyingTo && (
-            <div className="flex items-center justify-between rounded-lg bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
-              Respondiendo a {replyTarget?.createdBy.name ?? 'un comentario'}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setReplyingTo(null)}
-              >
-                Cancelar
-              </Button>
-            </div>
-          )}
-          {anchorText && !replyingTo && (
-            <div className="flex items-start justify-between gap-3 rounded-lg border border-indigo-400/25 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
-              <span className="line-clamp-3">
-                Comentario sobre: “{anchorText}”
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="shrink-0"
-                onClick={() => setAnchorText(null)}
-              >
-                Cancelar
-              </Button>
-            </div>
-          )}
-          <Textarea
-            value={content}
-            maxLength={4000}
-            placeholder="Escribe un comentario…"
-            onChange={(event) => setContent(event.target.value)}
+        {!replyingTo && (
+          <CommentComposer
+            content={content}
+            files={files}
+            fileInputRef={fileInputRef}
+            isPending={create.isPending}
+            error={error}
+            anchorText={anchorText}
+            onContentChange={setContent}
+            onFilesChange={setFiles}
+            onSubmit={submit}
+            onClearAnchor={() => setAnchorText(null)}
           />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-300 hover:text-white">
-              <Paperclip className="size-4" /> Adjuntar archivos
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={ACCEPTED_FILES}
-                className="sr-only"
-                onChange={(event) =>
-                  setFiles(Array.from(event.target.files ?? []))
-                }
-              />
-            </label>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={
-                create.isPending || (!content.trim() && files.length === 0)
-              }
-            >
-              <Send className="size-3.5" /> Publicar
-            </Button>
-          </div>
-          {files.length > 0 && (
-            <ul className="space-y-1 text-xs text-zinc-400">
-              {files.map((file) => (
-                <li key={`${file.name}-${file.lastModified}`}>
-                  {file.name} · {formatFileSize(file.size)}
-                </li>
-              ))}
-            </ul>
-          )}
-          {error && <p className="text-sm text-red-300">{error}</p>}
-        </form>
+        )}
         {comments.isLoading && (
           <p className="text-sm text-zinc-500">Cargando comentarios…</p>
         )}
@@ -214,6 +154,18 @@ export function KanbanCardComments({ kanbanId, cardId, description }: Props) {
               deletingComment={remove.isPending}
               onDelete={deleteComment}
               onReply={setReplyingTo}
+              replyingTo={replyingTo}
+              onCancelReply={() => setReplyingTo(null)}
+              composer={{
+                content,
+                files,
+                fileInputRef,
+                isPending: create.isPending,
+                error,
+                onContentChange: setContent,
+                onFilesChange: setFiles,
+                onSubmit: submit,
+              }}
             />
           ))}
         </div>
@@ -252,11 +204,17 @@ function CommentThread({
   deletingComment,
   onDelete,
   onReply,
+  replyingTo,
+  onCancelReply,
+  composer,
 }: {
   thread: CommentThreadNode;
   deletingComment: boolean;
   onDelete: (commentId: string) => void;
   onReply: (commentId: string) => void;
+  replyingTo: string | null;
+  onCancelReply: () => void;
+  composer: ComposerProps;
 }) {
   const { comment, replies } = thread;
   return (
@@ -326,6 +284,15 @@ function CommentThread({
       >
         <Reply className="size-3.5" /> Responder
       </Button>
+      {replyingTo === comment.id && (
+        <div className="mt-3 border-l-2 border-indigo-400/40 pl-4">
+          <CommentComposer
+            {...composer}
+            replyToName={comment.createdBy.name}
+            onCancelReply={onCancelReply}
+          />
+        </div>
+      )}
       {replies.length > 0 && (
         <div className="mt-3 space-y-3 border-l border-indigo-400/30 pl-4">
           {replies.map((reply) => (
@@ -335,11 +302,115 @@ function CommentThread({
               deletingComment={deletingComment}
               onDelete={onDelete}
               onReply={onReply}
+              replyingTo={replyingTo}
+              onCancelReply={onCancelReply}
+              composer={composer}
             />
           ))}
         </div>
       )}
     </article>
+  );
+}
+
+interface ComposerProps {
+  content: string;
+  files: File[];
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  isPending: boolean;
+  error: string;
+  onContentChange: (value: string) => void;
+  onFilesChange: (files: File[]) => void;
+  onSubmit: (event: React.FormEvent) => void;
+}
+
+function CommentComposer({
+  content,
+  files,
+  fileInputRef,
+  isPending,
+  error,
+  anchorText,
+  replyToName,
+  onContentChange,
+  onFilesChange,
+  onSubmit,
+  onClearAnchor,
+  onCancelReply,
+}: ComposerProps & {
+  anchorText?: string | null;
+  replyToName?: string;
+  onClearAnchor?: () => void;
+  onCancelReply?: () => void;
+}) {
+  return (
+    <form className="space-y-3" onSubmit={onSubmit}>
+      {replyToName && (
+        <div className="flex items-center justify-between rounded-lg bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
+          Respondiendo a {replyToName}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onCancelReply}
+          >
+            Cancelar
+          </Button>
+        </div>
+      )}
+      {anchorText && onClearAnchor && (
+        <div className="flex items-start justify-between gap-3 rounded-lg border border-indigo-400/25 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-100">
+          <span className="line-clamp-3">Comentario sobre: “{anchorText}”</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={onClearAnchor}
+          >
+            Cancelar
+          </Button>
+        </div>
+      )}
+      <Textarea
+        value={content}
+        maxLength={4000}
+        placeholder="Escribe un comentario…"
+        onChange={(event) => onContentChange(event.target.value)}
+      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-300 hover:text-white">
+          <Paperclip className="size-4" /> Adjuntar archivos
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED_FILES}
+            className="sr-only"
+            onChange={(event) =>
+              onFilesChange(Array.from(event.target.files ?? []))
+            }
+          />
+        </label>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={isPending || (!content.trim() && files.length === 0)}
+        >
+          <Send className="size-3.5" /> Publicar
+        </Button>
+      </div>
+      {files.length > 0 && (
+        <ul className="space-y-1 text-xs text-zinc-400">
+          {files.map((file) => (
+            <li key={`${file.name}-${file.lastModified}`}>
+              {file.name} · {formatFileSize(file.size)}
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="text-sm text-red-300">{error}</p>}
+    </form>
   );
 }
 

@@ -144,6 +144,30 @@ describe('KanbanCardComments', () => {
     expect(formData.get('anchorText')).toBe('Primera línea para revisar.');
   });
 
+  it('abre el editor de respuesta junto al comentario elegido', async () => {
+    const user = userEvent.setup();
+    render(
+      <KanbanCardComments
+        kanbanId="kanban-1"
+        cardId="card-1"
+        description="Descripción de prueba"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Responder' }));
+    expect(screen.getByText('Respondiendo a Beatriz')).toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText('Escribe un comentario…'),
+      'Respuesta en contexto',
+    );
+    await user.click(screen.getByRole('button', { name: 'Publicar' }));
+
+    const formData = mocks.create.mock.calls[0][0] as FormData;
+    expect(formData.get('parentCommentId')).toBe('comment-1');
+    expect(formData.get('content')).toBe('Respuesta en contexto');
+  });
+
   it('muestra cada respuesta dentro de su comentario padre', () => {
     mocks.comments = [
       {
