@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   fetchTeams: vi.fn(),
   fetchKanbans: vi.fn(),
   updateUserRole: vi.fn(),
+  updateUserStatus: vi.fn(),
   updateTeamMember: vi.fn(),
   fetchGithubRepositories: vi.fn(),
   fetchTeamGithubRepositories: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('@/lib/api/kanbans', () => ({
   fetchTeams: mocks.fetchTeams,
   fetchKanbans: mocks.fetchKanbans,
   updateUserRole: mocks.updateUserRole,
+  updateUserStatus: mocks.updateUserStatus,
   updateTeamMember: mocks.updateTeamMember,
   fetchGithubRepositories: mocks.fetchGithubRepositories,
   fetchTeamGithubRepositories: mocks.fetchTeamGithubRepositories,
@@ -45,12 +47,14 @@ const users: AppUser[] = [
     email: 'ana@rial.cl',
     name: 'Ana',
     role: 'USER',
+    status: 'ACTIVE',
   },
   {
     userId: 'user-2',
     email: 'bea@rial.cl',
     name: 'Bea',
     role: 'ADMIN',
+    status: 'ACTIVE',
   },
 ];
 
@@ -99,6 +103,7 @@ describe('SettingsPage', () => {
     mocks.fetchTeamGithubRepositories.mockResolvedValue([]);
     mocks.fetchKanbanGithubRepositories.mockResolvedValue([]);
     mocks.updateUserRole.mockResolvedValue({});
+    mocks.updateUserStatus.mockResolvedValue({});
     mocks.updateTeamMember.mockResolvedValue({});
     mocks.fetchTriagerRotation.mockResolvedValue({
       enabled: true,
