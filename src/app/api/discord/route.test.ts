@@ -14,7 +14,12 @@ const mocks = vi.hoisted(() => ({
   processJobs: vi.fn(),
   rpc: vi.fn(),
   discordEnv: vi.fn(),
+  isDiscordAccountDisabled: vi.fn(),
   order: [] as string[],
+}));
+
+vi.mock('@/lib/discord/accounts', () => ({
+  isDiscordAccountDisabled: mocks.isDiscordAccountDisabled,
 }));
 
 vi.mock('@/lib/discord/client', () => ({
@@ -77,6 +82,7 @@ describe('Discord interaction route', () => {
       triagerRoleId: 'triager-role',
       ticketeraAdminRoleId: 'ticketera-admin-role',
     });
+    mocks.isDiscordAccountDisabled.mockResolvedValue(false);
     mocks.callback.mockImplementation(async () => {
       mocks.order.push('ack');
     });
@@ -98,6 +104,28 @@ describe('Discord interaction route', () => {
       };
     });
     mocks.getTicketImageSignedUrls.mockResolvedValue([]);
+  });
+
+  it('rechaza las acciones de una cuenta Rial deshabilitada', async () => {
+    mocks.isDiscordAccountDisabled.mockResolvedValue(true);
+    const response = await POST(
+      signedRequest({
+        id: 'disabled-1',
+        application_id: 'app',
+        token: 'token',
+        type: 2,
+        guild_id: 'guild-1',
+        data: { name: 'codex', options: [] },
+        member: {
+          user: { id: 'discord-user', username: 'disabled' },
+          roles: [],
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.isDiscordAccountDisabled).toHaveBeenCalledWith('discord-user');
+    expect(mocks.callback).not.toHaveBeenCalled();
   });
 
   it('rechaza headers de firma ausentes', async () => {

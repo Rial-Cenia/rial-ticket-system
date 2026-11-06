@@ -8,6 +8,8 @@ import {
   Pencil,
   Plus,
   Save,
+  ShieldCheck,
+  ShieldOff,
   Trash2,
   UserMinus,
   type LucideIcon,
@@ -559,6 +561,7 @@ function UserRoleControl({
 }) {
   const [role, setRole] = useState(user.role);
   const hasChanged = role !== user.role;
+  const isDisabled = user.status === 'DISABLED';
   return (
     <div className="flex items-center gap-2">
       <select
@@ -583,6 +586,34 @@ function UserRoleControl({
       >
         <Save className="size-4" />
         Guardar
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant={isDisabled ? 'outline' : 'danger'}
+        onClick={() => {
+          const nextStatus = isDisabled ? 'ACTIVE' : 'DISABLED';
+          if (
+            nextStatus === 'DISABLED' &&
+            !window.confirm(
+              `¿Deshabilitar la cuenta de ${user.name}? Se bloqueará su acceso a la web y Discord.`,
+            )
+          )
+            return;
+          run(
+            isDisabled
+              ? 'Cuenta reactivada correctamente.'
+              : 'Cuenta deshabilitada correctamente.',
+            () => api.updateUserStatus(user.userId, nextStatus),
+          );
+        }}
+      >
+        {isDisabled ? (
+          <ShieldCheck className="size-4" />
+        ) : (
+          <ShieldOff className="size-4" />
+        )}
+        {isDisabled ? 'Reactivar' : 'Deshabilitar'}
       </Button>
     </div>
   );

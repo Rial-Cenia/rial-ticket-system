@@ -42,7 +42,8 @@ async function readMembers() {
   if (membersError) throw membersError;
   if (linksError) throw linksError;
   const linksByUser = new Map((links ?? []).map((link) => [link.userId, link]));
-  const usersById = new Map(users.map((user) => [user.userId, user]));
+  const activeUsers = users.filter((user) => user.status === 'ACTIVE');
+  const usersById = new Map(activeUsers.map((user) => [user.userId, user]));
   const ordered = (members ?? []).flatMap(({ userId }) => {
     const user = usersById.get(userId);
     const link = linksByUser.get(userId);
@@ -58,7 +59,7 @@ async function readMembers() {
       },
     ];
   });
-  const available = users.flatMap((user) => {
+  const available = activeUsers.flatMap((user) => {
     const link = linksByUser.get(user.userId);
     if (!link) return [];
     return [

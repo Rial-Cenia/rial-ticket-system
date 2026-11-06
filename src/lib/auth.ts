@@ -36,10 +36,12 @@ export const getAuthenticatedUser = cache(
     if (insertError) throw new Error(insertError.message);
     const { data: appUser, error: roleError } = await admin
       .from('AppUser')
-      .select('role')
+      .select('role, status')
       .eq('userId', data.user.id)
       .single();
     if (roleError) throw new Error(roleError.message);
+
+    if (appUser.status !== 'ACTIVE') return null;
 
     return {
       id: data.user.id,

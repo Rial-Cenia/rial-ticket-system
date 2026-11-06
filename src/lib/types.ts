@@ -25,9 +25,11 @@ export type ActivitySource = 'WEB' | 'DISCORD';
 export type OutboxJobType =
   'CREATE_TRIAGE_THREAD' | 'SEND_THREAD_MESSAGE' | 'ARCHIVE_THREAD';
 export const APP_ROLES = ['ADMIN', 'USER'] as const;
+export const ACCOUNT_STATUSES = ['ACTIVE', 'DISABLED'] as const;
 export const TEAM_MEMBERSHIP_ROLES = ['LEADER', 'MEMBER'] as const;
 export const KANBAN_PRIORITIES = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'] as const;
 export type AppRole = (typeof APP_ROLES)[number];
+export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 export type TeamMembershipRole = (typeof TEAM_MEMBERSHIP_ROLES)[number];
 export type KanbanPriority = (typeof KANBAN_PRIORITIES)[number];
 export const PROJECT_STATUSES = [
@@ -180,6 +182,7 @@ export interface AppUser {
   email: string;
   name: string;
   role: AppRole;
+  status: AccountStatus;
 }
 
 export interface TeamMember extends AppUser {

@@ -61,6 +61,25 @@ export async function getDiscordAccountLink(userId: string) {
   return data as DiscordAccountLink | null;
 }
 
+export async function isDiscordAccountDisabled(discordUserId: string) {
+  const admin = createAdminClient();
+  const { data: link, error: linkError } = await admin
+    .from('DiscordAccountLink')
+    .select('userId')
+    .eq('discordUserId', discordUserId)
+    .maybeSingle();
+  if (linkError) throw linkError;
+  if (!link) return false;
+
+  const { data: user, error: userError } = await admin
+    .from('AppUser')
+    .select('status')
+    .eq('userId', link.userId)
+    .maybeSingle();
+  if (userError) throw userError;
+  return user?.status === 'DISABLED';
+}
+
 export async function listDiscordLinkedUsers(): Promise<DiscordLinkedUser[]> {
   const supabase = createAdminClient();
   const [

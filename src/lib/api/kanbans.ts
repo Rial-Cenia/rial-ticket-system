@@ -6,6 +6,7 @@ import type {
   UpdateKanbanCardInput,
 } from '@/lib/schemas';
 import type {
+  AccountStatus,
   AppRole,
   AppUser,
   Kanban,
@@ -176,6 +177,8 @@ export const cancelTeamMember = (teamId: string, membershipId: string) =>
 export const fetchUsers = () => apiRequest<AppUser[]>('/api/users');
 export const updateUserRole = (userId: string, role: AppRole) =>
   apiRequest(`/api/users/${userId}/role`, json('PATCH', { role }));
+export const updateUserStatus = (userId: string, status: AccountStatus) =>
+  apiRequest(`/api/users/${userId}/status`, json('PATCH', { status }));
 
 export const fetchTicketScope = () =>
   apiRequest<{

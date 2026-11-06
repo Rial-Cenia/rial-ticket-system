@@ -28,6 +28,7 @@ import {
 import { parseApplicationCommand } from '@/lib/discord/interactions';
 import { handleCodexCommand } from '@/lib/codex/discord';
 import * as discordRoles from '@/lib/discord/roles';
+import { isDiscordAccountDisabled } from '@/lib/discord/accounts';
 import { verifyDiscordRequest } from '@/lib/discord/signature';
 import { processOutboxJobs } from '@/lib/discord/jobs';
 import {
@@ -327,6 +328,14 @@ export async function POST(request: Request) {
       ephemeral(`🤖💤 **Este bot no vive aquí, bestie…**
 No está habilitado en este servidor (｡•́︿•̀｡)💔
 Toca activarlo antes de invocarlo, porque por ahora está en modo fantasma: cero presencia, cero servicio, cero aura administrativa 👻🎀`),
+    );
+
+  const discordUser = interaction.member?.user ?? interaction.user;
+  if (discordUser && (await isDiscordAccountDisabled(discordUser.id)))
+    return Response.json(
+      ephemeral(
+        '🚫 Tu cuenta de Rial está deshabilitada. No puedes usar las acciones del bot.',
+      ),
     );
 
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {

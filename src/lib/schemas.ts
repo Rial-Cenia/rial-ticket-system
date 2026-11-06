@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   APP_ROLES,
+  ACCOUNT_STATUSES,
   KANBAN_PRIORITIES,
   PLATFORMS,
   PROJECT_STATUSES,
@@ -15,6 +16,7 @@ export const ticketStatusSchema = z.enum(TICKET_STATUSES);
 export const platformSchema = z.enum(PLATFORMS);
 export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES);
 export const appRoleSchema = z.enum(APP_ROLES);
+export const accountStatusSchema = z.enum(ACCOUNT_STATUSES);
 export const teamMembershipRoleSchema = z.enum(TEAM_MEMBERSHIP_ROLES);
 export const kanbanPrioritySchema = z.enum(KANBAN_PRIORITIES);
 export const projectStatusSchema = z.enum(PROJECT_STATUSES);
@@ -61,6 +63,9 @@ export const updateTeamMembershipSchema = z.object({
   role: teamMembershipRoleSchema,
 });
 export const updateAppRoleSchema = z.object({ role: appRoleSchema });
+export const updateAccountStatusSchema = z.object({
+  status: accountStatusSchema,
+});
 
 export const createKanbanSchema = z.object({
   name: z.string().trim().min(1).max(100),
