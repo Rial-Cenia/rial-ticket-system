@@ -1,6 +1,13 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { KanbanCardComment } from '@/lib/types';
 
 const mocks = vi.hoisted(() => ({
   comments: [
@@ -24,7 +31,7 @@ const mocks = vi.hoisted(() => ({
       ],
       canDelete: true,
     },
-  ],
+  ] as KanbanCardComment[],
   create: vi.fn(),
   remove: vi.fn(),
   showToast: vi.fn(),
@@ -135,5 +142,83 @@ describe('KanbanCardComments', () => {
 
     const formData = mocks.create.mock.calls[0][0] as FormData;
     expect(formData.get('anchorText')).toBe('Primera línea para revisar.');
+  });
+
+  it('abre el editor de respuesta junto al comentario elegido', async () => {
+    const user = userEvent.setup();
+    render(
+      <KanbanCardComments
+        kanbanId="kanban-1"
+        cardId="card-1"
+        description="Descripción de prueba"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Responder' }));
+    expect(screen.getByText('Respondiendo a Beatriz')).toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText('Escribe un comentario…'),
+      'Respuesta en contexto',
+    );
+    await user.click(screen.getByRole('button', { name: 'Publicar' }));
+
+    const formData = mocks.create.mock.calls[0][0] as FormData;
+    expect(formData.get('parentCommentId')).toBe('comment-1');
+    expect(formData.get('content')).toBe('Respuesta en contexto');
+  });
+
+  it('muestra cada respuesta dentro de su comentario padre', () => {
+    mocks.comments = [
+      {
+        id: 'parent',
+        kanbanCardId: 'card-1',
+        parentCommentId: null,
+        anchorText: null,
+        content: 'Comentario raíz',
+        createdBy: { userId: 'user-1', name: 'Beatriz' },
+        createdAt: '2026-10-13T12:00:00.000Z',
+        attachments: [],
+        canDelete: true,
+      },
+      {
+        id: 'reply',
+        kanbanCardId: 'card-1',
+        parentCommentId: 'parent',
+        anchorText: null,
+        content: 'Respuesta del primer hilo',
+        createdBy: { userId: 'user-2', name: 'Dylan' },
+        createdAt: '2026-10-13T12:01:00.000Z',
+        attachments: [],
+        canDelete: true,
+      },
+      {
+        id: 'other-parent',
+        kanbanCardId: 'card-1',
+        parentCommentId: null,
+        anchorText: null,
+        content: 'Otro comentario raíz',
+        createdBy: { userId: 'user-3', name: 'Pipo' },
+        createdAt: '2026-10-13T12:02:00.000Z',
+        attachments: [],
+        canDelete: true,
+      },
+    ];
+    render(
+      <KanbanCardComments
+        kanbanId="kanban-1"
+        cardId="card-1"
+        description="Descripción de prueba"
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId('comment-parent')).getByTestId('comment-reply'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('comment-other-parent')).queryByTestId(
+        'comment-reply',
+      ),
+    ).not.toBeInTheDocument();
   });
 });
