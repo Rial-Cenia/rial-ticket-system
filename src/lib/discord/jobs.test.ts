@@ -44,7 +44,10 @@ vi.mock('@/lib/tickets/server', () => ({
   getTicketImageSignedUrls: mocks.getTicketImageSignedUrls,
 }));
 
-import { processOutboxJobs } from '@/lib/discord/jobs';
+import {
+  processOutboxJobs,
+  splitDiscordMessage,
+} from '@/lib/discord/jobs';
 
 const ticket: Ticket = {
   id: 42,
@@ -168,6 +171,45 @@ describe('Discord outbox jobs', () => {
       content: '<@&platform-role> La PR está lista.',
       allowed_mentions: { parse: [], roles: ['platform-role'] },
     });
+  });
+
+  it('divide mensajes largos antes de enviarlos a Discord', async () => {
+    const content = `${'a'.repeat(1990)}\n${'b'.repeat(30)}`;
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: [
+          job('SEND_THREAD_MESSAGE', {
+            threadId: 'thread-1',
+            content,
+            notifyPlatform: true,
+          }),
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(processOutboxJobs()).resolves.toMatchObject({ delivered: 1 });
+
+    const sentContents = mocks.sendThreadMessage.mock.calls.map(
+      ([, payload]) => payload.content,
+    );
+    expect(sentContents).toHaveLength(2);
+    expect(sentContents.every((chunk: string) => chunk.length <= 2000)).toBe(
+      true,
+    );
+    expect(sentContents[0]).toContain('<@&platform-role>');
+    expect(sentContents[0]).toContain('a'.repeat(100));
+    expect(sentContents[1]).toContain('b'.repeat(30));
+  });
+
+  it('divide por caracteres Unicode sin cortar emojis', () => {
+    const chunks = splitDiscordMessage('🙂'.repeat(2001));
+
+    expect(chunks).toHaveLength(2);
+    expect(chunks.every((chunk) => Array.from(chunk).length <= 2000)).toBe(
+      true,
+    );
+    expect(chunks.join('')).toBe('🙂'.repeat(2001));
   });
 
   it('recupera y renombra un thread con el formato legacy', async () => {

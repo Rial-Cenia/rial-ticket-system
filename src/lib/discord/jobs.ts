@@ -21,10 +21,27 @@ import type { OutboxJob } from '@/lib/types';
 
 const messageJobSchema = z.object({
   threadId: z.string(),
-  content: z.string().min(1).max(2000),
+  content: z.string().min(1),
   notifyTicketeraAdmins: z.boolean().optional(),
   notifyPlatform: z.boolean().optional(),
 });
+
+export function splitDiscordMessage(content: string, maxLength = 2000) {
+  const characters = Array.from(content);
+  const chunks: string[] = [];
+
+  while (characters.length > maxLength) {
+    let splitAt = maxLength;
+    const newlineAt = characters.lastIndexOf('\n', maxLength - 1);
+    if (newlineAt > 0) splitAt = newlineAt;
+
+    chunks.push(characters.splice(0, splitAt).join('').trimEnd());
+    while (characters[0] === '\n') characters.shift();
+  }
+
+  if (characters.length > 0) chunks.push(characters.join(''));
+  return chunks;
+}
 
 async function getPlatformRoleId(
   platform: Parameters<typeof discordRoles.platformRoleId>[0],
@@ -150,27 +167,31 @@ async function processJob(job: OutboxJob) {
       payload.notifyTicketeraAdmins && ticket?.platform === 'TICKETERA'
         ? getDiscordEnv().ticketeraAdminRoleId
         : null;
-    await sendThreadMessage(payload.threadId, {
-      content: [
-        platformRoleId ? `<@&${platformRoleId}>` : null,
-        ticketeraAdminRoleId ? `<@&${ticketeraAdminRoleId}>` : null,
-        creatorId ? `<@${creatorId}>` : null,
-        payload.content,
-      ]
-        .filter(Boolean)
-        .join(' '),
-      allowed_mentions: {
-        parse: [],
-        ...(creatorId ? { users: [creatorId] } : {}),
-        ...(platformRoleId || ticketeraAdminRoleId
-          ? {
-              roles: [platformRoleId, ticketeraAdminRoleId].filter(
-                (roleId): roleId is string => Boolean(roleId),
-              ),
-            }
-          : {}),
-      },
-    });
+    const content = [
+      platformRoleId ? `<@&${platformRoleId}>` : null,
+      ticketeraAdminRoleId ? `<@&${ticketeraAdminRoleId}>` : null,
+      creatorId ? `<@${creatorId}>` : null,
+      payload.content,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    const allowedMentions = {
+      parse: [],
+      ...(creatorId ? { users: [creatorId] } : {}),
+      ...(platformRoleId || ticketeraAdminRoleId
+        ? {
+            roles: [platformRoleId, ticketeraAdminRoleId].filter(
+              (roleId): roleId is string => Boolean(roleId),
+            ),
+          }
+        : {}),
+    };
+    for (const chunk of splitDiscordMessage(content)) {
+      await sendThreadMessage(payload.threadId, {
+        content: chunk,
+        allowed_mentions: allowedMentions,
+      });
+    }
     return complete(job.id);
   }
   const payload = archiveJobSchema.parse(job.payload);
