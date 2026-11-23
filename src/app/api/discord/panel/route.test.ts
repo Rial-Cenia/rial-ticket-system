@@ -60,7 +60,6 @@ describe('Discord panel cron route', () => {
           }),
         ]),
       }),
-      'panel-message',
     );
   });
 
@@ -82,7 +81,6 @@ describe('Discord panel cron route', () => {
           }),
         ]),
       }),
-      'panel-message',
     );
   });
 
@@ -95,8 +93,8 @@ describe('Discord panel cron route', () => {
     expect(mocks.createOrUpdatePanel).not.toHaveBeenCalled();
   });
 
-  it('omite la ejecución de fin de semana', async () => {
-    vi.setSystemTime(new Date('2026-06-06T13:00:00.000Z'));
+  it('omite la ejecución de otros días', async () => {
+    vi.setSystemTime(new Date('2026-06-02T13:00:00.000Z'));
 
     const response = await POST(request('cron-secret'));
 
@@ -104,16 +102,13 @@ describe('Discord panel cron route', () => {
     expect(mocks.createOrUpdatePanel).not.toHaveBeenCalled();
   });
 
-  it('exige un mensaje de panel existente para evitar duplicados', async () => {
+  it('publica sin requerir un ID de panel existente', async () => {
     vi.setSystemTime(new Date('2026-06-01T13:00:00.000Z'));
     mocks.serverEnv.mockReturnValue({ CRON_SECRET: 'cron-secret' });
 
     const response = await POST(request('cron-secret'));
 
-    expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({
-      error: 'Falta DISCORD_PANEL_MESSAGE_ID',
-    });
-    expect(mocks.createOrUpdatePanel).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(mocks.createOrUpdatePanel).toHaveBeenCalledWith(expect.any(Object));
   });
 });

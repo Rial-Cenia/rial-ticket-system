@@ -88,7 +88,7 @@ Desde **Configuración**, los administradores pueden cambiar roles y crear equip
 2. Otorga en el canal de triage: `View Channel`, `Send Messages`, `Send Messages in Threads`, `Create Public Threads`, `Manage Threads` y `Read Message History`.
 3. En **General Information → Interactions Endpoint URL**, configura `https://<dominio>/api/discord`. Discord enviará un PING firmado que el endpoint valida con `DISCORD_PUBLIC_KEY`.
 4. Configura en Vercel todas las variables Discord y Supabase antes de validar el endpoint.
-5. Publica el panel una sola vez con `yarn discord:setup`, guarda el ID que imprime en `DISCORD_PANEL_MESSAGE_ID` y configúralo también en Vercel. Así el cron actualiza siempre el mismo mensaje y no crea duplicados.
+5. Si necesitas publicar el panel manualmente, ejecuta `yarn discord:setup`. Si configuras `DISCORD_PANEL_MESSAGE_ID`, el comando actualiza ese mensaje; sin ese valor publica uno nuevo.
 6. Registra los comandos de Botuki en el guild con `yarn discord:setup-commands`. El script usa `DISCORD_CLIENT_ID`, `DISCORD_BOT_TOKEN` y `DISCORD_GUILD_ID`, y registra `/codex analyze`, `/codex status`, `/codex stop`, `/codex implement` y `/codex retry`.
 7. En **OAuth2 → Redirects**, registra exactamente `<APP_URL>/api/discord/oauth/callback`.
 8. Otorga al bot `Manage Roles` y ubica su rol por encima de Barbilla Roja para poder administrar sus miembros desde la plataforma.
@@ -126,7 +126,7 @@ Después de desplegar, agrega manualmente en Supabase Vault:
 
 Luego ejecuta manualmente `supabase/cron-bootstrap.sql` en el SQL Editor del proyecto. Este paso crea el dispatcher de un minuto y el cron del panel con `pg_cron` y `pg_net`. No se debe versionar el valor de ningún secreto.
 
-El mismo bootstrap programa la actualización del panel de tickets de lunes a viernes. Invoca el endpoint a las 12:00 y 13:00 UTC; este solo actualiza el mensaje cuando son las 09:00 en `America/Santiago`, manteniendo el horario correcto durante los cambios de hora.
+El mismo bootstrap programa la publicación de un nuevo panel de tickets cada lunes a las 09:00 en `America/Santiago`. Invoca el endpoint a las 12:00 y 13:00 UTC; este solo publica cuando son las 09:00 en Chile, manteniendo el horario correcto durante los cambios de hora. Los paneles anteriores permanecen en el canal.
 
 ## Desarrollo y validación
 
