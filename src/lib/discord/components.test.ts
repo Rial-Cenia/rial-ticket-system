@@ -152,6 +152,12 @@ Necesita plataforma y un valiente que lo adopte antes de que empiece su arco de 
 La quest ha comenzado, besties. Alguien ya se puso la 10 y está cocinando una solución, uwu 🍳🔥`,
     ],
     [
+      'BACKLOG',
+      `📥 **Guardadito en Backlog** ✨
+**Operaciones** movió el ticket \`RTP-42\` a **BACKLOG** 🎀
+Queda registrado para retomarlo más adelante.`,
+    ],
+    [
       'PENDIENTE',
       `⏳ **Mini pausa administrativa** (｡•́︿•̀｡)
 El ticket \`RTP-42\` fue actualizado por **Operaciones** y quedó **PENDIENTE** 🎀
@@ -198,6 +204,7 @@ No está olvidado, solo está teniendo su training arc, uwu 🌸✨`,
       ticketControls(ticket, 'Operaciones', 'platform-role'),
     );
     for (const status of [
+      'BACKLOG',
       'PENDIENTE',
       'EN_PROGRESO',
       'EN_STAGING',

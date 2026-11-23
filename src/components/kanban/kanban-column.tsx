@@ -5,6 +5,7 @@ import { TicketCard } from '@/components/kanban/ticket-card';
 import { STATUS_LABELS, type Ticket, type TicketStatus } from '@/lib/types';
 
 const dots: Record<TicketStatus, string> = {
+  BACKLOG: 'bg-zinc-400',
   PENDIENTE: 'bg-red-400',
   EN_PROGRESO: 'bg-yellow-400',
   EN_STAGING: 'bg-blue-400',

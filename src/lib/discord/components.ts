@@ -236,6 +236,9 @@ export function statusUpdateMessage(ticket: Ticket, actorName: string) {
     EN_PROGRESO: `🔄 **¡Tenemos movimiento en el Kanban!** 🛹✨
 **${user}** actualizó el ticket \`${code}\` y ahora está **EN PROGRESO** 🚧
 La quest ha comenzado, besties. Alguien ya se puso la 10 y está cocinando una solución, uwu 🍳🔥`,
+    BACKLOG: `📥 **Guardadito en Backlog** ✨
+**${user}** movió el ticket \`${code}\` a **BACKLOG** 🎀
+Queda registrado para retomarlo más adelante.`,
     PENDIENTE: `⏳ **Mini pausa administrativa** (｡•́︿•̀｡)
 El ticket \`${code}\` fue actualizado por **${user}** y quedó **PENDIENTE** 🎀
 Todavía no entra al horno, pero ya está haciendo fila educadamente. Paciencia, bestie: su momento slay llegará 🧍✨`,
@@ -371,6 +374,13 @@ ${assignment}`,
         type: 1,
 
         components: [
+          {
+            type: 2,
+            style: 2,
+            label: '📥 Backlog',
+            custom_id: `status_BACKLOG_${ticket.publicId}`,
+            disabled: ticket.status === 'BACKLOG',
+          },
           {
             type: 2,
             style: 4,

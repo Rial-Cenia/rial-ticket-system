@@ -84,6 +84,8 @@ Security invariant: `get_ticket_metrics` should be `security invoker`, use `set 
 
 ## Tests And Verification
 
+- The Discord panel cron calls `POST /api/discord/panel` at 12:00 and 13:00 UTC on Mondays. The endpoint checks for 09:00 Monday in `America/Santiago` and posts a new panel; older panels remain in the channel. `supabase/cron-bootstrap.sql` defines the schedule and uses Vault secrets. Deploy the endpoint before updating the remote schedule.
+
 The package declares Yarn, but this environment may not have `yarn` on PATH. Use `npm test -- <files>` when needed; the script runs Vitest.
 
 Useful targeted metrics test command:
@@ -121,3 +123,7 @@ After the metrics migration, Supabase advisors showed pre-existing items not cau
 - New metrics indexes may show as unused immediately after creation; that is expected until query history accumulates.
 
 Report these findings if relevant, but do not fix them opportunistically unless the user asks.
+
+## Ticket Backlog
+
+`BACKLOG` is an open ticket status for deferred work. It is available in the ticket board and Discord, and is excluded from both stagnant ticket metrics. Moving from `PENDIENTE` to `BACKLOG` counts as acknowledgement under the existing metric.

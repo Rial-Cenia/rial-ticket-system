@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(20);
 
 insert into public."Ticket" ("publicId", title, description, type, priority, status, platform, "createdByName", "createdAt", "updatedAt")
 values
@@ -109,6 +109,13 @@ select is(
   'EXTERNO',
   'Metrics quality comparison identifies the selected platform'
 );
+
+insert into public."Ticket" ("publicId", title, description, type, priority, status, platform, "createdByName", "createdAt", "updatedAt")
+values ('50000000-0000-0000-0000-000000000007', 'Idea postergada', 'Detalle', 'MEJORA', 'ALTA', 'BACKLOG', 'EXTERNO', 'pgTAP', now() - interval '10 days', now() - interval '10 days');
+
+select is((public.get_ticket_metrics(30, 'EXTERNO', 3, 4)->'summary'->>'stagnant')::integer, 1, 'Backlog is excluded from stagnant summary');
+select is(jsonb_array_length(public.get_ticket_metrics(30, 'EXTERNO', 3, 4)->'quality'->'stagnantTickets'), 1, 'Backlog is excluded from stagnant ticket list');
+select is((public.get_ticket_metrics(30, 'EXTERNO', 3, 4)->'summary'->>'openHighToday')::integer, 2, 'High-priority backlog remains open work');
 
 select * from finish();
 rollback;

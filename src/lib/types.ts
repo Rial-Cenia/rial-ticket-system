@@ -1,5 +1,6 @@
 export const TICKET_TYPES = ['REQUERIMIENTO', 'MEJORA', 'DUDA', 'BUG'] as const;
 export const TICKET_STATUSES = [
+  'BACKLOG',
   'PENDIENTE',
   'EN_PROGRESO',
   'EN_STAGING',
@@ -341,6 +342,7 @@ export interface Kanban {
 }
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {
+  BACKLOG: '📥 Backlog',
   PENDIENTE: '⏳ Pendientito',
   EN_PROGRESO: '🚧 Cocinándose',
   EN_STAGING: '🧪 En pruebibas',

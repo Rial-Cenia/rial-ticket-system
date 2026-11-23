@@ -28,6 +28,15 @@ describe('ticket schemas', () => {
     expect(() => updateTicketSchema.parse({ status: 'CERRADO' })).toThrow();
   });
 
+  it('acepta backlog en actualizaciones y filtros', () => {
+    expect(updateTicketSchema.parse({ status: 'BACKLOG' })).toEqual({
+      status: 'BACKLOG',
+    });
+    expect(ticketFiltersSchema.parse({ status: 'BACKLOG' })).toEqual({
+      status: 'BACKLOG',
+    });
+  });
+
   it('acepta el estado de staging', () => {
     expect(updateTicketSchema.parse({ status: 'EN_STAGING' })).toEqual({
       status: 'EN_STAGING',

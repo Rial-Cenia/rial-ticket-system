@@ -75,6 +75,10 @@ describe('Discord interactions', () => {
 
   it('valida custom ids de triage y de todos los estados', () => {
     expect(parseTriageId(`triage_platform_${publicId}`)).toBe(publicId);
+    expect(parseStatusId(`status_BACKLOG_${publicId}`)).toEqual({
+      status: 'BACKLOG',
+      publicId,
+    });
     expect(parseStatusId(`status_RESUELTO_${publicId}`)).toEqual({
       status: 'RESUELTO',
       publicId,

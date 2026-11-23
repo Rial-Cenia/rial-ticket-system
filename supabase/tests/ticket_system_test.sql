@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(78);
+select plan(82);
 select has_table('public', 'Ticket', 'Ticket table exists');
 select has_table('public', 'TicketActivity', 'Activity table exists');
 select has_table('public', 'TicketSyncOutbox', 'Outbox table exists');
@@ -93,5 +93,9 @@ select lives_ok($$select public.cancel_kanban((select id from public."Kanban" wh
 select is((select status::text from public."Kanban" where name = 'Kanban Test'), 'CANCELLED', 'Kanban remains stored as cancelled');
 select lives_ok($$select public.cancel_team('20000000-0000-0000-0000-000000000001')$$, 'Team is soft deleted');
 select is((select status::text from public."Team" where id = '20000000-0000-0000-0000-000000000001'), 'CANCELLED', 'Team remains stored as cancelled');
+select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"status":"BACKLOG"}'::jsonb, 'WEB', 'pgTAP', 'test-user')$$, 'Ticket can move to backlog');
+select is((select status::text from public."Ticket" where title = 'Prueba'), 'BACKLOG', 'Ticket persists backlog status');
+select matches((select payload->>'content' from public."TicketSyncOutbox" o join public."Ticket" t on t."publicId" = o."ticketPublicId" where t.title = 'Prueba' and o.type = 'SEND_THREAD_MESSAGE' and o.payload->>'content' like '%BACKLOG%' limit 1), 'BACKLOG', 'Backlog update queues a Discord message');
+select lives_ok($$select public.update_ticket((select "publicId" from public."Ticket" where title = 'Prueba'), '{"status":"PENDIENTE"}'::jsonb, 'DISCORD', 'pgTAP', 'test-user')$$, 'Ticket can leave backlog');
 select * from finish();
 rollback;
